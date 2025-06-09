@@ -41,8 +41,10 @@ The application follows a three-layer design:
 - Real-time fractal computation triggered by button clicks
 - Dynamic color mapping from iteration counts to RGB values
 - Cross-platform window with native look and feel
-- High-resolution rendering (800×800 pixels) with instant visual feedback
+- High-resolution rendering with configurable dimensions and instant visual feedback
 - Proper state management (computing vs idle states)
+- Interactive parameter input: coordinate bounds (left, right, top, bottom), image dimensions (width, height), and max iterations
+- Real-time parameter validation using Rust's Result pattern matching
 
 **Project Structure**
 ```
@@ -95,6 +97,9 @@ src/
 - **Graphics Programming**: Color mapping, texture creation, real-time rendering
 - **Trait Implementation**: Implementing `eframe::App` for custom application behavior
 - **Cargo Dependencies**: Adding external crates and managing project dependencies
+- **Advanced Pattern Matching**: Using `if let` with tuple destructuring for multi-field validation
+- **Result Type Handling**: Parsing user input with `.parse()` and handling success/error cases
+- **String Manipulation**: Converting between String and numeric types with proper error handling
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful
