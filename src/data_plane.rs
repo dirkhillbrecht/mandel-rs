@@ -19,12 +19,16 @@ impl DataPlane {
         let x_ratio=(x_max-x_min)/width as f64;
         let y_ratio=(y_max-y_min)/width as f64;
         if (x_ratio-y_ratio).abs()<1e-3 {
-            DataPlane { data: vec![None; width*height], width, height, x_min, x_max, y_min, y_max, dotsize: x_ratio }
+            let calc_shift=x_ratio/2.0;
+            DataPlane { data: vec![None; width*height], width, height,
+                x_min: x_min+calc_shift, x_max: x_max+calc_shift, y_min: y_min+calc_shift, y_max: y_max+calc_shift,
+                dotsize: x_ratio
+            }
         }
         else {
-            let x_center=(x_max+x_min)/2.0;
-            let y_center=(y_max+y_min)/2.0;
             let common_ratio=x_ratio.max(y_ratio);
+            let x_center=(x_max+x_min+common_ratio)/2.0;
+            let y_center=(y_max+y_min+common_ratio)/2.0;
             let x_dist=common_ratio*((width as f64)/2.0);
             let y_dist=common_ratio*((height as f64)/2.0);
             DataPlane { data: vec![None; width*height], width, height,
