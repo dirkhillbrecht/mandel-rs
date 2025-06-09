@@ -1,54 +1,28 @@
-// Two-dimensional data storage for the data points of mandel-rs
+// Definition of a complete data set for creating an image
 
-use crate::DataPoint;
+use crate::data_plane::DataPlane;
 
-#[derive(Debug)]
 pub struct DataStorage {
-    data: Vec<Option<DataPoint>>,
-    width: usize,
-    height: usize,
+    x_min: f64,
+    x_max: f64,
+    y_min: f64,
+    y_max: f64,
+    max_iteration: u32,
+    plane: DataPlane,
 }
 
 impl DataStorage {
-    pub fn new(width: usize, height: usize) -> DataStorage {
-        DataStorage { data: vec![None; width*height] , width, height }
+    pub fn new(x_min:f64,x_max:f64,y_min:f64,y_max:f64,width:u32,height:u32,max_iteration:u32) -> DataStorage {
+        DataStorage{x_min,x_max,y_min,y_max,max_iteration,plane:DataPlane::new(width as usize,height as usize)}
     }
-    pub fn width(&self) -> usize { self.width }
-    pub fn height(&self) -> usize { self.height }
-    fn index(&self,x:usize,y:usize) -> usize { y*self.width+x }
-    pub fn get(&self, x: usize, y: usize) -> Option<&DataPoint> {
-        self.data[self.index(x,y)].as_ref()
-    }
-    pub fn set(&mut self, x: usize, y: usize, data_point: DataPoint) {
-        let idx=self.index(x,y);
-        self.data[idx] = Option::Some(data_point);
-    }
-}
+    pub fn x_min(&self) -> f64 { self.x_min }
+    pub fn x_max(&self) -> f64 { self.x_max }
+    pub fn y_min(&self) -> f64 { self.y_min }
+    pub fn y_max(&self) -> f64 { self.y_max }
+    pub fn max_iteration(&self) -> u32 { self.max_iteration }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_construct() {
-        let ds: DataStorage = DataStorage::new(50,60);
-        assert_eq!(ds.width(),50);
-        assert_eq!(ds.height(),60);
-    }
-
-    #[test]
-    fn test_get_and_set() {
-        let mut ds: DataStorage = DataStorage::new(2,2);
-        let dp1: DataPoint = DataPoint::new(14,7.0,9.0);
-        ds.set(0, 0, dp1);
-        //let oretrieved=ds.get(0,0).unwrap();
-        //assert_eq!(oretrieved.is_some(),true);
-        let retrieved=ds.get(0,0).unwrap();
-        assert_eq!(retrieved.iteration_count(),14);
-        assert_eq!(retrieved.final_x(),7.0);
-        assert_eq!(retrieved.final_y(),9.0);
-    }
-
+    pub fn plane(&self) -> &DataPlane { &self.plane }
+    pub fn plane_mut(&mut self) -> &mut DataPlane { &mut self.plane }
 }
 
 // end of file

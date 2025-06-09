@@ -1,9 +1,11 @@
 // Main program for the mandel-rs project
 
 mod data_point;
+mod data_plane;
 mod data_storage;
 
 use crate::data_point::DataPoint;
+use crate::data_plane::DataPlane;
 use crate::data_storage::DataStorage;
 
 fn main() {
