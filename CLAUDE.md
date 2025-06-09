@@ -15,24 +15,35 @@ This is mandel.rs - a Rust learning project focused on building a fractal graphi
 The application follows a three-layer design:
 
 1. **Storage**: ✅ 2D array storing rich fractal data (not just iteration depth)
-2. **Computation**: 🚧 Fractal calculation algorithms (starting simple, optimizing later)
+2. **Computation**: ✅ Fractal calculation algorithms (starting simple, optimizing later)
 3. **Visualization**: 📋 Display layer (local GUI first, web interface later)
 
 ### Current Implementation Status
 
 **Storage Layer (Complete)**
 - `DataPoint` struct: Stores iteration count, final x/y coordinates
-- `DataStorage` struct: 2D array using single Vec with coordinate transformation
-- Immutable design with private fields and getter methods
+- `DataPlane` struct: 2D array operations with coordinate transformation
+- `DataStorage` struct: High-level container with computation metadata
+- Coordinate bounds (x_min, x_max, y_min, y_max) and max_iteration configuration
+- Immutable design with proper mutability access (plane() / plane_mut())
 - Option<DataPoint> for handling uncomputed points
-- Full unit test coverage
+
+**Computation Layer (Complete)**
+- `simple_mandelbrot.rs`: Core Mandelbrot set algorithm
+- `data_point_at()`: Single complex number computation with escape detection
+- `compute_mandelbrot()`: Full storage computation with coordinate transformation
+- Direct complex number math (z² + c) without external dependencies
+- Proper handling of max iterations and final escape coordinates
+- Verified working algorithm with edge/center point testing
 
 **Project Structure**
 ```
 src/
-├── main.rs           # Entry point and module declarations
-├── data_point.rs     # DataPoint struct with constructor and getters
-└── data_storage.rs   # DataStorage with 2D indexing and tests
+├── main.rs              # Entry point with working Mandelbrot demonstration
+├── data_point.rs        # DataPoint struct with constructor and getters
+├── data_plane.rs        # 2D array operations and indexing
+├── data_storage.rs      # High-level storage with computation metadata
+└── simple_mandelbrot.rs # Mandelbrot computation algorithm
 ```
 
 ## Technical Context
@@ -55,10 +66,13 @@ src/
 - **Option<T>**: Null safety with explicit handling of "maybe no value"
 - **Derive Macros**: Auto-generating Debug, Clone, PartialEq implementations
 - **Vec Memory Management**: Capacity vs length, proper initialization
-- **Borrow Checker**: Preventing data races at compile time
-- **Module System**: Separating code into logical modules (data_point.rs, data_storage.rs)
+- **Borrow Checker**: Preventing data races at compile time, separating immutable/mutable borrows
+- **Module System**: Declaring (`mod`) vs importing (`use`), cross-module function calls
 - **Testing**: Built-in unit testing with `#[test]` and `cargo test`
 - **References vs Values**: When to return `&DataPoint` vs `DataPoint`
+- **Mathematical Algorithms**: Implementing complex number operations without external libraries
+- **Coordinate Transformations**: Mapping between pixel space and mathematical coordinate systems
+- **Struct Design**: Separating concerns (DataStorage metadata vs DataPlane operations)
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful
