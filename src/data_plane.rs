@@ -7,14 +7,40 @@ pub struct DataPlane {
     data: Vec<Option<DataPoint>>,
     width: usize,
     height: usize,
+    x_min: f64,
+    x_max: f64,
+    y_min: f64,
+    y_max: f64,
+    dotsize: f64,
 }
 
 impl DataPlane {
-    pub fn new(width: usize, height: usize) -> DataPlane {
-        DataPlane { data: vec![None; width*height] , width, height }
+    pub fn new(width: usize, height: usize, x_min: f64, x_max: f64, y_min: f64, y_max: f64) -> DataPlane {
+        let x_ratio=(x_max-x_min)/width as f64;
+        let y_ratio=(y_max-y_min)/width as f64;
+        if (x_ratio-y_ratio).abs()<1e-3 {
+            DataPlane { data: vec![None; width*height], width, height, x_min, x_max, y_min, y_max, dotsize: x_ratio }
+        }
+        else {
+            let x_center=(x_max+x_min)/2.0;
+            let y_center=(y_max+y_min)/2.0;
+            let common_ratio=x_ratio.max(y_ratio);
+            let x_dist=common_ratio*((width as f64)/2.0);
+            let y_dist=common_ratio*((height as f64)/2.0);
+            DataPlane { data: vec![None; width*height], width, height,
+                x_min: x_center-x_dist, x_max: x_center+x_dist, y_min: y_center-y_dist, y_max: y_center+y_dist,
+                dotsize: common_ratio
+            }
+        }
     }
     pub fn width(&self) -> usize { self.width }
     pub fn height(&self) -> usize { self.height }
+    pub fn x_min(&self) -> f64 { self.x_min }
+    pub fn x_max(&self) -> f64 { self.x_max }
+    pub fn y_min(&self) -> f64 { self.y_min }
+    pub fn y_max(&self) -> f64 { self.y_max }
+    pub fn x(&self,x_pix:usize) -> f64 { self.x_min+x_pix as f64*self.dotsize }
+    pub fn y(&self,y_pix:usize) -> f64 { self.y_max-y_pix as f64*self.dotsize }
     fn index(&self,x:usize,y:usize) -> usize { y*self.width+x }
     pub fn get(&self, x: usize, y: usize) -> Option<&DataPoint> {
         self.data[self.index(x,y)].as_ref()
@@ -31,14 +57,14 @@ mod tests {
 
     #[test]
     fn test_construct() {
-        let ds: DataPlane = DataPlane::new(50,60);
+        let ds: DataPlane = DataPlane::new(50,60,-2.0,2.0,-1.0,1.0);
         assert_eq!(ds.width(),50);
         assert_eq!(ds.height(),60);
     }
 
     #[test]
     fn test_get_and_set() {
-        let mut plane: DataPlane = DataPlane::new(2,2);
+        let mut plane: DataPlane = DataPlane::new(2,2,-2.0,2.0,-1.0,1.0);
         let point: DataPoint = DataPoint::new(14,7.0,9.0);
         plane.set(0, 0, point);
         //let oretrieved=ds.get(0,0).unwrap();

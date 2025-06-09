@@ -58,7 +58,7 @@ impl eframe::App for MandelbrotApp {
             if ui.button("Compute Mandelbrot").clicked() {
                 println!("Compute started");
                 self.computing=true;
-                let mut storage = DataStorage::new(-2.3,1.0,-1.5,1.5,800,800,150);
+                let mut storage = DataStorage::new(-2.0,1.0,-0.3,1.5,800,800,150);
                 simple_mandelbrot::compute_mandelbrot(&mut storage);
                 self.storage=Some(storage);
                 self.computing=false;

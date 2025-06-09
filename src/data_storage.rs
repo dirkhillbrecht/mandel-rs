@@ -13,7 +13,7 @@ pub struct DataStorage {
 
 impl DataStorage {
     pub fn new(x_min:f64,x_max:f64,y_min:f64,y_max:f64,width:u32,height:u32,max_iteration:u32) -> DataStorage {
-        DataStorage{x_min,x_max,y_min,y_max,max_iteration,plane:DataPlane::new(width as usize,height as usize)}
+        DataStorage{x_min,x_max,y_min,y_max,max_iteration,plane:DataPlane::new(width as usize,height as usize,x_min,x_max,y_min,y_max)}
     }
     pub fn x_min(&self) -> f64 { self.x_min }
     pub fn x_max(&self) -> f64 { self.x_max }

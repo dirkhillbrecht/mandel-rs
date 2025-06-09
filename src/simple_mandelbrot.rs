@@ -4,15 +4,11 @@ use crate::data_point::DataPoint;
 use crate::DataStorage;
 
 pub fn compute_mandelbrot(storage: &mut DataStorage) {
-    let x_dist=storage.x_max()-storage.x_min();
-    let y_dist=storage.y_max()-storage.y_min();
-    let x_pix=x_dist/(storage.plane().width()-1) as f64;
-    let y_pix=y_dist/(storage.plane().height()-1) as f64;
     let max_iteration=storage.max_iteration();
     for x in 0..storage.plane().width() {
-        let x_coo=storage.x_min()+x as f64*x_pix;
+        let x_coo=storage.plane().x(x);
         for y in 0..storage.plane().height() {
-            let y_coo=storage.y_max()-y as f64*y_pix;
+            let y_coo=storage.plane().y(y);
             storage.plane_mut().set(x,y,data_point_at(x_coo,y_coo,max_iteration));
         }
     }
