@@ -1,18 +1,34 @@
 // Local GUI for mandel-rs
 
-use eframe::{self, Storage};
+use eframe::{self};
 use egui;
 use crate::{data_storage::DataStorage, simple_mandelbrot};
 
 pub struct MandelbrotApp {
     storage: Option<DataStorage>,
     computing: bool,
-
+    left: String,
+    right: String,
+    top: String,
+    bottom: String,
+    width: String,
+    height: String,
+    max_iteration: String,
 }
 
 impl MandelbrotApp {
     pub fn new() -> Self {
-        MandelbrotApp { storage: None, computing: false}
+        MandelbrotApp {
+            storage: None,
+            computing: false,
+            left: "-2.1".to_string(),
+            right: "0.75".to_string(),
+            top: "1.25".to_string(),
+            bottom: "-1.25".to_string(),
+            width: "800".to_string(),
+            height: "600".to_string(),
+            max_iteration: "200".to_string()
+        }
     }
     fn iteration_to_color(it: u32, maxit: u32) -> [u8; 3] {
         if it==maxit {
@@ -55,14 +71,49 @@ impl eframe::App for MandelbrotApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.label("Hello Mandelbrot");
+            ui.horizontal(|ui| {
+                ui.label("Left: ");
+                ui.text_edit_singleline(&mut self.left);
+                ui.label("Right: ");
+                ui.text_edit_singleline(&mut self.right);
+            });
+            ui.horizontal(|ui| {
+                ui.label("Top: ");
+                ui.text_edit_singleline(&mut self.top);
+                ui.label("Bottom: ");
+                ui.text_edit_singleline(&mut self.bottom);
+            });
+            ui.horizontal(|ui| {
+                ui.label("Width: ");
+                ui.text_edit_singleline(&mut self.width);
+                ui.label("Height: ");
+                ui.text_edit_singleline(&mut self.height);
+                ui.label("Max. iteration: ");
+                ui.text_edit_singleline(&mut self.max_iteration);
+            });
             if ui.button("Compute Mandelbrot").clicked() {
-                println!("Compute started");
-                self.computing=true;
-                let mut storage = DataStorage::new(-2.0,1.0,-0.3,1.5,800,800,150);
-                simple_mandelbrot::compute_mandelbrot(&mut storage);
-                self.storage=Some(storage);
-                self.computing=false;
-                println!("Compute ended");
+                if let (Ok(left), Ok(right), Ok(bottom), Ok(top),
+                        Ok(width), Ok(height), Ok(max_iteration)) = (
+                    self.left.parse::<f64>(),
+                    self.right.parse::<f64>(),
+                    self.bottom.parse::<f64>(),
+                    self.top.parse::<f64>(),
+                    self.width.parse::<u32>(),
+                    self.height.parse::<u32>(),
+                    self.max_iteration.parse::<u32>(),
+                ) {
+                    println!("Compute started");
+                    self.computing=true;
+                    let mut storage = DataStorage::new(left,right,bottom,top,
+                        width,height,max_iteration);
+                    simple_mandelbrot::compute_mandelbrot(&mut storage);
+                    self.storage=Some(storage);
+                    self.computing=false;
+                    println!("Compute ended");
+                }
+                else {
+                    println!("Problem with input data");
+                }
             }
             if self.computing {
                 ui.label("Computing…");

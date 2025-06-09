@@ -16,24 +16,24 @@ pub struct DataPlane {
 
 impl DataPlane {
     pub fn new(width: usize, height: usize, x_min: f64, x_max: f64, y_min: f64, y_max: f64) -> DataPlane {
-        let x_ratio=(x_max-x_min)/width as f64;
-        let y_ratio=(y_max-y_min)/width as f64;
-        if (x_ratio-y_ratio).abs()<1e-3 {
-            let calc_shift=x_ratio/2.0;
+        let x_dotsize=(x_max-x_min)/width as f64;
+        let y_dotsize=(y_max-y_min)/height as f64;
+        if (x_dotsize-y_dotsize).abs()<1e-5 {
+            let calc_shift=x_dotsize/2.0;
             DataPlane { data: vec![None; width*height], width, height,
                 x_min: x_min+calc_shift, x_max: x_max+calc_shift, y_min: y_min+calc_shift, y_max: y_max+calc_shift,
-                dotsize: x_ratio
+                dotsize: x_dotsize
             }
         }
         else {
-            let common_ratio=x_ratio.max(y_ratio);
-            let x_center=(x_max+x_min+common_ratio)/2.0;
-            let y_center=(y_max+y_min+common_ratio)/2.0;
-            let x_dist=common_ratio*((width as f64)/2.0);
-            let y_dist=common_ratio*((height as f64)/2.0);
+            let dotsize=x_dotsize.max(y_dotsize);
+            let x_center=(x_max+x_min+dotsize)/2.0;
+            let y_center=(y_max+y_min+dotsize)/2.0;
+            let x_dist=dotsize*((width as f64)/2.0);
+            let y_dist=dotsize*((height as f64)/2.0);
             DataPlane { data: vec![None; width*height], width, height,
                 x_min: x_center-x_dist, x_max: x_center+x_dist, y_min: y_center-y_dist, y_max: y_center+y_dist,
-                dotsize: common_ratio
+                dotsize
             }
         }
     }
