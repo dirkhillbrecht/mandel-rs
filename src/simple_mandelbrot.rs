@@ -26,7 +26,7 @@ pub fn data_point_at(c_real:f64,c_imag:f64,max_iteration:u32) -> DataPoint {
         let z_imag_square=z_imag*z_imag;
         let z_real_new=z_real_square-z_imag_square+c_real;
         let z_imag_new=2.0*z_real*z_imag+c_imag;
-        if (z_real_square+z_imag_square>4.0) { // make this configurable later
+        if z_real_square+z_imag_square>4.0 { // make this configurable later
             return DataPoint::new(i,z_real_new,z_imag_new);
         }
         z_real=z_real_new;
