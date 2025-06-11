@@ -47,6 +47,8 @@ The application follows a three-layer design:
 - Proper state management (computing vs idle states)
 - Interactive parameter input: coordinate bounds (left, right, top, bottom), image dimensions (width, height), and max iterations
 - Real-time parameter validation using Rust's Result pattern matching
+- Improved layout design with centered alignment and consistent spacing
+- Fixed-width input fields (100px) for uniform appearance
 
 **Project Structure**
 ```
@@ -106,6 +108,8 @@ src/
 - **Advanced Pattern Matching**: Using `if let` with tuple destructuring for multi-field validation
 - **Result Type Handling**: Parsing user input with `.parse()` and handling success/error cases
 - **String Manipulation**: Converting between String and numeric types with proper error handling
+- **Layout Management**: iced alignment system, horizontal spacing, fixed-width components
+- **UI Design Patterns**: Center-aligned layouts, consistent spacing, visual balance
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful

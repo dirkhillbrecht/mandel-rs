@@ -138,38 +138,52 @@ impl Application for MandelIcedApp {
         column![
             text("Mandelbrot Fractal Visualizer").size(24),
             row![
-                text("Left: "),
-                text_input("", &self.left).on_input(Message::LeftChanged),
-                text("Right: "),
-                text_input("", &self.right).on_input(Message::RightChanged),
-            ].spacing(10),
+                iced::widget::horizontal_space(),
+                text("Computed size:"),
+                text_input("", &self.width).width(100).on_input(Message::WidthChanged),
+                text("*"),
+                text_input("", &self.height).width(100).on_input(Message::HeightChanged),
+                text("pixels, maximum depth:"),
+                text_input("", &self.max_iteration).width(100).on_input(Message::MaxIterationChanged),
+                text("iterations"),
+                iced::widget::horizontal_space(),
+            ].spacing(10).align_items(iced::Alignment::Center),
             row![
-                text("Top: "),
-                text_input("", &self.top).on_input(Message::TopChanged),
-                text("Bottom: "),
-                text_input("", &self.bottom).on_input(Message::BottomChanged),
-            ].spacing(10),
+                iced::widget::horizontal_space(),
+                button("Compute Mandelbrot").on_press(Message::ComputeClicked),
+            ].align_items(iced::Alignment::Center),
             row![
-                text("Width: "),
-                text_input("", &self.width).on_input(Message::WidthChanged),
-                text("Height: "),
-                text_input("", &self.height).on_input(Message::HeightChanged),
-                text("Max Iter: "),
-                text_input("", &self.max_iteration).on_input(Message::MaxIterationChanged),
-            ].spacing(10),
-            button("Compute Mandelbrot").on_press(Message::ComputeClicked),
-            if self.computing {
-                column![text("Computing…")].spacing(10)
-            }
-            else if let Some(storage) = &self.storage {
-                column![
-                    text(format!("Computed {}*{} fractal", storage.plane().width(), storage.plane().height())),
-                    self.render_fractal(storage)
-                ].spacing(10)
-            }
-            else {
-                column![text("Ready to compute")].spacing(10)
-            }
+                iced::widget::horizontal_space(),
+                text("Coordinate (x:"),
+                text_input("", &self.right).width(100).on_input(Message::RightChanged),
+                text(",y:"),
+                text_input("", &self.top).width(100).on_input(Message::TopChanged),
+                text(")"),
+            ].spacing(10).align_items(iced::Alignment::Center),
+            row![
+                iced::widget::horizontal_space(),
+                if self.computing {
+                    column![text("Computing…")].spacing(10)
+                }
+                else if let Some(storage) = &self.storage {
+                    column![
+                        text(format!("Computed {}*{} fractal", storage.plane().width(), storage.plane().height())),
+                        self.render_fractal(storage)
+                    ].spacing(10)
+                }
+                else {
+                    column![text("Ready to compute")].spacing(10)
+                },
+                iced::widget::horizontal_space(),
+            ],
+            row![
+                text("Coordinate (x:"),
+                text_input("", &self.left).width(100).on_input(Message::LeftChanged),
+                text(",y:"),
+                text_input("", &self.bottom).width(100).on_input(Message::BottomChanged),
+                text(")"),
+                iced::widget::horizontal_space(),
+            ].spacing(10).align_items(iced::Alignment::Center),
         ].spacing(20).padding(20).into()
     }
 
