@@ -36,11 +36,13 @@ The application follows a three-layer design:
 - Proper handling of max iterations and final escape coordinates
 - Verified working algorithm with edge/center point testing
 
-**Visualization Layer (Complete)**
-- `mandelbrot_app.rs`: Interactive GUI application using egui
+**Visualization Layer (Complete - Migrated to iced)**
+- `mandel_iced_app.rs`: Interactive GUI application using iced MVU architecture
+- Model-View-Update (MVU) pattern with pure functional UI description
+- Event-driven architecture with Message enum for all user interactions
 - Real-time fractal computation triggered by button clicks
 - Dynamic color mapping from iteration counts to RGB values
-- Cross-platform window with native look and feel
+- Cross-platform window with native look and feel and responsive image scaling
 - High-resolution rendering with configurable dimensions and instant visual feedback
 - Proper state management (computing vs idle states)
 - Interactive parameter input: coordinate bounds (left, right, top, bottom), image dimensions (width, height), and max iterations
@@ -54,24 +56,26 @@ src/
 ├── data_plane.rs        # 2D array operations and indexing
 ├── data_storage.rs      # High-level storage with computation metadata
 ├── simple_mandelbrot.rs # Mandelbrot computation algorithm
-└── mandelbrot_app.rs    # Interactive GUI with fractal visualization
+└── mandel_iced_app.rs   # Interactive GUI with fractal visualization (iced MVU)
 ```
 
 ## Technical Context
 - Language: Rust (educational focus)
 - Development: VS Code with Rust Extension Pack
-- GUI Framework: egui + eframe for cross-platform native applications
+- GUI Framework: iced for cross-platform native applications with MVU architecture
 - Version Control: Git repository
 - Target Platform: Linux/Ubuntu (system-independent design)
 - Human Background: Experienced Java programmer learning Rust
 
 ## Major Achievement: Complete Functional Application
-**In a single day, accomplished zero-to-production Rust development:**
+**Accomplished comprehensive Rust development:**
 - Built complete fractal visualizer from scratch
 - Mastered Rust's ownership system and advanced concepts
 - Created interactive GUI application with real-time graphics
+- Successfully migrated from egui to iced, learning MVU architecture
 - Implemented mathematical algorithms and coordinate transformations
 - Achieved high-resolution (800×800) fractal rendering with custom coloring
+- Demonstrated architecture independence by reusing business logic across UI frameworks
 
 ## Development Commands
 - Build: `cargo build`
@@ -93,9 +97,11 @@ src/
 - **Mathematical Algorithms**: Implementing complex number operations without external libraries
 - **Coordinate Transformations**: Mapping between pixel space and mathematical coordinate systems
 - **Struct Design**: Separating concerns (DataStorage metadata vs DataPlane operations)
-- **GUI Programming**: egui framework, event handling, state management
-- **Graphics Programming**: Color mapping, texture creation, real-time rendering
-- **Trait Implementation**: Implementing `eframe::App` for custom application behavior
+- **GUI Programming**: iced framework, MVU architecture, event handling, state management
+- **Graphics Programming**: Color mapping, image rendering with RGBA format, real-time rendering
+- **Trait Implementation**: Implementing `iced::Application` for MVU-based application behavior
+- **Functional Reactive Programming**: Pure functions for UI description, message-driven updates
+- **Architecture Patterns**: Model-View-Update (MVU) pattern, separation of concerns
 - **Cargo Dependencies**: Adding external crates and managing project dependencies
 - **Advanced Pattern Matching**: Using `if let` with tuple destructuring for multi-field validation
 - **Result Type Handling**: Parsing user input with `.parse()` and handling success/error cases

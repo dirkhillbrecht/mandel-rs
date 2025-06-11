@@ -8,7 +8,9 @@ authors = ["Dirk Hillbrecht <dirk@hillbrecht.de>", "Claude AI"]
 description = "A fractal graphics visualizer written in Rust, to produce nice graphics and to learn Rust"
 
 [dependencies]
-egui = "0.28"
-eframe = "0.28"
+iced = { version = "0.12", features = ["image"] }
+# Disabled to switch to iced
+#egui = "0.28"
+#eframe = "0.28"
 
 # end of file
