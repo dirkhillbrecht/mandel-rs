@@ -2,6 +2,21 @@
 
 use crate::data_plane::DataPlane;
 
+#[derive(Debug, Clone)]
+pub struct ComputeProgress {
+    pub completed_pixels: usize,
+    pub total_pixels: usize,
+    pub completion_ratio: f64,
+}
+
+impl ComputeProgress {
+    pub fn new(completed_pixels: usize, total_pixels: usize) -> ComputeProgress {
+        ComputeProgress { completed_pixels, total_pixels,
+            completion_ratio: (completed_pixels as f64 / total_pixels as f64).max(0.0).min(1.0) }
+    }
+}
+
+#[derive (Debug, Clone)]
 pub struct DataStorage {
     x_min: f64,
     x_max: f64,

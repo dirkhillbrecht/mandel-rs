@@ -1,5 +1,7 @@
+use std::sync::Arc;
 use iced::{Application, Command, Element, Theme};
-use crate::{data_storage::DataStorage, simple_mandelbrot};
+use crate::{data_storage::{DataStorage,ComputeProgress}, simple_mandelbrot};
+use tokio::sync::mpsc;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -11,10 +13,12 @@ pub enum Message {
     HeightChanged(String),
     MaxIterationChanged(String),
     ComputeClicked,
+    ComputeProgress(ComputeProgress),
+    ComputeFinished(Arc<DataStorage>),
 }
 
 pub struct MandelIcedApp {
-    storage: Option<DataStorage>,
+    storage: Option<Arc<DataStorage>>,
     computing: bool,
     left: String,
     right: String,
@@ -23,6 +27,7 @@ pub struct MandelIcedApp {
     width: String,
     height: String,
     max_iteration: String,
+    progress_receiver: Option<mpsc::Receiver<ComputeProgress>>,
 }
 
 impl Default for MandelIcedApp {
@@ -30,6 +35,8 @@ impl Default for MandelIcedApp {
         MandelIcedApp {
             storage: None,
             computing: false,
+
+/*            // Full mandelbrot set
             left: "-2.1".to_string(),
             right: "0.75".to_string(),
             top: "1.25".to_string(),
@@ -37,6 +44,34 @@ impl Default for MandelIcedApp {
             width: "800".to_string(),
             height: "600".to_string(),
             max_iteration: "200".to_string(),
+*/
+/*            // Deep zoom elephant valley
+            left: "-0.7512".to_string(),
+            right: "-0.7502".to_string(),
+            top: "0.1103".to_string(),
+            bottom: "0.1093".to_string(),
+            width: "800".to_string(),
+            height: "600".to_string(),
+            max_iteration: "2000".to_string(),
+*/
+/*            // Spiral region
+            left: "-0.7269".to_string(),
+            right: "-0.7259".to_string(),
+            top: "0.1889".to_string(),
+            bottom: "0.1879".to_string(),
+            width: "2800".to_string(),
+            height: "1800".to_string(),
+            max_iteration: "2000".to_string(),
+*/
+            // Seahorse valley
+            left: "-0.7463".to_string(),
+            right: "-0.7453".to_string(),
+            top: "0.1102".to_string(),
+            bottom: "0.1092".to_string(),
+            width: "1200".to_string(),
+            height: "800".to_string(),
+            max_iteration: "2000".to_string(),
+
         }
     }
 }
@@ -120,7 +155,7 @@ impl Application for MandelIcedApp {
                     let mut storage = DataStorage::new(left,right,bottom,top,
                         width,height,max_iteration);
                     simple_mandelbrot::compute_mandelbrot(&mut storage);
-                    self.storage=Some(storage);
+                    self.storage=Some(Arc::new(storage));
                     self.computing=false;
                     println!("Compute ended");
                 }
@@ -168,7 +203,7 @@ impl Application for MandelIcedApp {
                 else if let Some(storage) = &self.storage {
                     column![
                         text(format!("Computed {}*{} fractal", storage.plane().width(), storage.plane().height())),
-                        self.render_fractal(storage)
+                        self.render_fractal(&**storage)
                     ].spacing(10)
                 }
                 else {

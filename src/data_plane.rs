@@ -2,7 +2,7 @@
 
 use crate::DataPoint;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DataPlane {
     data: Vec<Option<DataPoint>>,
     width: usize,

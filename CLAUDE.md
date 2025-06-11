@@ -50,6 +50,9 @@ The application follows a three-layer design:
 - Improved layout design with centered alignment and consistent spacing
 - Fixed-width input fields (100px) for uniform appearance
 - Automatic initial computation on application startup using Command::perform
+- Background computation infrastructure with tokio channels (in progress)
+- Arc<DataStorage> for memory-efficient shared ownership of computation results
+- ComputeProgress struct for statistical progress reporting without data duplication
 
 **Project Structure**
 ```
@@ -112,6 +115,8 @@ src/
 - **Layout Management**: iced alignment system, horizontal spacing, fixed-width components
 - **UI Design Patterns**: Center-aligned layouts, consistent spacing, visual balance
 - **Command System**: Using Command::perform for initial actions and async message dispatch
+- **Async/Concurrent Programming**: Background computation with tokio channels and Arc for shared ownership
+- **Progress Reporting**: ComputeProgress struct with completion ratios for real-time updates
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful
