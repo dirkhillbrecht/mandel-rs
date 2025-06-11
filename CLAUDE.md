@@ -49,6 +49,7 @@ The application follows a three-layer design:
 - Real-time parameter validation using Rust's Result pattern matching
 - Improved layout design with centered alignment and consistent spacing
 - Fixed-width input fields (100px) for uniform appearance
+- Automatic initial computation on application startup using Command::perform
 
 **Project Structure**
 ```
@@ -110,6 +111,7 @@ src/
 - **String Manipulation**: Converting between String and numeric types with proper error handling
 - **Layout Management**: iced alignment system, horizontal spacing, fixed-width components
 - **UI Design Patterns**: Center-aligned layouts, consistent spacing, visual balance
+- **Command System**: Using Command::perform for initial actions and async message dispatch
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful

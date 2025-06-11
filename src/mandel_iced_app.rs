@@ -88,7 +88,7 @@ impl Application for MandelIcedApp {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
-        (Self::default(), Command::none())
+        (Self::default(), Command::perform(async{}, |_| Message::ComputeClicked))
     }
 
     fn title(&self) -> String {
