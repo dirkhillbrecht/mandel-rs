@@ -1,3 +1,17 @@
+# Mandel.rs - Learning the Rust language writing a fractal graphics visualizer with the help of AI
+
+This project implements a fractal graphics program from scratch in Rust. I use this to
+
+1. Learn Rust
+2. Write a fractal graphics program I always wanted to have but could not find so far
+3. Use AI help for this endeavour.
+
+The AI I start with in "Claude Code". I record the sessions with the AI and store them in the `session-protocols` folder. Together with the commits of the projects these allow to follow how communication with the AI worked.
+
+The following is the original project description I passed to the AI to explain the project:
+
+----
+
 # Mandel.rs - Learning the Rust language writing a fractal graphics visualizer
 
 This project has two goals:
@@ -64,4 +78,4 @@ I am German native speaker but I prefer communication in English on programming 
 
 ## Project setup
 
-This project is setup with a git repository to store all important development milestones. I use VS Code for development and I have installed the "Rust Extension Pack" installed.
+This project is setup with a git repository to store all important development milestones. I use VS Code for development and I have installed the "Rust Extension Pack".
