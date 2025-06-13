@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use iced::{Application, Command, Element, Theme};
-use crate::{data_storage::{DataStorage,ComputeProgress}, simple_mandelbrot};
-use tokio::sync::mpsc;
+use crate::{data_storage::DataStorage, simple_mandelbrot};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -13,12 +12,10 @@ pub enum Message {
     HeightChanged(String),
     MaxIterationChanged(String),
     ComputeClicked,
-    ComputeProgress(ComputeProgress),
-    ComputeFinished(Arc<DataStorage>),
 }
 
 pub struct MandelIcedApp {
-    storage: Option<Arc<DataStorage>>,
+    storage: Option<DataStorage>,
     computing: bool,
     left: String,
     right: String,
@@ -27,7 +24,6 @@ pub struct MandelIcedApp {
     width: String,
     height: String,
     max_iteration: String,
-    progress_receiver: Option<mpsc::Receiver<ComputeProgress>>,
 }
 
 impl Default for MandelIcedApp {
@@ -155,7 +151,7 @@ impl Application for MandelIcedApp {
                     let mut storage = DataStorage::new(left,right,bottom,top,
                         width,height,max_iteration);
                     simple_mandelbrot::compute_mandelbrot(&mut storage);
-                    self.storage=Some(Arc::new(storage));
+                    self.storage=Some(storage);
                     self.computing=false;
                     println!("Compute ended");
                 }
@@ -203,7 +199,7 @@ impl Application for MandelIcedApp {
                 else if let Some(storage) = &self.storage {
                     column![
                         text(format!("Computed {}*{} fractal", storage.plane().width(), storage.plane().height())),
-                        self.render_fractal(&**storage)
+                        self.render_fractal(storage)
                     ].spacing(10)
                 }
                 else {

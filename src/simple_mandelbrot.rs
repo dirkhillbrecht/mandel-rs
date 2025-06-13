@@ -1,38 +1,7 @@
 // Most basic and simple implementation of a mandelbrot computation algorithm
 
 use crate::data_point::DataPoint;
-use crate::data_storage::{DataStorage,ComputeProgress};
-use tokio::sync::mpsc;
-use std::sync::Arc;
-
-pub async fn compute_in_background(
-    left: f64, right: f64, bottom: f64, top: f64,
-    width: u32, height: u32, max_iteration: u32,
-    progress_sender: mpsc::Sender<ComputeProgress>
-) {
-    // Create static data storage
-    let mut storage = DataStorage::new(left, right, bottom, top, width, height, max_iteration);
-    let total_pixels=(width*height) as usize;
-
-    // Now compute the stuff
-    let mut completed_pixels = 0;
-    for x in 0..storage.plane().width() {
-        let x_coo=storage.plane().x(x);
-        for y in 0..storage.plane().height() {
-            let y_coo=storage.plane().y(y);
-            storage.plane_mut().set(x,y,data_point_at(x_coo,y_coo,max_iteration));
-            completed_pixels += 1;
-
-            // Now send progress information
-            if completed_pixels % 10000 ==0 {
-                let progress = ComputeProgress::new(completed_pixels,total_pixels);
-                let _ = progress_sender.send(progress).await;
-            }
-        }
-    }
-    let final_progress = ComputeProgress::new(total_pixels,total_pixels);
-    let _ = progress_sender.send(progress).await;
-}
+use crate::data_storage::DataStorage;
 
 pub fn compute_mandelbrot(storage: &mut DataStorage) {
     let max_iteration=storage.max_iteration();
