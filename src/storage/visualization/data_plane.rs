@@ -1,6 +1,6 @@
 // Two-dimensional data plane for the data points of mandel-rs
 
-use crate::DataPoint;
+use crate::storage::data_point::DataPoint;
 
 #[derive(Debug, Clone)]
 pub struct DataPlane {

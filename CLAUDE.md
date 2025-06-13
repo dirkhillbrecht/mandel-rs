@@ -20,13 +20,13 @@ The application follows a three-layer design:
 
 ### Current Implementation Status
 
-**Storage Layer (Complete)**
-- `DataPoint` struct: Stores iteration count, final x/y coordinates
-- `DataPlane` struct: 2D array operations with coordinate transformation
-- `DataStorage` struct: High-level container with computation metadata
-- Coordinate bounds (x_min, x_max, y_min, y_max) and max_iteration configuration
-- Immutable design with proper mutability access (plane() / plane_mut())
-- Option<DataPoint> for handling uncomputed points
+**Storage Layer (Refactoring in Progress)**
+- **Module Restructuring**: Reorganized into separate computation and visualization storage layers
+- **Shared Components**: `DataPoint` struct and `ImageParameters` in common storage module
+- **Visualization Storage**: Renamed from `DataStorage`/`DataPlane` for single-threaded GUI access
+- **Computation Storage**: New parallel-access layer using `Vec<RwLock<Option<DataPoint>>>` for concurrent computation
+- **Event-Based Communication**: Planned change message system from computation to visualization
+- **Architecture**: Clear separation between computation (parallel) and visualization (single-threaded) data handling
 
 **Computation Layer (Complete)**
 - `simple_mandelbrot.rs`: Core Mandelbrot set algorithm
@@ -58,9 +58,18 @@ The application follows a three-layer design:
 ```
 src/
 ├── main.rs              # Entry point launching GUI application
-├── data_point.rs        # DataPoint struct with constructor and getters
-├── data_plane.rs        # 2D array operations and indexing
-├── data_storage.rs      # High-level storage with computation metadata
+├── storage/             # Modular storage layer architecture
+│   ├── mod.rs          # Module declarations and re-exports
+│   ├── data_point.rs   # Shared DataPoint struct
+│   ├── image_parameters.rs  # Shared computation parameters
+│   ├── computation/    # Parallel computation storage
+│   │   ├── mod.rs     # Computation module exports
+│   │   ├── computation_storage.rs  # Thread-safe storage container
+│   │   └── computation_stage.rs    # RwLock-based concurrent data plane
+│   └── visualization/  # Single-threaded visualization storage
+│       ├── mod.rs     # Visualization module exports
+│       ├── visualization_storage.rs  # GUI-focused storage (renamed from DataStorage)
+│       └── visualization_plane.rs    # 2D array operations (renamed from DataPlane)
 ├── simple_mandelbrot.rs # Mandelbrot computation algorithm
 └── mandel_iced_app.rs   # Interactive GUI with fractal visualization (iced MVU)
 ```
@@ -117,6 +126,10 @@ src/
 - **Command System**: Using Command::perform for initial actions and async message dispatch
 - **Async/Concurrent Programming**: Background computation with tokio channels and Arc for shared ownership
 - **Progress Reporting**: ComputeProgress struct with completion ratios for real-time updates
+- **Module System Deep Dive**: Directory-based module organization with `mod.rs` files, explicit declarations vs automatic scanning
+- **Advanced Module Concepts**: `pub mod` vs `mod` visibility, `pub use` re-exports for API design, `crate::` vs external crate references
+- **Concurrent Data Structures**: `RwLock<T>` for reader-writer locks, contended vs uncontended lock performance characteristics
+- **Memory Layout Planning**: Understanding space overhead of concurrent data structures (RwLock ~2.5x memory vs raw data)
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful

@@ -1,7 +1,7 @@
 // Most basic and simple implementation of a mandelbrot computation algorithm
 
-use crate::data_point::DataPoint;
-use crate::data_storage::DataStorage;
+use crate::storage::data_point::DataPoint;
+use crate::storage::visualization::data_storage::DataStorage;
 
 pub fn compute_mandelbrot(storage: &mut DataStorage) {
     let max_iteration=storage.max_iteration();

@@ -1,6 +1,5 @@
-use std::sync::Arc;
 use iced::{Application, Command, Element, Theme};
-use crate::{data_storage::DataStorage, simple_mandelbrot};
+use crate::{storage::visualization::data_storage::DataStorage, simple_mandelbrot};
 
 #[derive(Debug, Clone)]
 pub enum Message {

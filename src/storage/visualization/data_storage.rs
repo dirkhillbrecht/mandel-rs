@@ -1,6 +1,6 @@
 // Definition of a complete data set for creating an image
 
-use crate::data_plane::DataPlane;
+use super::data_plane::DataPlane;
 
 #[derive(Debug, Clone)]
 pub struct ComputeProgress {

@@ -1,14 +1,11 @@
 // Main program for the mandel-rs project
 
-mod data_point;
-mod data_plane;
-mod data_storage;
+mod storage;
 mod simple_mandelbrot;
-//mod mandelbrot_app;
 mod mandel_iced_app;
 
-use crate::data_point::DataPoint;
-use crate::data_storage::DataStorage;
+use crate::storage::data_point::DataPoint;
+use crate::storage::visualization::data_storage::DataStorage;
 use iced::Application;
 use mandel_iced_app::MandelIcedApp;
 
