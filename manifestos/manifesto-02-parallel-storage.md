@@ -63,12 +63,17 @@ To initialize visualization data, a function `ComputationStorage::initVisualizat
 
 This operation may block access to the whole `ComputationStorage` struct as it should be executed only seldomly. If an implementation with some non-exclusive access pattern can be implemented without problems, that would be even better. But actually, this operation will only be executed once in a while because ongoing information transfer from computation to visualization is done via "change messages".
 
-### Changes messages from computation to visualization
+### Change messages from computation to visualization
 
-Everytime when the computation algorithm computes some points and stores them in the `ComputationStage`, a data structure is generated which describes the change. In the beginning, two operations should be possible:
+Everytime when the computation algorithm computes some points and stores them in the `ComputationStage`, a data structure is generated which describes the change. There are two such change operations which seem sensible regarding the problem realm:
 
 1. Change one point at a certain x/y coordinate
-2. Change a sequence of consecutive points between two x values and the same y value, i.e. draw a horizontal line.
+2. Change a sequence of consecutive points between two x values and the same y value _with the same data_, i.e. set the same data to some points on a horizontal line
+
+This seems a bit random, but the reasoning behind this set of operations is
+
+* _All_ changes can be described with a series of type-1-operations.
+* The boundary-trace-based optimized computation algorithm which I want to implement somewhen in the future will create lots of horizontal-line operations.
 
 These messages will be sent from the computation to the visualization realm. On the visualization side, they will be applied to the `DataStorage`. As long as all change events are applied, the content of the changed `DataStorage` is the same as if it has been generated from `ComputationStorage` as outlined above.
 
@@ -79,6 +84,29 @@ Regarding parallel access and mutual exclusion, some things are required:
 * On the visualization side, applying events may block access to the whole `DataStorage`.
 * Applying events can be single-threaded.
 * Read access to the visualization's `DataStorage` for actual drawing of the image should not be delayed for too long due to change event application. If redraw needs to take place _and_ there are events to be applied, the redraw should always have precedence.
+
+### Memory assumptions and maximum event queue size
+
+Implementing storage this way has certain memory implications:
+
+* For each point, storage space has to be reserved in `ComputationStorage`.
+* For each point, storage space has to be reserved in `DataStorage`
+* For each point, at most _one_ event will be generated and has to be stored in an event queue.
+
+That means that _at most_ three data of constant (and similar) size have to be stored. Assuming computation of an image with 8K resolution, this is about 1.5 GB of storage over all. And this is only needed if visualization does not apply _any_ events until computation is finished.
+
+So, there should not be a storage size problem for any sensible image size and workload.
+
+### Resynchronisation of computation and visualization
+
+If visualization loses track on the change events, it can simply
+
+* throw away the event queue
+* start collecting events again from scratch
+* ask computation for a new complete `DataStorage`
+* apply the collected events after receiving the storage.
+
+It is important that collecting events starts _before_ or by maximum _at the same time_ as generation of the new `DataStorage` so that no events are lost.
 
 ## Implementation plan
 
@@ -104,3 +132,33 @@ With these steps being followed, the new storage engine is implemented and ready
 Source code should be changed in a way that _computation_ data storage and _visualization_ data storage are clearly distinct from each other. Speaking in Java terms, they should be in different packages. Data structures which are used in both storages, like the envisioned `ImageParameters`, should be places in a third "package".
 
 Somewhere in the implementation phase, probably at the beginning or at the end, `DataStorage` should be renamed to `VisualizationStorage`, and the same should happen to `DataPlane`.
+
+## First review results
+
+First review of this plan raised some questions by Claude. These are my thoughts on them:
+
+### Questions and Considerations
+
+> ComputationStage Concurrency: What specific Rust concurrency primitive are you considering? `RwLock<Vec<DataPoint>>`,  `Vec<RwLock<DataPoint>>`, or `Vec<AtomicDataPoint>`? Each has different performance characteristics.
+
+This has indeed to be sorted out. My first impression is that `Vec<RwLock<DataPoint>>` could be what we need.
+
+> Event Granularity: Why limit to single points and horizontal lines? Would rectangular regions be useful for block-based parallel computation algorithms?
+
+See additions to "Change messages from computation to visualization" above.
+
+> Memory Overhead: In high-resolution scenarios (8K), you'll have both ComputationStorage and VisualizationStorage in memory simultaneously. Have you considered the memory implications?
+
+See "Memory assumptions and maximum event queue size" above.
+
+> Event Queue Backpressure: What happens if the visualization thread can't keep up with computation events? Should there be a bounded queue or event coalescing?
+
+See "Memory assumptions and maximum event queue size" above.
+
+### Architectural Suggestion
+
+> Consider whether ImageParameters should be truly shared (Arc) or duplicated. If computation parameters could change mid-computation (zoom, iteration count), sharing might create synchronization issues.
+
+The computation parameters on a `ComputationStorage` will _never_ change after initialisation. If an image with changed parameters is to be derived, some derivation algorithm will be implemented which creates a _new_, independent `ComputationStorage` and initializes it with appropriate data.
+
+But as `ImageParameters` is a small data structure anyway, it won't matter whether it is cloned or shared between computation and visualization storage.
