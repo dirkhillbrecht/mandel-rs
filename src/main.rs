@@ -1,13 +1,11 @@
 // Main program for the mandel-rs project
 
 mod storage;
-mod simple_mandelbrot;
-mod mandel_iced_app;
+mod gui;
+mod comp;
 
-use crate::storage::data_point::DataPoint;
-use crate::storage::visualization::data_storage::DataStorage;
 use iced::Application;
-use mandel_iced_app::MandelIcedApp;
+use gui::mandel_iced_app::MandelIcedApp;
 
 /*
 fn main() {

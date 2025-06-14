@@ -1,5 +1,6 @@
 use iced::{Application, Command, Element, Theme};
-use crate::{storage::visualization::data_storage::DataStorage, simple_mandelbrot};
+use crate::storage::visualization::data_storage::DataStorage;
+use crate::comp::simple_mandelbrot;
 
 #[derive(Debug, Clone)]
 pub enum Message {
