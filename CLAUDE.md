@@ -20,13 +20,15 @@ The application follows a three-layer design:
 
 ### Current Implementation Status
 
-**Storage Layer (Refactoring in Progress)**
-- **Module Restructuring**: Reorganized into separate computation and visualization storage layers
-- **Shared Components**: `DataPoint` struct and `ImageParameters` in common storage module
-- **Visualization Storage**: Renamed from `DataStorage`/`DataPlane` for single-threaded GUI access
-- **Computation Storage**: New parallel-access layer using `Vec<RwLock<Option<DataPoint>>>` for concurrent computation
-- **Event-Based Communication**: Planned change message system from computation to visualization
-- **Architecture**: Clear separation between computation (parallel) and visualization (single-threaded) data handling
+**Storage Layer (Complete - Dual Architecture Implementation)**
+- **Module Restructuring**: ✅ Complete separation into computation and visualization storage layers
+- **Shared Components**: ✅ `DataPoint` struct (now Copy) and `ImageCompProperties` for shared parameters
+- **Computation Storage**: ✅ `CompStorage` + `CompStage` with `Vec<RwLock<Option<DataPoint>>>` for concurrent access
+- **Visualization Storage**: ✅ `VizStorage` + `VizStage` with `Vec<Option<DataPoint>>` for single-threaded GUI access
+- **Data Conversion**: ✅ Direct conversion from computation to visualization storage via constructor
+- **Concurrent Access Patterns**: ✅ Individual pixel locking with RwLock for parallel computation threads
+- **Memory Efficiency**: ✅ Copy semantics for DataPoint, reference-based access in visualization layer
+- **Event-Based Communication**: Planned for Phase II/III implementation (manifesto-02)
 
 **Computation Layer (Complete)**
 - `simple_mandelbrot.rs`: Core Mandelbrot set algorithm
@@ -58,18 +60,20 @@ The application follows a three-layer design:
 ```
 src/
 ├── main.rs              # Entry point launching GUI application
-├── storage/             # Modular storage layer architecture
-│   ├── mod.rs          # Module declarations and re-exports
-│   ├── data_point.rs   # Shared DataPoint struct
-│   ├── image_parameters.rs  # Shared computation parameters
+├── storage/             # Dual storage architecture (computation + visualization)
+│   ├── mod.rs          # Module declarations and architecture documentation
+│   ├── data_point.rs   # Shared DataPoint struct (Copy semantics)
+│   ├── image_comp_properties.rs  # Shared computation parameters
 │   ├── computation/    # Parallel computation storage
 │   │   ├── mod.rs     # Computation module exports
-│   │   ├── computation_storage.rs  # Thread-safe storage container
-│   │   └── computation_stage.rs    # RwLock-based concurrent data plane
+│   │   ├── comp_storage.rs  # CompStorage: thread-safe storage container
+│   │   └── comp_stage.rs    # CompStage: Vec<RwLock<Option<DataPoint>>> for concurrent access
 │   └── visualization/  # Single-threaded visualization storage
 │       ├── mod.rs     # Visualization module exports
-│       ├── visualization_storage.rs  # GUI-focused storage (renamed from DataStorage)
-│       └── visualization_plane.rs    # 2D array operations (renamed from DataPlane)
+│       ├── viz_storage.rs  # VizStorage: GUI-focused storage container  
+│       ├── viz_stage.rs    # VizStage: Vec<Option<DataPoint>> for efficient GUI access
+│       ├── data_storage.rs # Legacy DataStorage (to be phased out)
+│       └── data_plane.rs   # Legacy DataPlane (to be phased out)
 ├── simple_mandelbrot.rs # Mandelbrot computation algorithm
 └── mandel_iced_app.rs   # Interactive GUI with fractal visualization (iced MVU)
 ```
@@ -130,6 +134,11 @@ src/
 - **Advanced Module Concepts**: `pub mod` vs `mod` visibility, `pub use` re-exports for API design, `crate::` vs external crate references
 - **Concurrent Data Structures**: `RwLock<T>` for reader-writer locks, contended vs uncontended lock performance characteristics
 - **Memory Layout Planning**: Understanding space overhead of concurrent data structures (RwLock ~2.5x memory vs raw data)
+- **Copy vs Clone Semantics**: Implementing `Copy` for small structs, automatic bitwise copying vs explicit `.clone()` calls
+- **Mutability as Access Pattern**: Understanding Rust's "mutability as property of access" vs traditional "mutability as property of data"
+- **Lock-Free Data Conversion**: Efficient conversion from concurrent (`RwLock`) to single-threaded (`Vec`) data structures
+- **Dual Storage Architecture**: Separating computation (parallel) and visualization (single-threaded) data access patterns
+- **Manifesto-Driven Development**: Following structured implementation phases for complex architectural changes
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful

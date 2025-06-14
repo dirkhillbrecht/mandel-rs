@@ -10,9 +10,11 @@
 /// and allows the computation algorithms highly efficient access to the storage.
 
 // Subfolders
+pub mod computation;
 pub mod visualization;
 
 // Files herein
 pub mod data_point;
+pub mod image_comp_properties;
 
 // end of file

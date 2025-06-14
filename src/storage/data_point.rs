@@ -1,6 +1,6 @@
 // Data point for the computed data of a fractal image
 
-#[derive(Clone,Debug)]
+#[derive(Clone,Copy,Debug)]
 pub struct DataPoint {
 
     iteration_count: u32,
@@ -10,7 +10,7 @@ pub struct DataPoint {
 }
 
 impl DataPoint {
-    
+
     // Constructor
     pub fn new(iteration_count: u32, final_x: f64, final_y: f64) -> DataPoint {
         DataPoint { iteration_count, final_x, final_y }
