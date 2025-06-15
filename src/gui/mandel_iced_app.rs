@@ -1,6 +1,6 @@
+use std::sync::Arc;
 use iced::{Application, Command, Element, Theme};
 use crate::storage::computation::comp_storage::CompStorage;
-use crate::storage::visualization::data_storage::DataStorage;
 use crate::storage::visualization::viz_storage::VizStorage;
 use crate::comp::simple_mandelbrot;
 use crate::storage::image_comp_properties::{ImageCompProperties, StageProperties, Rect};
@@ -153,14 +153,9 @@ impl Application for MandelIcedApp {
                     self.computing=true;
                     let comp_props=ImageCompProperties::new(StageProperties::new(
                         Rect::new(left,right,bottom,top), width, height),max_iteration);
-                    let comp_storage=CompStorage::new(comp_props.rectified(false));
-                    simple_mandelbrot::compute_mandelbrot(&comp_storage);
-                    /*
-                    let mut storage = DataStorage::new(left,right,bottom,top,
-                        width,height,max_iteration);
-                    simple_mandelbrot::compute_mandelbrot_legacy(&mut storage);
-                    */
-                    self.storage=Some(VizStorage::new(comp_storage));
+                    let arc_of_comp_storage=Arc::new(CompStorage::new(comp_props.rectified(false)));
+                    simple_mandelbrot::compute_mandelbrot(&arc_of_comp_storage);
+                    self.storage=Some(VizStorage::new(arc_of_comp_storage.clone()));
                     self.computing=false;
                     println!("Compute ended");
                 }

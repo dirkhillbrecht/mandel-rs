@@ -11,7 +11,7 @@ pub struct VizStage {
 }
 
 impl VizStage {
-    pub fn new(comp_stage: CompStage) -> Self {
+    pub fn new(comp_stage: &CompStage) -> Self {
         VizStage {
             width: comp_stage.width(),
             height: comp_stage.height(),

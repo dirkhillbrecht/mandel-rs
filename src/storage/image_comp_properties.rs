@@ -1,7 +1,7 @@
 // Collective storage for the computational image parameters.
 
 /// Simple data structure storing the mathematical coordinates of a rectangle
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Rect {
     /// left edge value
     pub x_min: f64,
@@ -30,7 +30,7 @@ impl Rect {
 }
 
 /// Properties of the computation stage, not only mathematical coordinates, but also pixel raster size
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct StageProperties {
     /// The mathematical coordinates of the stage
     pub coo: Rect,
@@ -92,7 +92,7 @@ impl StageProperties {
 
 /// Mathematical properties of an image.
 /// The settings here allow to reconstruct the mathematical base of an image.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ImageCompProperties {
     pub stage_properties: StageProperties,
     pub max_iteration: u32,

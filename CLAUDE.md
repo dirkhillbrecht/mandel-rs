@@ -20,7 +20,7 @@ The application follows a three-layer design:
 
 ### Current Implementation Status
 
-**Storage Layer (Complete - Dual Architecture Implementation)**
+**Storage Layer (Complete - Clean Dual Architecture Implementation)**
 - **Module Restructuring**: ✅ Complete separation into computation and visualization storage layers
 - **Shared Components**: ✅ `DataPoint` struct (now Copy) and `ImageCompProperties` for shared parameters
 - **Computation Storage**: ✅ `CompStorage` + `CompStage` with `Vec<RwLock<Option<DataPoint>>>` for concurrent access
@@ -29,19 +29,20 @@ The application follows a three-layer design:
 - **Concurrent Access Patterns**: ✅ Individual pixel locking with RwLock for parallel computation threads
 - **Memory Efficiency**: ✅ Copy semantics for DataPoint, reference-based access in visualization layer
 - **Phase I Integration**: ✅ GUI successfully uses dual storage architecture (CompStorage → VizStorage)
-- **Ownership Management**: ✅ Proper borrowing semantics for computation function calls
+- **Ownership Management**: ✅ Proper borrowing semantics and Arc<T> for shared ownership
+- **Legacy Cleanup**: ✅ Removed deprecated DataStorage and DataPlane components
 - **Event-Based Communication**: Planned for Phase II/III implementation (manifesto-02)
 
-**Computation Layer (Complete - Integrated with Dual Storage)**
-- `simple_mandelbrot.rs`: Core Mandelbrot set algorithm
+**Computation Layer (Complete - Clean Integration with Dual Storage)**
+- `simple_mandelbrot.rs`: Core Mandelbrot set algorithm (legacy functions removed)
 - `data_point_at()`: Single complex number computation with escape detection
 - `compute_mandelbrot()`: Full storage computation using CompStorage with borrowing semantics
 - Direct complex number math (z² + c) without external dependencies
 - Proper handling of max iterations and final escape coordinates
 - Verified working algorithm with edge/center point testing
-- Integration with dual storage architecture using proper Rust ownership patterns
+- Clean integration with dual storage architecture using proper Rust ownership patterns
 
-**Visualization Layer (Complete - Integrated with Dual Storage)**
+**Visualization Layer (Complete - Clean Dual Storage Integration)**
 - `mandel_iced_app.rs`: Interactive GUI application using iced MVU architecture
 - Model-View-Update (MVU) pattern with pure functional UI description
 - Event-driven architecture with Message enum for all user interactions
@@ -55,8 +56,8 @@ The application follows a three-layer design:
 - Improved layout design with centered alignment and consistent spacing
 - Fixed-width input fields (100px) for uniform appearance
 - Automatic initial computation on application startup using Command::perform
-- Dual storage integration: CompStorage → VizStorage conversion for GUI display
-- Proper Rust ownership patterns for storage lifecycle management
+- Clean dual storage integration: Arc<CompStorage> → VizStorage conversion for GUI display
+- Advanced Rust ownership patterns: Arc<T> for shared ownership and automatic dereferencing
 
 **Project Structure**
 ```
@@ -72,10 +73,8 @@ src/
 │   │   └── comp_stage.rs    # CompStage: Vec<RwLock<Option<DataPoint>>> for concurrent access
 │   └── visualization/  # Single-threaded visualization storage
 │       ├── mod.rs     # Visualization module exports
-│       ├── viz_storage.rs  # VizStorage: GUI-focused storage container  
-│       ├── viz_stage.rs    # VizStage: Vec<Option<DataPoint>> for efficient GUI access
-│       ├── data_storage.rs # Legacy DataStorage (to be phased out)
-│       └── data_plane.rs   # Legacy DataPlane (to be phased out)
+│       ├── viz_storage.rs  # VizStorage: GUI-focused storage container with Arc<CompStorage> support
+│       └── viz_stage.rs    # VizStage: Vec<Option<DataPoint>> for efficient GUI access
 ├── comp/               # Computation algorithms
 │   ├── mod.rs         # Computation module exports
 │   └── simple_mandelbrot.rs # Mandelbrot algorithm with dual storage integration
@@ -151,6 +150,9 @@ src/
 - **Function Parameter Ownership**: Understanding when to pass by value vs by reference (`T` vs `&T`) based on usage patterns
 - **Ownership Lifecycle Management**: Preventing "use after move" errors through proper borrowing semantics
 - **Architectural Integration**: Successfully connecting separate storage layers through proper ownership design
+- **Smart Pointers**: `Arc<T>` for shared ownership in multi-threaded scenarios without cloning data
+- **Deref Coercion**: Automatic conversion from `&Arc<T>` to `&T` for transparent smart pointer usage
+- **Legacy Code Cleanup**: Safe removal of deprecated components after architectural migration
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful

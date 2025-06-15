@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::storage::image_comp_properties::ImageCompProperties;
 use crate::storage::computation::comp_storage::CompStorage;
 use super::viz_stage::VizStage;
@@ -14,10 +15,10 @@ pub struct VizStorage {
 impl VizStorage {
 
     /// Create a new comp storage instance, initialize the stage internally.
-    pub fn new(comp_storage: CompStorage) -> VizStorage {
-        let stage=VizStage::new(comp_storage.stage);
+    pub fn new(arc_of_comp_storage: Arc<CompStorage>) -> VizStorage {
+        let stage=VizStage::new(&arc_of_comp_storage.as_ref().stage);
         VizStorage {
-            properties: comp_storage.properties,
+            properties: arc_of_comp_storage.as_ref().properties,
             stage,
         }
     }
