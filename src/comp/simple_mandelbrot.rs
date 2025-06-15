@@ -1,15 +1,27 @@
 // Most basic and simple implementation of a mandelbrot computation algorithm
 
+use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::data_point::DataPoint;
 use crate::storage::visualization::data_storage::DataStorage;
 
-pub fn compute_mandelbrot(storage: &mut DataStorage) {
+pub fn compute_mandelbrot_legacy(storage: &mut DataStorage) {
     let max_iteration=storage.max_iteration();
     for x in 0..storage.plane().width() {
         let x_coo=storage.plane().x(x);
         for y in 0..storage.plane().height() {
             let y_coo=storage.plane().y(y);
             storage.plane_mut().set(x,y,data_point_at(x_coo,y_coo,max_iteration));
+        }
+    }
+}
+
+pub fn compute_mandelbrot(storage: &CompStorage) {
+    let max_iteration=storage.properties.max_iteration;
+    for x in 0..storage.properties.stage_properties.width {
+        let x_coo=storage.properties.stage_properties.x(x);
+        for y in 0..storage.properties.stage_properties.height {
+            let y_coo=storage.properties.stage_properties.y(y);
+            storage.stage.set(x,y,data_point_at(x_coo,y_coo,max_iteration));
         }
     }
 }

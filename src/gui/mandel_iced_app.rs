@@ -1,6 +1,9 @@
 use iced::{Application, Command, Element, Theme};
+use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::visualization::data_storage::DataStorage;
+use crate::storage::visualization::viz_storage::VizStorage;
 use crate::comp::simple_mandelbrot;
+use crate::storage::image_comp_properties::{ImageCompProperties, StageProperties, Rect};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -15,7 +18,7 @@ pub enum Message {
 }
 
 pub struct MandelIcedApp {
-    storage: Option<DataStorage>,
+    storage: Option<VizStorage>,
     computing: bool,
     left: String,
     right: String,
@@ -87,17 +90,17 @@ impl MandelIcedApp {
             [red,green,blue]
         }
     }
-    fn render_fractal(&self, storage: &DataStorage) -> Element<Message> {
+    fn render_fractal(&self, storage: &VizStorage) -> Element<Message> {
         use iced::widget::image;
 
-        let width = storage.plane().width();
-        let height = storage.plane().height();
+        let width = storage.stage.width();
+        let height = storage.stage.height();
 
         let mut pixels = Vec::new();
         for y in 0..height {
             for x in 0..width {
-                if let Some(point)=storage.plane().get(x, y) {
-                    let color=Self::iteration_to_color(point.iteration_count(), storage.max_iteration());
+                if let Some(point)=storage.stage.get(x, y) {
+                    let color=Self::iteration_to_color(point.iteration_count(), storage.properties.max_iteration);
                     pixels.extend_from_slice(&color);
                     pixels.push(255);
                 }
@@ -148,10 +151,16 @@ impl Application for MandelIcedApp {
                 ) {
                     println!("Compute started");
                     self.computing=true;
+                    let comp_props=ImageCompProperties::new(StageProperties::new(
+                        Rect::new(left,right,bottom,top), width, height),max_iteration);
+                    let comp_storage=CompStorage::new(comp_props.rectified(false));
+                    simple_mandelbrot::compute_mandelbrot(&comp_storage);
+                    /*
                     let mut storage = DataStorage::new(left,right,bottom,top,
                         width,height,max_iteration);
-                    simple_mandelbrot::compute_mandelbrot(&mut storage);
-                    self.storage=Some(storage);
+                    simple_mandelbrot::compute_mandelbrot_legacy(&mut storage);
+                    */
+                    self.storage=Some(VizStorage::new(comp_storage));
                     self.computing=false;
                     println!("Compute ended");
                 }
@@ -198,7 +207,7 @@ impl Application for MandelIcedApp {
                 }
                 else if let Some(storage) = &self.storage {
                     column![
-                        text(format!("Computed {}*{} fractal", storage.plane().width(), storage.plane().height())),
+                        text(format!("Computed {}*{} fractal", storage.properties.stage_properties.width, storage.properties.stage_properties.height)),
                         self.render_fractal(storage)
                     ].spacing(10)
                 }

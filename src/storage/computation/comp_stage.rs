@@ -60,7 +60,7 @@ impl CompStage {
     }
 
     // Set data of a point, handles locking internally.
-    pub fn set(&mut self, x: u32, y: u32, data_point: DataPoint) {
+    pub fn set(&self, x: u32, y: u32, data_point: DataPoint) {
         let idx=self.index(x,y);
         let mut write_guard=self.data[idx].write().unwrap();
         *write_guard = Option::Some(data_point);

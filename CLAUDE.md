@@ -28,17 +28,20 @@ The application follows a three-layer design:
 - **Data Conversion**: ✅ Direct conversion from computation to visualization storage via constructor
 - **Concurrent Access Patterns**: ✅ Individual pixel locking with RwLock for parallel computation threads
 - **Memory Efficiency**: ✅ Copy semantics for DataPoint, reference-based access in visualization layer
+- **Phase I Integration**: ✅ GUI successfully uses dual storage architecture (CompStorage → VizStorage)
+- **Ownership Management**: ✅ Proper borrowing semantics for computation function calls
 - **Event-Based Communication**: Planned for Phase II/III implementation (manifesto-02)
 
-**Computation Layer (Complete)**
+**Computation Layer (Complete - Integrated with Dual Storage)**
 - `simple_mandelbrot.rs`: Core Mandelbrot set algorithm
 - `data_point_at()`: Single complex number computation with escape detection
-- `compute_mandelbrot()`: Full storage computation with coordinate transformation
+- `compute_mandelbrot()`: Full storage computation using CompStorage with borrowing semantics
 - Direct complex number math (z² + c) without external dependencies
 - Proper handling of max iterations and final escape coordinates
 - Verified working algorithm with edge/center point testing
+- Integration with dual storage architecture using proper Rust ownership patterns
 
-**Visualization Layer (Complete - Migrated to iced)**
+**Visualization Layer (Complete - Integrated with Dual Storage)**
 - `mandel_iced_app.rs`: Interactive GUI application using iced MVU architecture
 - Model-View-Update (MVU) pattern with pure functional UI description
 - Event-driven architecture with Message enum for all user interactions
@@ -52,9 +55,8 @@ The application follows a three-layer design:
 - Improved layout design with centered alignment and consistent spacing
 - Fixed-width input fields (100px) for uniform appearance
 - Automatic initial computation on application startup using Command::perform
-- Background computation infrastructure with tokio channels (in progress)
-- Arc<DataStorage> for memory-efficient shared ownership of computation results
-- ComputeProgress struct for statistical progress reporting without data duplication
+- Dual storage integration: CompStorage → VizStorage conversion for GUI display
+- Proper Rust ownership patterns for storage lifecycle management
 
 **Project Structure**
 ```
@@ -74,8 +76,12 @@ src/
 │       ├── viz_stage.rs    # VizStage: Vec<Option<DataPoint>> for efficient GUI access
 │       ├── data_storage.rs # Legacy DataStorage (to be phased out)
 │       └── data_plane.rs   # Legacy DataPlane (to be phased out)
-├── simple_mandelbrot.rs # Mandelbrot computation algorithm
-└── mandel_iced_app.rs   # Interactive GUI with fractal visualization (iced MVU)
+├── comp/               # Computation algorithms
+│   ├── mod.rs         # Computation module exports
+│   └── simple_mandelbrot.rs # Mandelbrot algorithm with dual storage integration
+└── gui/               # GUI application
+    ├── mod.rs         # GUI module exports
+    └── mandel_iced_app.rs   # Interactive GUI with dual storage integration
 ```
 
 ## Technical Context
@@ -86,7 +92,7 @@ src/
 - Target Platform: Linux/Ubuntu (system-independent design)
 - Human Background: Experienced Java programmer learning Rust
 
-## Major Achievement: Complete Functional Application
+## Major Achievement: Complete Functional Application with Dual Storage Architecture
 **Accomplished comprehensive Rust development:**
 - Built complete fractal visualizer from scratch
 - Mastered Rust's ownership system and advanced concepts
@@ -95,6 +101,9 @@ src/
 - Implemented mathematical algorithms and coordinate transformations
 - Achieved high-resolution (800×800) fractal rendering with custom coloring
 - Demonstrated architecture independence by reusing business logic across UI frameworks
+- **Successfully implemented dual storage architecture per manifesto-02**
+- **Mastered Rust ownership patterns: borrowing vs moving for function parameters**
+- **Achieved Phase I of manifesto-02: CompStorage → VizStorage integration**
 
 ## Development Commands
 - Build: `cargo build`
@@ -139,6 +148,9 @@ src/
 - **Lock-Free Data Conversion**: Efficient conversion from concurrent (`RwLock`) to single-threaded (`Vec`) data structures
 - **Dual Storage Architecture**: Separating computation (parallel) and visualization (single-threaded) data access patterns
 - **Manifesto-Driven Development**: Following structured implementation phases for complex architectural changes
+- **Function Parameter Ownership**: Understanding when to pass by value vs by reference (`T` vs `&T`) based on usage patterns
+- **Ownership Lifecycle Management**: Preventing "use after move" errors through proper borrowing semantics
+- **Architectural Integration**: Successfully connecting separate storage layers through proper ownership design
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful
