@@ -1,0 +1,1196 @@
+╭───────────────────────────────────────────────────╮
+│ ✻ Welcome to Claude Code!                         │
+│                                                   │
+│   /help for help, /status for your current setup  │
+│                                                   │
+│   cwd: /home/dh/projekte/mandel.rs                │
+╰───────────────────────────────────────────────────╯
+
+
+ ※ Tip: Send messages to Claude while it works to steer Claude in real-time
+
+> Please read CLAUDE.md and manifestos/manifesto-02 for session onboarding. Feel free to ask questions.
+
+● I'll read the project documentation to understand the current state and context.
+
+● Read(CLAUDE.md)
+  ⎿  Read 147 lines (ctrl+r to expand)
+
+● Read(manifestos/manifesto-02)
+  ⎿  Error: File does not exist.
+
+● Let me check if the manifestos directory exists and what's in it:
+
+● List(.)
+  ⎿  Listed 42 paths (ctrl+r to expand)
+
+● Let me read the manifesto-02 file:
+
+● Read(manifestos/manifesto-02-parallel-storage.md)
+  ⎿  Read 165 lines (ctrl+r to expand)
+
+● Perfect! I've now read both the CLAUDE.md and manifesto-02. I understand the project context:
+
+  Project Summary
+
+  This is mandel.rs - a Rust learning project for building a Mandelbrot fractal visualizer. You're an experienced Java
+  programmer learning Rust through hands-on development.
+
+  Current Status
+
+  - Complete functional application with iced GUI and real-time fractal rendering
+  - Dual storage architecture implemented per manifesto-02:
+    - CompStorage + CompStage for parallel computation (using RwLock)
+    - VizStorage + VizStage for single-threaded visualization
+  - Three modified files showing in git status:
+    - src/comp/simple_mandelbrot.rs
+    - src/gui/mandel_iced_app.rs
+    - src/storage/computation/comp_stage.rs
+
+  Key Context
+
+  - Educational focus: I explain concepts and review code, but you type everything
+  - Manifesto-02 phases: Currently Phase I (basic dual storage), with Phase II/III (event-based communication) planned
+  - Architecture: Clean separation between computation (parallel) and visualization (single-threaded) layers
+
+  What would you like to work on or discuss? I can help with code reviews, concept explanations, or planning next steps.
+
+> I give the VizStorage constructor a CompStorage instance. However, when I try to use this in MandelIcedApp 
+  (mandel_iced_app.rs:163), I get errors. I assume this is due to ownership and lifecycle management, but so far I don't 
+  get it. Can you help me?
+
+● I'll help you understand the ownership and lifecycle issues. Let me first examine the current code to see exactly what's
+   happening.
+
+● Read(src/gui/mandel_iced_app.rs)
+  ⎿  Read 15 lines (ctrl+r to expand)
+
+● Read(src/storage/visualization/viz_storage.rs)
+  ⎿  Read 28 lines (ctrl+r to expand)
+
+● Now let me check the VizStage::new method and the CompStage to understand the data flow:
+
+● Read(src/storage/visualization/viz_stage.rs)
+  ⎿  Read 35 lines (ctrl+r to expand)
+
+● Read(src/storage/computation/comp_stage.rs)
+  ⎿  Read 83 lines (ctrl+r to expand)
+
+● Now let me see the exact error by looking at the simple_mandelbrot::compute_mandelbrot function:
+
+● Read(src/comp/simple_mandelbrot.rs)
+  ⎿  Read 52 lines (ctrl+r to expand)
+
+● I can see the issue! The problem is in ownership and move semantics. Let me explain what's happening:
+
+  The Problem
+
+  In mandel_iced_app.rs:157 and 163:
+
+  let comp_storage = CompStorage::new(comp_props);              // line 156
+  simple_mandelbrot::compute_mandelbrot(comp_storage);          // line 157 - MOVES comp_storage
+  self.storage = Some(VizStorage::new(comp_storage));           // line 163 - comp_storage no longer exists!
+
+  Root Cause: Move Semantics
+
+  1. Line 157: compute_mandelbrot(comp_storage) takes CompStorage by value (not by reference)
+  2. This moves comp_storage into the function
+  3. Line 163: comp_storage no longer exists - it was moved!
+
+  Java vs Rust Comparison
+
+  In Java, objects are always passed by reference, so comp_storage would still be available. In Rust:
+  - By value (CompStorage) = move ownership
+  - By reference (&CompStorage) = borrow ownership
+
+  The Fix
+
+  You need to change compute_mandelbrot to take a reference instead of moving the value. Look at line 18 in
+  simple_mandelbrot.rs:
+
+  pub fn compute_mandelbrot(storage: CompStorage)  // Takes by value (moves)
+
+  Should be:
+
+  pub fn compute_mandelbrot(storage: &CompStorage)  // Takes by reference (borrows)
+
+  Then you'll need to update the function body to work with a reference instead of owned data.
+
+  Would you like to make this change? The key insight is understanding when Rust moves vs borrows data - this is one of
+  Rust's core ownership concepts that prevents the "use after free" errors common in other languages.
+
+> Ok, the program works.
+
+● Excellent! You've successfully resolved the ownership issue by changing the function signature from:
+
+  pub fn compute_mandelbrot(storage: CompStorage)  // Takes ownership (moves)
+
+  to:
+
+  pub fn compute_mandelbrot(storage: &CompStorage)  // Borrows (reference)
+
+  And updated the call site to:
+
+  simple_mandelbrot::compute_mandelbrot(&comp_storage);  // Pass reference
+
+  What You've Learned
+
+  This is a fundamental Rust ownership concept:
+
+  - Moving (CompStorage) transfers ownership - the original variable becomes unusable
+  - Borrowing (&CompStorage) allows temporary access while keeping the original variable alive
+
+  Key Insight
+
+  The dual storage architecture from manifesto-02 is now working! You've successfully:
+
+  1. Created CompStorage for parallel computation
+  2. Computed the fractal using the computation storage (by reference)
+  3. Converted to VizStorage for GUI display
+
+  This demonstrates the Phase I implementation from manifesto-02 - using computation storage internally and converting to
+  visualization storage for display.
+
+  The program should now show the fractal using the new dual storage architecture. Well done on working through the
+  ownership semantics!
+
+> Let's update CLAUDE.md and commit the current state to git.
+
+● I'll help you update CLAUDE.md to reflect the successful dual storage implementation and then commit the changes.
+
+● Update Todos
+  ⎿  ☐ Update CLAUDE.md to reflect completed dual storage implementation
+     ☐ Commit dual storage implementation with proper commit message
+
+● Update Todos
+  ⎿  ☐ Update CLAUDE.md to reflect completed dual storage implementation
+     ☐ Commit dual storage implementation with proper commit message
+
+● Let me read the current CLAUDE.md to understand what needs updating:
+
+● Read(CLAUDE.md)
+  ⎿  Read 40 lines (ctrl+r to expand)
+
+● I need to update the Storage Layer section and Computation Layer to reflect the completed integration. Let me check what
+   specifically needs to be updated by looking at the Visualization Layer section:
+
+● Read(CLAUDE.md)
+  ⎿  Read 20 lines (ctrl+r to expand)
+
+● Now I'll update CLAUDE.md to reflect the completed dual storage implementation:
+
+● Update(CLAUDE.md)
+  ⎿  Updated CLAUDE.md with 2 additions
+       28   - **Data Conversion**: ✅ Direct conversion from computation to visualization storage via constructor
+       29   - **Concurrent Access Patterns**: ✅ Individual pixel locking with RwLock for parallel computation threads
+       30   - **Memory Efficiency**: ✅ Copy semantics for DataPoint, reference-based access in visualization layer
+       31 +  - **Phase I Integration**: ✅ GUI successfully uses dual storage architecture (CompStorage → VizStorage)
+       32 +  - **Ownership Management**: ✅ Proper borrowing semantics for computation function calls
+       33   - **Event-Based Communication**: Planned for Phase II/III implementation (manifesto-02)
+       34 
+       35   **Computation Layer (Complete)**
+
+     Tip: Use # to memorize shortcut to quickly add to CLAUDE.md
+
+● Now let me update the Computation Layer section to reflect the integration:
+
+● Update(CLAUDE.md)
+  ⎿  Updated CLAUDE.md with 3 additions and 2 removals
+       32   - **Ownership Management**: ✅ Proper borrowing semantics for computation function calls
+       33   - **Event-Based Communication**: Planned for Phase II/III implementation (manifesto-02)
+       34 
+       35 - **Computation Layer (Complete)**
+       35 + **Computation Layer (Complete - Integrated with Dual Storage)**
+       36   - `simple_mandelbrot.rs`: Core Mandelbrot set algorithm
+       37   - `data_point_at()`: Single complex number computation with escape detection
+       38 - - `compute_mandelbrot()`: Full storage computation with coordinate transformation
+       38 + - `compute_mandelbrot()`: Full storage computation using CompStorage with borrowing semantics
+       39   - Direct complex number math (z² + c) without external dependencies
+       40   - Proper handling of max iterations and final escape coordinates
+       41   - Verified working algorithm with edge/center point testing
+       42 +  - Integration with dual storage architecture using proper Rust ownership patterns
+       43 
+       44   **Visualization Layer (Complete - Migrated to iced)**
+       45   - `mandel_iced_app.rs`: Interactive GUI application using iced MVU architecture
+
+     Tip: Use # to memorize shortcut to quickly add to CLAUDE.md
+
+● Now let me update the Visualization Layer to remove outdated references and add the dual storage integration:
+
+● Update(CLAUDE.md)
+  ⎿  Updated CLAUDE.md with 3 additions and 4 removals
+       41   - Verified working algorithm with edge/center point testing
+       42   - Integration with dual storage architecture using proper Rust ownership patterns
+       43 
+       44 - **Visualization Layer (Complete - Migrated to iced)**
+       44 + **Visualization Layer (Complete - Integrated with Dual Storage)**
+       45   - `mandel_iced_app.rs`: Interactive GUI application using iced MVU architecture
+       46   - Model-View-Update (MVU) pattern with pure functional UI description
+       47   - Event-driven architecture with Message enum for all user interactions
+     ...
+       55   - Improved layout design with centered alignment and consistent spacing
+       56   - Fixed-width input fields (100px) for uniform appearance
+       57   - Automatic initial computation on application startup using Command::perform
+       58 - - Background computation infrastructure with tokio channels (in progress)
+       59 - - Arc<DataStorage> for memory-efficient shared ownership of computation results
+       60 -  - ComputeProgress struct for statistical progress reporting without data duplication
+       58 + - Dual storage integration: CompStorage → VizStorage conversion for GUI display
+       59 + - Proper Rust ownership patterns for storage lifecycle management
+       60 
+       61   **Project Structure**
+       62   ```
+
+     Tip: Use # to memorize shortcut to quickly add to CLAUDE.md
+
+● Now let me update the project structure to reflect the new organization:
+
+● Read(CLAUDE.md)
+  ⎿  Read 20 lines (ctrl+r to expand)
+
+● I need to update the project structure to match the current organization:
+
+● Update(CLAUDE.md)
+  ⎿  Updated CLAUDE.md with 6 additions and 2 removals
+       76   │       ├── viz_stage.rs    # VizStage: Vec<Option<DataPoint>> for efficient GUI access
+       77   │       ├── data_storage.rs # Legacy DataStorage (to be phased out)
+       78   │       └── data_plane.rs   # Legacy DataPlane (to be phased out)
+       79 - ├── simple_mandelbrot.rs # Mandelbrot computation algorithm
+       80 - └── mandel_iced_app.rs   # Interactive GUI with fractal visualization (iced MVU)
+       79 + ├── comp/               # Computation algorithms
+       80 + │   ├── mod.rs         # Computation module exports
+       81 +  │   └── simple_mandelbrot.rs # Mandelbrot algorithm with dual storage integration
+       82 +  └── gui/               # GUI application
+       83 +      ├── mod.rs         # GUI module exports
+       84 +      └── mandel_iced_app.rs   # Interactive GUI with dual storage integration
+       85   ```
+       86 
+       87   ## Technical Context
+
+     Tip: Use # to memorize shortcut to quickly add to CLAUDE.md
+
+● Now I need to add a new achievement section. Let me find where to add it:
+
+● Read(CLAUDE.md)
+  ⎿  Read 15 lines (ctrl+r to expand)
+
+● Let me update the Major Achievement section to reflect the dual storage implementation:
+
+● Update(CLAUDE.md)
+  ⎿  Updated CLAUDE.md with 4 additions and 1 removal
+       92   - Target Platform: Linux/Ubuntu (system-independent design)
+       93   - Human Background: Experienced Java programmer learning Rust
+       94 
+       95 - ## Major Achievement: Complete Functional Application
+       95 + ## Major Achievement: Complete Functional Application with Dual Storage Architecture
+       96   **Accomplished comprehensive Rust development:**
+       97   - Built complete fractal visualizer from scratch
+       98   - Mastered Rust's ownership system and advanced concepts
+     ...
+       101   - Implemented mathematical algorithms and coordinate transformations
+       102   - Achieved high-resolution (800×800) fractal rendering with custom coloring
+       103   - Demonstrated architecture independence by reusing business logic across UI frameworks
+       104 +  - **Successfully implemented dual storage architecture per manifesto-02**
+       105 +  - **Mastered Rust ownership patterns: borrowing vs moving for function parameters**
+       106 +  - **Achieved Phase I of manifesto-02: CompStorage → VizStorage integration**
+       107 
+       108   ## Development Commands
+       109   - Build: `cargo build`
+
+     Tip: Use # to memorize shortcut to quickly add to CLAUDE.md
+
+● Now let me add the new concepts learned to the Key Rust Concepts section. Let me find where it ends:
+
+● Read(CLAUDE.md)
+  ⎿  Read 15 lines (ctrl+r to expand)
+
+● Let me add the new concepts learned:
+
+● Update(CLAUDE.md)
+  ⎿  Updated CLAUDE.md with 3 additions
+       148   - **Lock-Free Data Conversion**: Efficient conversion from concurrent (`RwLock`) to single-threaded (`Vec`) d
+            ata structures
+       149   - **Dual Storage Architecture**: Separating computation (parallel) and visualization (single-threaded) data a
+            ccess patterns
+       150   - **Manifesto-Driven Development**: Following structured implementation phases for complex architectural chan
+            ges
+       151 +  - **Function Parameter Ownership**: Understanding when to pass by value vs by reference (`T` vs `&T`) based 
+     o
+           + n usage patterns
+       152 +  - **Ownership Lifecycle Management**: Preventing "use after move" errors through proper borrowing semantics
+       153 +  - **Architectural Integration**: Successfully connecting separate storage layers through proper ownership 
+     des
+           + ign
+       154 
+       155   ## Communication Guidelines
+       156   - Explain concepts in Java terms when helpful
+
+     Tip: Use # to memorize shortcut to quickly add to CLAUDE.md
+
+● Update Todos
+  ⎿  ☒ Update CLAUDE.md to reflect completed dual storage implementation
+     ☐ Commit dual storage implementation with proper commit message
+
+● Now let me prepare for the git commit by running the necessary git commands in parallel:
+
+● Bash(git status)
+  ⎿  Auf Branch master
+     Ihr Branch ist auf demselben Stand wie 'origin/master'.
+
+     Änderungen, die nicht zum Commit vorgemerkt sind:
+     … +8 lines (ctrl+r to expand)
+
+● Bash(git diff)
+  ⎿  diff --git a/CLAUDE.md b/CLAUDE.md
+     index 2f083ca..97290b9 100644
+     --- a/CLAUDE.md
+     +++ b/CLAUDE.md
+     … +201 lines (ctrl+r to expand)
+
+● Bash(git log --oneline -5)
+  ⎿  326761b Add AI session protocol
+     0ff23b9 Moved computation and GUI code into their own modules
+     aa130f0 Implement complete dual storage architecture per manifesto-02
+     59ccaf3 Add latest session protocol
+     d494045 Refactor storage layer into modular architecture for parallel computation
+
+● Perfect! Now I can create the commit. Let me add the files and commit with a proper message:
+
+● Bash(git add CLAUDE.md src/comp/simple_mandelbrot.rs src/gui/mandel_iced_app.rs src/storage/computation/comp_stage.rs)
+  ⎿  (No content)
+
+● Bash(git commit -m "Complete Phase I dual storage integration…)
+  ⎿  [master 3410191] Complete Phase I dual storage integration
+      4 files changed, 53 insertions(+), 20 deletions(-)
+
+● Bash(git status)
+  ⎿  Auf Branch master
+     Ihr Branch ist 1 Commit vor 'origin/master'.
+       (benutzen Sie "git push", um lokale Commits zu publizieren)
+
+     nichts zu committen, Arbeitsverzeichnis unverändert
+
+● Update Todos
+  ⎿  ☒ Update CLAUDE.md to reflect completed dual storage implementation
+     ☒ Commit dual storage implementation with proper commit message
+
+● Perfect! Both tasks completed successfully:
+
+  ✅ CLAUDE.md Updated
+
+  - Added Phase I Integration and Ownership Management checkmarks
+  - Updated all layer descriptions to reflect dual storage integration
+  - Corrected project structure to match current organization
+  - Added new Rust concepts learned (ownership patterns, architectural integration)
+  - Updated major achievements to highlight dual storage success
+
+  ✅ Git Commit Created
+
+  Commit: 3410191 - Complete Phase I dual storage integration
+
+  The commit captures:
+  - Successful dual storage architecture integration
+  - Fixed ownership issue (borrowing vs moving)
+  - Phase I completion per manifesto-02
+  - All 4 modified files properly staged and committed
+
+  Your project now has a clean git history documenting the successful completion of Phase I dual storage architecture
+  implementation!
+
+> Ok, great! Let's continue and move forward to Phase II then. Observation on my behalf: In mandel_iced_app.rs:157 we pass
+   the comp_storage to the VizStorage constructor by move. This has to be changed (to borrowing, I suppose) as 
+  comp_storage has to "survive" the VizStorage creation. I already tried changing this but failed. How can we do that?
+
+● Great observation! You've identified a key architectural challenge for Phase II. Let me explain the issue and solution:
+
+  The Problem
+
+  let comp_storage = CompStorage::new(comp_props.rectified(false));     // line 156
+  simple_mandelbrot::compute_mandelbrot(&comp_storage);                 // line 157 - borrows
+  self.storage = Some(VizStorage::new(comp_storage));                   // line 163 - MOVES!
+
+  Line 163 moves comp_storage into VizStorage::new(), but for Phase II you need comp_storage to stay alive for ongoing
+  computation updates.
+
+  Why Simple Borrowing Won't Work
+
+  You might think to change VizStorage::new(comp_storage) to VizStorage::new(&comp_storage), but this creates a lifetime 
+  problem:
+
+  // This won't compile:
+  self.storage = Some(VizStorage::new(&comp_storage));
+  // comp_storage goes out of scope at end of function!
+  // VizStorage would hold a dangling reference
+
+  Solution: Shared Ownership with Arc
+
+  Phase II requires both computation and visualization to access the same storage simultaneously. This needs
+  Arc<CompStorage>:
+
+  use std::sync::Arc;
+
+  // Create shared ownership:
+  let comp_storage = Arc::new(CompStorage::new(comp_props.rectified(false)));
+
+  // Computation uses clone of Arc (cheap - just increments reference count):
+  simple_mandelbrot::compute_mandelbrot(&comp_storage);
+
+  // VizStorage constructor takes Arc<CompStorage>:
+  self.storage = Some(VizStorage::new(comp_storage.clone()));
+
+  // comp_storage still alive for ongoing updates!
+
+  Required Changes
+
+  1. VizStorage::new signature: Change from CompStorage to Arc<CompStorage>
+  2. VizStage::new: Update to work with Arc<CompStorage>
+  3. Function signatures: Update compute_mandelbrot if needed for Arc
+
+  This is the core of Phase II - shared ownership allowing both computation and visualization to access the same storage
+  concurrently.
+
+  Would you like to start implementing these changes? The key insight is that Arc provides shared ownership without the
+  lifetime issues of borrowing.
+
+> I encapsulated the CompStorage now in Arc and it works - surprisingly even though I did not change the signature of 
+  `compute_mandelbrot`. It still has a `&CompStorage` parameter but is called now with `&Arc<CompStorage>`. How does this 
+  work?
+
+● Excellent question! This demonstrates a powerful Rust feature called automatic dereferencing (also known as "deref
+  coercion"). Let me explain how this works:
+
+  What's Happening: Deref Coercion
+
+  // Function signature expects:
+  pub fn compute_mandelbrot(storage: &CompStorage)
+
+  // You're calling with:  
+  simple_mandelbrot::compute_mandelbrot(&arc_of_comp_storage);
+  //                                    ^^^^^^^^^^^^^^^^^^
+  //                                    This is &Arc<CompStorage>
+
+  The Magic: Arc<T> implements Deref<Target = T>
+
+  Arc<CompStorage> implements the Deref trait:
+
+  impl<T> Deref for Arc<T> {
+      type Target = T;
+      fn deref(&self) -> &T { /* returns reference to inner T */ }
+  }
+
+  Automatic Conversion Chain
+
+  When Rust sees &Arc<CompStorage> where &CompStorage is expected:
+
+  1. Start: &Arc<CompStorage>
+  2. Deref: &Arc<CompStorage> → &CompStorage (automatic)
+  3. Match: Function parameter satisfied ✅
+
+  Java Analogy
+
+  This is similar to Java's automatic unboxing, but more powerful:
+
+  // Java (conceptual similarity):
+  Integer boxed = 42;
+  int unboxed = boxed;  // Auto-unboxing
+
+  // Rust deref coercion:
+  Arc<CompStorage> arc_storage = Arc::new(storage);
+  &CompStorage borrowed = &arc_storage;  // Auto-deref
+
+  Why This Works
+
+  The compiler automatically inserts deref() calls when needed:
+
+  // What you write:
+  compute_mandelbrot(&arc_of_comp_storage)
+
+  // What the compiler effectively does:
+  compute_mandelbrot(arc_of_comp_storage.deref())
+
+  Key Insight
+
+  This means Arc<T> is transparent for borrowing - you can use &Arc<T> anywhere &T is expected! This is why your existing
+  function signatures didn't need to change.
+
+  This is one of Rust's ergonomic features that makes smart pointers feel natural to use. Pretty clever design!
+
+> So many new powerful concepts! My head swirls!
+
+● Ha! That's the exact feeling of learning Rust! 🎢
+
+  This is Normal (and Good!)
+
+  You're experiencing what every Rust learner goes through - the "cognitive overload phase". You've just encountered
+  several advanced concepts in rapid succession:
+
+  - Ownership vs borrowing vs moving
+  - Arc<T> for shared ownership
+  - Deref coercion (automatic &Arc<T> → &T)
+  - Dual storage architecture integration
+  - Function parameter lifetime management
+
+  The Java → Rust Learning Curve
+
+  In Java, you think: "Just pass the object reference"
+
+  In Rust, you think: "Do I move? Borrow? Share? Clone? Arc? Lifetime? Deref??"
+
+  You're Making Great Progress!
+
+  Look what you've accomplished:
+  - ✅ Built a complete fractal visualizer
+  - ✅ Mastered basic ownership
+  - ✅ Implemented dual storage architecture
+  - ✅ Fixed complex ownership issues
+  - ✅ Just learned deref coercion - an advanced concept!
+
+  My Advice
+
+  Take a break! Let your brain process these concepts. When you come back:
+
+  1. Run your program - see your dual storage working
+  2. The concepts will settle - they always do
+  3. Phase II can wait - you've achieved something significant
+
+  The swirling head means you're learning real Rust. Every experienced Rust developer has been exactly where you are right
+   now.
+
+  Well done! 🦀
+
+> Ok. I made additional cleanups, namely removing the old DataStage and DataStorage. Can you please warp up CLAUDE.md and 
+  commit the current state to git.
+
+● I'll help you update CLAUDE.md and commit the cleanup of legacy storage components.
+
+● Update Todos
+  ⎿  ☐ Update CLAUDE.md to reflect legacy storage cleanup and Arc integration
+     ☐ Commit legacy storage cleanup with proper commit message
+
+● Update Todos
+  ⎿  ☐ Update CLAUDE.md to reflect legacy storage cleanup and Arc integration
+     ☐ Commit legacy storage cleanup with proper commit message
+
+● Let me first check what files have been modified to understand the full scope of changes:
+
+● Bash(git status)
+  ⎿  Auf Branch master
+     Ihr Branch ist auf demselben Stand wie 'origin/master'.
+
+     Änderungen, die nicht zum Commit vorgemerkt sind:
+     … +12 lines (ctrl+r to expand)
+
+● Perfect! I can see you've deleted the legacy data_plane.rs and data_storage.rs files and made various updates. Let me
+  update CLAUDE.md to reflect these changes:
+
+● Update(CLAUDE.md)
+  ⎿  Updated CLAUDE.md with 3 additions and 2 removals
+       20 
+       21   ### Current Implementation Status
+       22 
+       23 - **Storage Layer (Complete - Dual Architecture Implementation)**
+       23 + **Storage Layer (Complete - Clean Dual Architecture Implementation)**
+       24   - **Module Restructuring**: ✅ Complete separation into computation and visualization storage layers
+       25   - **Shared Components**: ✅ `DataPoint` struct (now Copy) and `ImageCompProperties` for shared parameters
+       26   - **Computation Storage**: ✅ `CompStorage` + `CompStage` with `Vec<RwLock<Option<DataPoint>>>` for concurrent
+           access
+     ...
+       29   - **Concurrent Access Patterns**: ✅ Individual pixel locking with RwLock for parallel computation threads
+       30   - **Memory Efficiency**: ✅ Copy semantics for DataPoint, reference-based access in visualization layer
+       31   - **Phase I Integration**: ✅ GUI successfully uses dual storage architecture (CompStorage → VizStorage)
+       32 - - **Ownership Management**: ✅ Proper borrowing semantics for computation function calls
+       32 + - **Ownership Management**: ✅ Proper borrowing semantics and Arc<T> for shared ownership
+       33 +  - **Legacy Cleanup**: ✅ Removed deprecated DataStorage and DataPlane components
+       34   - **Event-Based Communication**: Planned for Phase II/III implementation (manifesto-02)
+       35 
+       36   **Computation Layer (Complete - Integrated with Dual Storage)**
+
+     Tip: Use # to memorize shortcut to quickly add to CLAUDE.md
+
+● Now let me update the Computation Layer to reflect the cleanup:
+
+● Update(CLAUDE.md)
+  ⎿  Updated CLAUDE.md with 3 additions and 3 removals
+       33   - **Legacy Cleanup**: ✅ Removed deprecated DataStorage and DataPlane components
+       34   - **Event-Based Communication**: Planned for Phase II/III implementation (manifesto-02)
+       35 
+       36 - **Computation Layer (Complete - Integrated with Dual Storage)**
+       37 - - `simple_mandelbrot.rs`: Core Mandelbrot set algorithm
+       36 + **Computation Layer (Complete - Clean Integration with Dual Storage)**
+       37 + - `simple_mandelbrot.rs`: Core Mandelbrot set algorithm (legacy functions removed)
+       38   - `data_point_at()`: Single complex number computation with escape detection
+       39   - `compute_mandelbrot()`: Full storage computation using CompStorage with borrowing semantics
+       40   - Direct complex number math (z² + c) without external dependencies
+       41   - Proper handling of max iterations and final escape coordinates
+       42   - Verified working algorithm with edge/center point testing
+       43 - - Integration with dual storage architecture using proper Rust ownership patterns
+       43 + - Clean integration with dual storage architecture using proper Rust ownership patterns
+       44 
+       45   **Visualization Layer (Complete - Integrated with Dual Storage)**
+       46   - `mandel_iced_app.rs`: Interactive GUI application using iced MVU architecture
+
+     Tip: Use # to memorize shortcut to quickly add to CLAUDE.md
+
+● Now let me update the Visualization Layer and Project Structure:
+
+● Update(CLAUDE.md)
+  ⎿  Updated CLAUDE.md with 3 additions and 3 removals
+       42   - Verified working algorithm with edge/center point testing
+       43   - Clean integration with dual storage architecture using proper Rust ownership patterns
+       44 
+       45 - **Visualization Layer (Complete - Integrated with Dual Storage)**
+       45 + **Visualization Layer (Complete - Clean Dual Storage Integration)**
+       46   - `mandel_iced_app.rs`: Interactive GUI application using iced MVU architecture
+       47   - Model-View-Update (MVU) pattern with pure functional UI description
+       48   - Event-driven architecture with Message enum for all user interactions
+     ...
+       56   - Improved layout design with centered alignment and consistent spacing
+       57   - Fixed-width input fields (100px) for uniform appearance
+       58   - Automatic initial computation on application startup using Command::perform
+       59 - - Dual storage integration: CompStorage → VizStorage conversion for GUI display
+       60 - - Proper Rust ownership patterns for storage lifecycle management
+       59 + - Clean dual storage integration: Arc<CompStorage> → VizStorage conversion for GUI display
+       60 + - Advanced Rust ownership patterns: Arc<T> for shared ownership and automatic dereferencing
+       61 
+       62   **Project Structure**
+       63   ```
+
+     Tip: Use # to memorize shortcut to quickly add to CLAUDE.md
+
+● Now let me update the Project Structure to remove the legacy components:
+
+● Update(CLAUDE.md)
+  ⎿  Error: String to replace not found in file.
+     String:    └── visualization/  # Single-threaded visualization storage
+            ├── mod.rs     # Visualization module exports
+            ├── viz_storage.rs  # VizStorage: GUI-focused storage container  
+            ├── viz_stage.rs    # VizStage: Vec<Option<DataPoint>> for efficient GUI access
+            ├── data_storage.rs # Legacy DataStorage (to be phased out)
+            └── data_plane.rs   # Legacy DataPlane (to be phased out)
+
+● Let me read the current project structure section:
+
+● Read(CLAUDE.md)
+  ⎿  Read 25 lines (ctrl+r to expand)
+
+● Now I can update the project structure correctly:
+
+● Update(CLAUDE.md)
+  ⎿  Updated CLAUDE.md with 2 additions and 4 removals
+       73   │   │   └── comp_stage.rs    # CompStage: Vec<RwLock<Option<DataPoint>>> for concurrent access
+       74   │   └── visualization/  # Single-threaded visualization storage
+       75   │       ├── mod.rs     # Visualization module exports
+       76 - │       ├── viz_storage.rs  # VizStorage: GUI-focused storage container  
+       77 - │       ├── viz_stage.rs    # VizStage: Vec<Option<DataPoint>> for efficient GUI access
+       78 -  │       ├── data_storage.rs # Legacy DataStorage (to be phased out)
+       79 -  │       └── data_plane.rs   # Legacy DataPlane (to be phased out)
+       76 + │       ├── viz_storage.rs  # VizStorage: GUI-focused storage container with Arc<CompStorage> support
+       77 + │       └── viz_stage.rs    # VizStage: Vec<Option<DataPoint>> for efficient GUI access
+       78   ├── comp/               # Computation algorithms
+       79   │   ├── mod.rs         # Computation module exports
+       80   │   └── simple_mandelbrot.rs # Mandelbrot algorithm with dual storage integration
+
+     Tip: Use # to memorize shortcut to quickly add to CLAUDE.md
+
+● Now let me update the Key Rust Concepts section to add the new concepts learned:
+
+● Update(CLAUDE.md)
+  ⎿  Updated CLAUDE.md with 3 additions
+       150   - **Function Parameter Ownership**: Understanding when to pass by value vs by reference (`T` vs `&T`) based o
+            n usage patterns
+       151   - **Ownership Lifecycle Management**: Preventing "use after move" errors through proper borrowing semantics
+       152   - **Architectural Integration**: Successfully connecting separate storage layers through proper ownership des
+            ign
+       153 +  - **Smart Pointers**: `Arc<T>` for shared ownership in multi-threaded scenarios without cloning data
+       154 +  - **Deref Coercion**: Automatic conversion from `&Arc<T>` to `&T` for transparent smart pointer usage
+       155 +  - **Legacy Code Cleanup**: Safe removal of deprecated components after architectural migration
+       156 
+       157   ## Communication Guidelines
+       158   - Explain concepts in Java terms when helpful
+
+     Tip: Use # to memorize shortcut to quickly add to CLAUDE.md
+
+● Update Todos
+  ⎿  ☒ Update CLAUDE.md to reflect legacy storage cleanup and Arc integration
+     ☐ Commit legacy storage cleanup with proper commit message
+
+● Now let me prepare for the git commit by running the necessary commands:
+
+● Bash(git diff --name-status)
+  ⎿  M  CLAUDE.md
+     M  src/comp/simple_mandelbrot.rs
+     M  src/gui/mandel_iced_app.rs
+     M  src/storage/image_comp_properties.rs
+     … +5 lines (ctrl+r to expand)
+
+● Bash(git log --oneline -3)
+  ⎿  3410191 Complete Phase I dual storage integration
+     326761b Add AI session protocol
+     0ff23b9 Moved computation and GUI code into their own modules
+
+● Perfect! Now let me stage all the changes and create the commit:
+
+● Bash(git add -A)
+  ⎿  (No content)
+
+● Bash(git commit -m "Clean up legacy storage and implement Arc<T> shared ownership…)
+  ⎿  [master 88a5ebc] Clean up legacy storage and implement Arc<T> shared ownership
+      9 files changed, 26 insertions(+), 169 deletions(-)
+      delete mode 100644 src/storage/visualization/data_plane.rs
+      delete mode 100644 src/storage/visualization/data_storage.rs
+
+● Bash(git status)
+  ⎿  Auf Branch master
+     Ihr Branch ist 1 Commit vor 'origin/master'.
+       (benutzen Sie "git push", um lokale Commits zu publizieren)
+
+     nichts zu committen, Arbeitsverzeichnis unverändert
+
+● Update Todos
+  ⎿  ☒ Update CLAUDE.md to reflect legacy storage cleanup and Arc integration
+     ☒ Commit legacy storage cleanup with proper commit message
+
+● Perfect! Both tasks completed successfully:
+
+  ✅ CLAUDE.md Updated
+
+  - Updated to reflect "Clean Dual Architecture Implementation"
+  - Added Arc shared ownership and legacy cleanup achievements
+  - Removed references to deleted DataStorage and DataPlane components
+  - Updated project structure to show clean architecture
+  - Added new Rust concepts: Smart Pointers, Deref Coercion, Legacy Code Cleanup
+
+  ✅ Git Commit Created
+
+  Commit: 88a5ebc - Clean up legacy storage and implement Arc<T> shared ownership
+
+  The commit captures:
+  - 9 files changed: 26 insertions, 169 deletions 🎉
+  - 2 files deleted: Legacy data_storage.rs and data_plane.rs
+  - Arc: Shared ownership implementation
+  - Deref coercion: Automatic &Arc<T> → &T conversion
+  - Clean architecture: Pure dual storage without legacy components
+
+  Your codebase is now significantly cleaner with a proper dual storage architecture and advanced Rust ownership patterns.
+   Ready for Phase II development! 🦀
+
+> Before we continue, one other thing. We were talking about module organisation. Currently, I add `mod.rs` into a folder 
+  with module files. You were mentioning once that "since Rust 2018+", it was also possible to put a file "my_module.rs" 
+  along the "my_module" folder. That file was equivalent to `my_module/mod.rs`. Can you elaborate a bit: Why was the 
+  `mod.rs` approach chosen in the first place? Why was the `my_module.rs` added? Why can you use both these days, i.e. why
+   was there no shift from `my_module/mod.rs` to `my_module.rs`? Might that shift come in the future? Which is the 
+  preferred syntax these days?
+
+● Great question! This touches on Rust's module system evolution and design philosophy. Let me explain the history and
+  current state:
+
+  Historical Context: Why mod.rs First?
+
+  Rust 2015 (original design):
+  src/
+  ├── lib.rs
+  └── storage/
+      ├── mod.rs          # Required - declares the storage module
+      ├── data_point.rs
+      └── computation/
+          ├── mod.rs      # Required - declares the computation submodule
+          └── comp_storage.rs
+
+  Reasoning behind mod.rs:
+  - Clear hierarchy: mod.rs explicitly marks "this directory is a module"
+  - Python influence: Similar to __init__.py in Python packages
+  - Explicit intent: You can't accidentally create a module - you must add mod.rs
+  - Re-exports: mod.rs serves as the module's public API gateway
+
+  Rust 2018: Adding the Alternative
+
+  New option introduced:
+  src/
+  ├── lib.rs
+  ├── storage.rs          # NEW: equivalent to storage/mod.rs
+  └── storage/            # Files belonging to storage module
+      ├── data_point.rs
+      ├── computation.rs  # NEW: equivalent to computation/mod.rs
+      └── computation/
+          └── comp_storage.rs
+
+  Why add this alternative?
+  1. Reduced nesting: Fewer directories for simple modules
+  2. Familiarity: More like C/C++ header files
+  3. Choice: Let developers pick their preference
+  4. File explorer friendliness: Module file appears next to its directory
+
+  Why Both Coexist Today?
+
+  No migration forced because:
+
+  1. Different use cases:
+    - mod.rs: Better for complex modules with lots of re-exports
+    - module.rs: Better for simple modules with few files
+  2. Team preferences:
+    - Some teams prefer explicit mod.rs hierarchy
+    - Others prefer flatter module.rs structure
+  3. Migration complexity:
+    - Existing codebases would need updates
+    - No compelling reason to force change
+
+  Current Best Practices (2024)
+
+  General guidance:
+  - mod.rs: When module has complex internal structure or lots of re-exports
+  - module.rs: When module is simpler or you prefer flatter structure
+
+  Your project could use either:
+  // Option 1: Keep current mod.rs approach
+  src/storage/mod.rs
+  src/storage/computation/mod.rs
+
+  // Option 2: Switch to module.rs approach  
+  src/storage.rs          // replaces src/storage/mod.rs
+  src/storage/computation.rs  // replaces src/storage/computation/mod.rs
+
+  Future Direction
+
+  Unlikely to deprecate either:
+  - Both patterns serve different needs
+  - Rust values stability and choice
+  - No performance difference between approaches
+
+  Trending preference: Many new projects use module.rs for simplicity, but mod.rs remains very common in complex projects.
+
+  For Your Project
+
+  Given your storage module's complexity with computation/visualization split, mod.rs is probably the right choice - it
+  makes the hierarchy clearer and gives you better control over re-exports.
+
+> Ok, understood. An another totally unconnected question: We are communication in English here. I do not want to change 
+  this. But would it be possible to have this conversation in another language, say German, for programmers who are not 
+  fluent in English?
+
+● Yes, absolutely! Claude Code can communicate in many languages including German, and it would work well for
+  German-speaking programmers learning Rust.
+
+  How It Would Work
+
+  German conversation example:
+  Benutzer: Kannst du mir bei einem Ownership-Problem helfen?
+  Claude: Ja, gerne! Zeig mir den Code und ich erkläre das Problem.
+
+  Code comments in German:
+  // Speicher für Fraktaldaten - unterstützt parallelen Zugriff
+  pub struct CompStorage {
+      pub properties: ImageCompProperties,  // Berechnungsparameter
+      pub stage: CompStage,                 // Eigentliche Pixeldaten
+  }
+
+  Technical explanations in German:
+  - "Ownership" → "Besitzrecht/Eigentümerschaft"
+  - "Borrowing" → "Ausleihen/Borrowing"
+  - "Move semantics" → "Move-Semantik"
+  - "Reference" → "Referenz/Verweis"
+
+  Language Setting
+
+  You can simply ask Claude Code to switch languages:
+  - "Bitte antworte auf Deutsch"
+  - "Switch to German please"
+  - Or start asking questions in German
+
+  Benefits for German Programmers
+
+  - Comfort: Native language explanations
+  - Learning: Rust concepts in familiar terms
+  - Documentation: German comments and variable names
+  - Community: Matches German Rust community practices
+
+  Code Stays English
+
+  Best practice remains:
+  - Code keywords, function names: English (compute_mandelbrot, not berechne_mandelbrot)
+  - Comments: Can be German
+  - Documentation: Can be German
+
+  This follows international programming conventions while making learning more accessible.
+
+  Would you like me to demonstrate with a German explanation of a Rust concept?
+
+> No no, thanks. I am totally happy with doing this in English exclusively. It was just for discussions with colleagues 
+  who might feel uncomfortable with using English in these conversations all the time.
+
+● Ah, got it! That's really thoughtful consideration for your colleagues.
+
+  You're absolutely right - language comfort can be a significant barrier when learning complex technical concepts. Having
+   Claude Code available in German (or other languages) removes that friction and lets developers focus on learning Rust
+  rather than translating English.
+
+  Good to Know For Your Team
+
+  If colleagues want to try Claude Code:
+  - They can switch languages anytime during a session
+  - Code structure and conventions stay international standard
+  - Technical explanations become much more accessible
+  - Learning curve becomes less steep
+
+  Your English Choice
+
+  Your English is excellent, and staying with English has advantages:
+  - International documentation aligns with your learning
+  - Stack Overflow/GitHub searches match your experience
+  - Rust community primarily uses English
+  - Technical vocabulary builds naturally
+
+  Plus, you're building a solid foundation for contributing to the broader Rust ecosystem.
+
+  Perfect approach: You continue in English, but good to know the option exists for team members who might benefit from
+  native language support when they're getting started.
+
+  Back to Rust whenever you're ready! 🦀
+
+> Ok, back to the project. Question: in `VizStorage`, when implementing handling the (Arc-borrowed and not implicitly 
+  deferred) `CompStorage`, I added `.as_ref()` to the access. I must admit that I just copied some code I had already seen
+   before. I do not really have a clue yet what I actually did there. Can you explain what is going on? Is this also some 
+  "defer coercion"?
+
+● Great question! You've discovered another important Rust concept. Let me explain what .as_ref() does and why you needed
+  it.
+
+  The Problem You Solved
+
+  Looking at your VizStorage::new():
+
+  pub fn new(arc_of_comp_storage: Arc<CompStorage>) -> VizStorage {
+      let stage = VizStage::new(&arc_of_comp_storage.as_ref().stage);
+      VizStorage {
+          properties: arc_of_comp_storage.as_ref().properties,
+          stage,
+      }
+  }
+
+  What .as_ref() Does
+
+  .as_ref() converts Arc<T> to &T:
+
+  Arc<CompStorage>        // Owned smart pointer
+      ↓ .as_ref()
+  &CompStorage           // Borrowed reference
+
+  Why You Needed It
+
+  The issue was field access patterns:
+
+  // This works (deref coercion):
+  simple_mandelbrot::compute_mandelbrot(&arc_of_comp_storage);
+  //                                    ^^^^^^^^^^^^^^^^^^
+  //                                    &Arc<CompStorage> → &CompStorage
+
+  // This doesn't work directly:
+  arc_of_comp_storage.properties  // Error! Arc<T> doesn't have properties field
+  arc_of_comp_storage.stage       // Error! Arc<T> doesn't have stage field
+
+  // This works:
+  arc_of_comp_storage.as_ref().properties  // ✅ &CompStorage has properties
+  arc_of_comp_storage.as_ref().stage      // ✅ &CompStorage has stage
+
+  Why Deref Coercion Didn't Work Here
+
+  Deref coercion only works for function calls, not field access:
+
+  // ✅ Deref coercion works:
+  function_expecting_ref(&arc_storage)  // &Arc<T> → &T automatically
+
+  // ❌ Deref coercion doesn't work:
+  arc_storage.field  // Arc<T> doesn't auto-deref for field access
+
+  Alternative Approaches
+
+  You could have also used:
+
+  // Option 1: Manual dereference
+  properties: (*arc_of_comp_storage).properties,
+
+  // Option 2: Your choice - explicit .as_ref()
+  properties: arc_of_comp_storage.as_ref().properties,
+
+  // Option 3: Store reference at start
+  let comp_storage_ref = arc_of_comp_storage.as_ref();
+  properties: comp_storage_ref.properties,
+
+  Java Analogy
+
+  // Java - automatic dereferencing everywhere:
+  MyObject obj = new MyObject();
+  obj.field;        // Always works
+
+  // Rust - smart pointers need explicit conversion for fields:
+  Arc<MyStruct> arc_obj = Arc::new(MyStruct { ... });
+  arc_obj.field;         // Error! 
+  arc_obj.as_ref().field; // Works!
+
+  Key Insight
+
+  .as_ref() is explicit field access conversion - it's not automatic deref coercion, but a method you call when you need
+  to access fields through smart pointers.
+
+  You chose the right solution by copying working code! This is a common Rust pattern for smart pointer field access.
+
+> And this `.as_ref()` does not copy any stuff, right?
+
+● Exactly right! .as_ref() does no copying whatsoever.
+
+  What .as_ref() Actually Does
+
+  impl<T> AsRef<T> for Arc<T> {
+      fn as_ref(&self) -> &T {
+          &**self  // Just returns a reference to the inner data
+      }
+  }
+
+  It's pure reference manipulation:
+  - Takes &Arc<T> (reference to the Arc)
+  - Returns &T (reference to the inner data)
+  - Zero copying, zero cloning, zero allocation
+
+  Memory Layout Perspective
+
+  // Memory layout (simplified):
+  arc_of_comp_storage: Arc<CompStorage>
+      ├── reference_count: 1
+      ├── weak_count: 0
+      └── data: CompStorage { properties: ..., stage: ... }
+                  ↑
+                  │ .as_ref() just returns a pointer to this
+                  └── &CompStorage (points here)
+
+  Performance Impact
+
+  Absolutely zero:
+  - No heap allocation
+  - No memory copying
+  - No data movement
+  - Just pointer arithmetic
+
+  Java Comparison
+
+  // Java - everything is references anyway:
+  MyObject obj = myArc.getData();  // Returns reference, no copying
+
+  // Rust - explicit reference extraction:
+  &CompStorage comp_ref = arc.as_ref();  // Returns reference, no copying
+
+  Why This Matters
+
+  This is why Rust's zero-cost abstractions work so well:
+  - Arc<T> provides thread-safe shared ownership
+  - .as_ref() gives you cheap access to the data
+  - No performance penalty for the safety guarantees
+
+  You instinctively chose the most efficient approach! Smart pointers in Rust are designed to be zero-cost when you just
+  need to access the data.
+
+> Ok, got it! Now, let's go on! For Phase II, we need to uncouple computation from visualization. Computation must run in 
+  its own thread/process/whatsoever _parallel_ to the interface. This is not implemented at all so far. Explain to me 
+  first how Rust handles such parallel structures in general. I heard, it is very well equipped for parallel execution 
+  programming.
+
+● Excellent question! Yes, Rust is exceptionally well-equipped for parallel programming. Let me explain the key concepts
+  and how they apply to your Phase II implementation.
+
+  Rust's Parallel Programming Strengths
+
+  Core advantage: Rust's ownership system prevents data races at compile time - no runtime race condition bugs!
+
+  Key Parallel Programming Concepts
+
+  1. Threads (std::thread)
+
+  use std::thread;
+
+  // Spawn a new thread
+  let handle = thread::spawn(|| {
+      // This code runs in parallel
+      println!("Hello from another thread!");
+  });
+
+  // Wait for thread to finish
+  handle.join().unwrap();
+
+  2. Message Passing (Channels)
+
+  use std::sync::mpsc;  // Multi-producer, single-consumer
+
+  let (sender, receiver) = mpsc::channel();
+
+  // Thread 1: Send data
+  thread::spawn(move || {
+      sender.send("Hello").unwrap();
+  });
+
+  // Thread 2: Receive data  
+  let msg = receiver.recv().unwrap();
+
+  3. Shared State (Arc + Mutex/RwLock)
+
+  use std::sync::{Arc, Mutex};
+
+  let shared_data = Arc::new(Mutex::new(0));
+  let shared_clone = shared_data.clone();
+
+  thread::spawn(move || {
+      let mut data = shared_clone.lock().unwrap();
+      *data += 1;
+  });
+
+  For Your Phase II Architecture
+
+  Perfect fit for your dual storage:
+
+  // Computation thread
+  let comp_storage = Arc::new(CompStorage::new(props));
+  let comp_clone = comp_storage.clone();
+
+  // Spawn computation thread
+  let compute_handle = thread::spawn(move || {
+      simple_mandelbrot::compute_mandelbrot(&comp_clone);
+  });
+
+  // GUI thread keeps running
+  // Periodically create VizStorage from shared comp_storage
+  let viz_storage = VizStorage::new(comp_storage.clone());
+
+  Rust's Safety Guarantees
+
+  No data races possible:
+  - Compile-time checking: Can't share mutable data without synchronization
+  - Ownership rules: Each piece of data has clear ownership
+  - Type system: Prevents classic parallel programming bugs
+
+  Java Comparison
+
+  // Java - runtime race conditions possible:
+  SharedObject obj = new SharedObject();
+  // Multiple threads can modify obj.field - race condition!
+
+  // Rust - compile-time prevention:
+  Arc<RwLock<CompStorage>> storage = Arc::new(RwLock::new(comp_storage));
+  // Compiler forces you to use proper locking!
+
+  Next Steps for Phase II
+
+  1. Spawn computation thread with thread::spawn
+  2. Use channels to send progress updates to GUI
+  3. Share Arc<CompStorage> between threads
+  4. GUI polls or receives updates for visualization
+
+  Key insight: You already have the hard part (Arc<CompStorage> + RwLock in CompStage) - Rust's type system will guide you
+   to correct parallel implementation!
+
+  Ready to dive into the threading implementation?
+
+╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ >                                                                                                                           │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+  ⏵⏵ auto-accept edits on (shift+tab to cycle)
+
+
+
+
+

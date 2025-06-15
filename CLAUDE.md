@@ -31,33 +31,34 @@ The application follows a three-layer design:
 - **Phase I Integration**: ✅ GUI successfully uses dual storage architecture (CompStorage → VizStorage)
 - **Ownership Management**: ✅ Proper borrowing semantics and Arc<T> for shared ownership
 - **Legacy Cleanup**: ✅ Removed deprecated DataStorage and DataPlane components
-- **Event-Based Communication**: Planned for Phase II/III implementation (manifesto-02)
+- **Phase II Threading**: 🔄 Parallel computation with MandelbrotEngine (partial implementation)
+- **Real-time Updates**: 🔄 Command-based GUI updates every 200ms during computation
+- **Event-Based Communication**: Planned for Phase III implementation (manifesto-02)
 
-**Computation Layer (Complete - Clean Integration with Dual Storage)**
-- `simple_mandelbrot.rs`: Core Mandelbrot set algorithm (legacy functions removed)
-- `data_point_at()`: Single complex number computation with escape detection
-- `compute_mandelbrot()`: Full storage computation using CompStorage with borrowing semantics
-- Direct complex number math (z² + c) without external dependencies
-- Proper handling of max iterations and final escape coordinates
-- Verified working algorithm with edge/center point testing
-- Clean integration with dual storage architecture using proper Rust ownership patterns
+**Computation Layer (Phase II - Threading Architecture Implementation)**
+- `mandelbrot_engine.rs`: Structured computation engine with thread management
+- `MandelbrotEngine`: State machine with start()/stop() methods and Arc<CompStorage> integration
+- `stoppable_compute_mandelbrot()`: Interruptible computation with atomic stop flags
+- `data_point_at()`: Core Mandelbrot iteration algorithm unchanged
+- Thread-safe state management with Arc<Mutex<EngineState>>
+- Background computation with proper thread lifecycle management
+- Atomic cancellation support for responsive stop operations
 
-**Visualization Layer (Complete - Clean Dual Storage Integration)**
-- `mandel_iced_app.rs`: Interactive GUI application using iced MVU architecture
+**Visualization Layer (Phase II - Real-time Threading Integration)**
+- `mandel_iced_app.rs`: Interactive GUI application with threaded computation support
 - Model-View-Update (MVU) pattern with pure functional UI description
-- Event-driven architecture with Message enum for all user interactions
-- Real-time fractal computation triggered by button clicks
+- Event-driven architecture with Message enum including UpdateViz for real-time updates
+- MandelbrotEngine integration with start/stop controls and state management
 - Dynamic color mapping from iteration counts to RGB values
 - Cross-platform window with native look and feel and responsive image scaling
 - High-resolution rendering with configurable dimensions and instant visual feedback
-- Proper state management (computing vs idle states)
-- Interactive parameter input: coordinate bounds (left, right, top, bottom), image dimensions (width, height), and max iterations
+- Advanced state management: computing vs idle states with engine lifecycle
+- Interactive parameter input: coordinate bounds, image dimensions, and max iterations
 - Real-time parameter validation using Rust's Result pattern matching
 - Improved layout design with centered alignment and consistent spacing
-- Fixed-width input fields (100px) for uniform appearance
-- Automatic initial computation on application startup using Command::perform
+- Command-based periodic updates: 200ms refresh cycle during computation
 - Clean dual storage integration: Arc<CompStorage> → VizStorage conversion for GUI display
-- Advanced Rust ownership patterns: Arc<T> for shared ownership and automatic dereferencing
+- Advanced threading patterns: Command::perform with tokio::time::sleep for non-blocking updates
 
 **Project Structure**
 ```
@@ -77,7 +78,7 @@ src/
 │       └── viz_stage.rs    # VizStage: Vec<Option<DataPoint>> for efficient GUI access
 ├── comp/               # Computation algorithms
 │   ├── mod.rs         # Computation module exports
-│   └── simple_mandelbrot.rs # Mandelbrot algorithm with dual storage integration
+│   └── mandelbrot_engine.rs # Threaded computation engine with MandelbrotEngine struct
 └── gui/               # GUI application
     ├── mod.rs         # GUI module exports
     └── mandel_iced_app.rs   # Interactive GUI with dual storage integration
@@ -153,6 +154,11 @@ src/
 - **Smart Pointers**: `Arc<T>` for shared ownership in multi-threaded scenarios without cloning data
 - **Deref Coercion**: Automatic conversion from `&Arc<T>` to `&T` for transparent smart pointer usage
 - **Legacy Code Cleanup**: Safe removal of deprecated components after architectural migration
+- **Thread Management**: `std::thread::spawn` with proper handle storage and lifecycle management
+- **Atomic Operations**: `AtomicBool` for lock-free cancellation signals across threads
+- **State Machines**: Enum-based state tracking with thread-safe Arc<Mutex<T>> for shared state
+- **Command-based Async**: iced Command::perform with tokio for non-blocking periodic operations
+- **Engine Architecture**: Structured computation management with start/stop lifecycle methods
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful

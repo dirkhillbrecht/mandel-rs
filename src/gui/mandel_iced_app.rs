@@ -1,8 +1,7 @@
-use std::sync::Arc;
+use std::time::Duration;
 use iced::{Application, Command, Element, Theme};
-use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::visualization::viz_storage::VizStorage;
-use crate::comp::simple_mandelbrot;
+use crate::comp::mandelbrot_engine::{EngineState, MandelbrotEngine};
 use crate::storage::image_comp_properties::{ImageCompProperties, StageProperties, Rect};
 
 #[derive(Debug, Clone)]
@@ -15,10 +14,13 @@ pub enum Message {
     HeightChanged(String),
     MaxIterationChanged(String),
     ComputeClicked,
+    StopClicked,
+    UpdateViz,
 }
 
 pub struct MandelIcedApp {
     storage: Option<VizStorage>,
+    engine: Option<MandelbrotEngine>,
     computing: bool,
     left: String,
     right: String,
@@ -33,6 +35,7 @@ impl Default for MandelIcedApp {
     fn default() -> Self {
         MandelIcedApp {
             storage: None,
+            engine: None,
             computing: false,
 
 /*            // Full mandelbrot set
@@ -149,23 +152,56 @@ impl Application for MandelIcedApp {
                     self.height.parse::<u32>(),
                     self.max_iteration.parse::<u32>(),
                 ) {
-                    println!("Compute started");
-                    self.computing=true;
-                    let comp_props=ImageCompProperties::new(StageProperties::new(
-                        Rect::new(left,right,bottom,top), width, height),max_iteration);
-                    let arc_of_comp_storage=Arc::new(CompStorage::new(comp_props.rectified(false)));
-                    simple_mandelbrot::compute_mandelbrot(&arc_of_comp_storage);
-                    self.storage=Some(VizStorage::new(arc_of_comp_storage.clone()));
-                    self.computing=false;
-                    println!("Compute ended");
+                    if let Some(_) = self.engine {
+                        println!("Engine already initialized");
+                    }
+                    else {
+                        self.computing=true;
+                        let comp_props=ImageCompProperties::new(StageProperties::new(
+                            Rect::new(left,right,bottom,top), width, height),max_iteration);
+                        self.engine=Some(MandelbrotEngine::new(comp_props));
+                        self.storage=Some(VizStorage::new(self.engine.as_ref().unwrap().storage()));
+                        self.engine.as_ref().unwrap().start();
+
+                        // Schedule first update
+                        return Command::perform(
+                            async { tokio::time::sleep(Duration::from_millis(200)).await; },
+                            |_| Message::UpdateViz
+                        );
+                    }
                 }
                 else {
                     println!("Problem with input data");
                 }
-            }
+            },
+            Message::UpdateViz => {
+                if let Some(_) = self.engine {
+                    self.storage=Some(VizStorage::new(self.engine.as_ref().unwrap().storage()));
+                    let state=self.engine.as_ref().unwrap().state();
+                    if state == EngineState::Aborted || state == EngineState::Finished {
+                        self.engine=None;
+                        self.computing=false;
+                        return Command::none(); // Stop updates
+                    } else {
+                        // Schedule next update
+                        return Command::perform(
+                            async { tokio::time::sleep(Duration::from_millis(200)).await; },
+                            |_| Message::UpdateViz
+                        );
+                    }
+                }
+            },
+            Message::StopClicked => {
+                if let Some(_) = self.engine {
+                    self.engine.as_ref().unwrap().stop();
+                    self.engine=None;
+                    self.computing=false;
+                }
+            },
         }
         Command::none()
     }
+
 
     fn view(&self) -> Element<Message> {
         use iced::widget::{button, column, row, text, text_input};
@@ -185,7 +221,11 @@ impl Application for MandelIcedApp {
             ].spacing(10).align_items(iced::Alignment::Center),
             row![
                 iced::widget::horizontal_space(),
-                button("Compute Mandelbrot").on_press(Message::ComputeClicked),
+                if self.computing {
+                    button("Stop Computation").on_press(Message::StopClicked)
+                } else {
+                    button("Compute Mandelbrot").on_press(Message::ComputeClicked)
+                },
             ].align_items(iced::Alignment::Center),
             row![
                 iced::widget::horizontal_space(),

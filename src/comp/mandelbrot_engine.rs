@@ -1,0 +1,150 @@
+// Most basic and simple implementation of a mandelbrot computation algorithm
+
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::thread::{self, JoinHandle};
+
+use crate::storage::computation::comp_storage::CompStorage;
+use crate::storage::data_point::DataPoint;
+use crate::storage::image_comp_properties::ImageCompProperties;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum EngineState {
+    PreStart, Running, Finished, Aborted,
+}
+
+pub struct MandelbrotEngine {
+
+    pub original_properties: ImageCompProperties,
+    pub state: Arc<Mutex<EngineState>>,
+    storage: Arc<CompStorage>,
+    thread_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
+    stop_flag: Arc<AtomicBool>,
+
+}
+
+impl MandelbrotEngine {
+
+    /// Create a new MandelbrotEngine for the given image computation properties
+    /// The engine has _not_ started computation after
+    pub fn new(original_properties: ImageCompProperties) -> MandelbrotEngine {
+        let storage_properties=original_properties.rectified(false);
+        MandelbrotEngine {
+            original_properties,
+            state: Arc::new(Mutex::new(EngineState::PreStart)),
+            storage: Arc::new(CompStorage::new(storage_properties)),
+            thread_handle: Arc::new(Mutex::new(None)),
+            stop_flag: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    /// Return the current state of the engine
+    pub fn state(&self) -> EngineState {
+        *self.state.lock().unwrap()
+    }
+
+    pub fn start(&self) {
+
+        // Check if computation is already running
+        // This block can only be entered _once_ at the same time, so the state test and change is atomic from the outside.
+        {
+            let mut state = self.state.lock().unwrap();
+            if matches!(*state, EngineState::Running) {
+                return;
+            }
+            *state = EngineState::Running;
+        }
+
+        // From hereon it is clear that computation is neither running nor in the process of being started
+        // Reset stop flag
+        self.stop_flag.store(false, Ordering::Relaxed);
+
+        // Prepare starting the thread by creating moveable clones of the needed data
+        let storage_for_thread=self.storage.clone();
+        let state_for_thread=self.state.clone();
+        let stop_flag_for_thread=self.stop_flag.clone();
+
+        // Now spawn the computation thread
+        let handle=thread::spawn(move || {
+            // Perform the computation
+            let result=stoppable_compute_mandelbrot(&storage_for_thread, &stop_flag_for_thread);
+            // Update the state once computation is either finished or aborted
+            let mut state=state_for_thread.lock().unwrap();
+            *state = if result { EngineState::Finished } else { EngineState::Aborted };
+        });
+
+        // Store the thread handle
+        let mut thread_handle=self.thread_handle.lock().unwrap();
+        *thread_handle=Some(handle);
+    }
+
+    pub fn stop(&self) {
+        // Signal stop
+        self.stop_flag.store(true, Ordering::Relaxed);
+
+        // Wait for the thread to finish
+        // Note: This needs to be redesigned, stopping should not block. Perhaps an additional engine state "Stopping"
+        let mut thread_handle = self.thread_handle.lock().unwrap();
+        if let Some(handle) = thread_handle.take() {
+            handle.join().unwrap();
+        }
+    }
+
+    pub fn storage(&self) -> Arc<CompStorage> {
+        self.storage.clone()
+    }
+
+}
+
+
+fn stoppable_compute_mandelbrot(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
+    let max_iteration=storage.properties.max_iteration;
+    for x in 0..storage.properties.stage_properties.width {
+        // Check for cancellation every row, this is only interim as way too inflexible!
+        if stop_flag.load(Ordering::Relaxed) {
+            return false;  // Computation was aborted
+        }
+        let x_coo=storage.properties.stage_properties.x(x);
+        for y in 0..storage.properties.stage_properties.height {
+            let y_coo=storage.properties.stage_properties.y(y);
+            storage.stage.set(x,y,data_point_at(x_coo,y_coo,max_iteration));
+        }
+    }
+    true  // Computation ended successfully
+}
+
+pub fn compute_mandelbrot(storage: &CompStorage) {
+    let max_iteration=storage.properties.max_iteration;
+    for x in 0..storage.properties.stage_properties.width {
+        let x_coo=storage.properties.stage_properties.x(x);
+        for y in 0..storage.properties.stage_properties.height {
+            let y_coo=storage.properties.stage_properties.y(y);
+            storage.stage.set(x,y,data_point_at(x_coo,y_coo,max_iteration));
+        }
+    }
+}
+
+// This is the actual mandelbrot set iteration depth computation algorithm, somehow the same as in 1978…
+pub fn data_point_at(c_real:f64,c_imag:f64,max_iteration:u32) -> DataPoint {
+    let mut z_real=0.0;
+    let mut z_imag=0.0;
+    for i in 0..max_iteration {
+        let z_real_square=z_real*z_real;
+        let z_imag_square=z_imag*z_imag;
+        let z_real_new=z_real_square-z_imag_square+c_real;
+        let z_imag_new=2.0*z_real*z_imag+c_imag;
+        if z_real_square+z_imag_square>4.0 { // make this configurable later
+            return DataPoint::new(i,z_real_new,z_imag_new);
+        }
+        z_real=z_real_new;
+        z_imag=z_imag_new;
+    }
+    // Final iteration must compute one more loop
+    let z_real_square=z_real*z_real;
+    let z_imag_square=z_imag*z_imag;
+    let z_real_new=z_real_square-z_imag_square+c_real;
+    let z_imag_new=2.0*z_real*z_imag+c_imag;
+    return DataPoint::new(max_iteration,z_real_new,z_imag_new);
+}
+
+// end of file
