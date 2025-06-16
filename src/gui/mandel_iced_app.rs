@@ -164,10 +164,7 @@ impl Application for MandelIcedApp {
                         self.engine.as_ref().unwrap().start();
 
                         // Schedule first update
-                        return Command::perform(
-                            async { tokio::time::sleep(Duration::from_millis(200)).await; },
-                            |_| Message::UpdateViz
-                        );
+                        return Command::perform(async{}, |_| Message::UpdateViz);
                     }
                 }
                 else {
@@ -237,17 +234,30 @@ impl Application for MandelIcedApp {
             ].spacing(10).align_items(iced::Alignment::Center),
             row![
                 iced::widget::horizontal_space(),
-                if self.computing {
-                    column![text("Computing…")].spacing(10)
-                }
-                else if let Some(storage) = &self.storage {
+                if let Some(storage) = &self.storage {
                     column![
-                        text(format!("Computed {}*{} fractal", storage.properties.stage_properties.width, storage.properties.stage_properties.height)),
+                        if self.computing {
+                            text(format!("Computing {}*{} fractal", storage.properties.stage_properties.width, storage.properties.stage_properties.height))
+                        }
+                        else {
+                            text(format!("Computed {}*{} fractal", storage.properties.stage_properties.width, storage.properties.stage_properties.height))
+                        }
+                    ].spacing(10)
+                }
+                else {
+                  column![text(if self.computing { "Computing…" } else { "Ready to compute" })].spacing(10)
+                },
+                iced::widget::horizontal_space(),
+            ],
+            row![
+                iced::widget::horizontal_space(),
+                if let Some(storage) = &self.storage {
+                    column![
                         self.render_fractal(storage)
                     ].spacing(10)
                 }
                 else {
-                    column![text("Ready to compute")].spacing(10)
+                    column![ text("") ]
                 },
                 iced::widget::horizontal_space(),
             ],

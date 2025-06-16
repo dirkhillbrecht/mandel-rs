@@ -4,6 +4,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
+use rand::rng;
+use rand::seq::SliceRandom;
+
 use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::data_point::DataPoint;
 use crate::storage::image_comp_properties::ImageCompProperties;
@@ -67,7 +70,7 @@ impl MandelbrotEngine {
         // Now spawn the computation thread
         let handle=thread::spawn(move || {
             // Perform the computation
-            let result=stoppable_compute_mandelbrot(&storage_for_thread, &stop_flag_for_thread);
+            let result=stoppable_compute_mandelbrot_shuffled(&storage_for_thread, &stop_flag_for_thread);
             // Update the state once computation is either finished or aborted
             let mut state=state_for_thread.lock().unwrap();
             *state = if result { EngineState::Finished } else { EngineState::Aborted };
@@ -97,31 +100,57 @@ impl MandelbrotEngine {
 }
 
 
-fn stoppable_compute_mandelbrot(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
+fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
     let max_iteration=storage.properties.max_iteration;
+    let height=storage.properties.stage_properties.height;
+    let width=storage.properties.stage_properties.width;
+    let mut coords=Vec::with_capacity((height*width) as usize);
+    let mut ycoo=Vec::with_capacity(height as usize);
+    let mut xcoo=Vec::with_capacity(width as usize);
     for x in 0..storage.properties.stage_properties.width {
+        xcoo.push(storage.properties.stage_properties.x(x));
+    }
+    for y in 0..storage.properties.stage_properties.height {
+        ycoo.push(storage.properties.stage_properties.y(y));
+        for x in 0..storage.properties.stage_properties.width {
+            coords.push((x,y));
+        }
+    }
+    coords.shuffle(&mut rng());
+    let mut count=0;
+    for i in 0..coords.len() {
+        let tup=coords.get(i).unwrap();
+        let x=tup.0;
+        let y=tup.1;
+        count=count+1;
+        if (count%1000==0) {
+            if stop_flag.load(Ordering::Relaxed) {
+                return false;  // Computation was aborted
+            }
+        }
+        if !storage.stage.is_computed(x,y) {
+            storage.stage.set(x,y,data_point_at(*(xcoo.get(x as usize).unwrap()),*(ycoo.get(y as usize).unwrap()),max_iteration));
+        }
+    };
+    true  // Computation ended successfully
+}
+
+fn stoppable_compute_mandelbrot_linear(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
+    let max_iteration=storage.properties.max_iteration;
+    for y in 0..storage.properties.stage_properties.height {
         // Check for cancellation every row, this is only interim as way too inflexible!
         if stop_flag.load(Ordering::Relaxed) {
             return false;  // Computation was aborted
         }
-        let x_coo=storage.properties.stage_properties.x(x);
-        for y in 0..storage.properties.stage_properties.height {
-            let y_coo=storage.properties.stage_properties.y(y);
-            storage.stage.set(x,y,data_point_at(x_coo,y_coo,max_iteration));
+        let y_coo=storage.properties.stage_properties.y(y);
+        for x in 0..storage.properties.stage_properties.width {
+            let x_coo=storage.properties.stage_properties.x(x);
+            if !storage.stage.is_computed(x,y) {
+                storage.stage.set(x,y,data_point_at(x_coo,y_coo,max_iteration));
+            }
         }
     }
     true  // Computation ended successfully
-}
-
-pub fn compute_mandelbrot(storage: &CompStorage) {
-    let max_iteration=storage.properties.max_iteration;
-    for x in 0..storage.properties.stage_properties.width {
-        let x_coo=storage.properties.stage_properties.x(x);
-        for y in 0..storage.properties.stage_properties.height {
-            let y_coo=storage.properties.stage_properties.y(y);
-            storage.stage.set(x,y,data_point_at(x_coo,y_coo,max_iteration));
-        }
-    }
 }
 
 // This is the actual mandelbrot set iteration depth computation algorithm, somehow the same as in 1978…
