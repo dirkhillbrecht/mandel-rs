@@ -1,6 +1,8 @@
 use std::sync::RwLock;
 
-use crate::storage::data_point::DataPoint;
+use tokio::sync::mpsc::UnboundedSender;
+
+use crate::storage::{data_point::DataPoint, event::data_point_change_event::{DataPointChange, DataPointChangeBuffer}};
 
 /// Actual stage with data for the image pixels to be computed.
 /// Designed for massively parallel access
@@ -14,6 +16,12 @@ pub struct CompStage {
     height: usize,
     /// Internal storage of all the data, internally the 2-dimensional storage is serialized into a 1-dimensional vector.
     data: Vec<RwLock<Option<DataPoint>>>,
+    /// channel end point for data points to be buffered to create events.
+    change_sender: Option<UnboundedSender<DataPointChange>>,
+    // Maximum capacity of event buffer, setting this to 0 disables event gathering
+    //event_buffer_capacity: usize,
+    // Event buffer for transferring data point changes as events
+    //event_buffer: RwLock<Option<DataPointChangeBuffer>>,
 
 }
 
@@ -29,6 +37,9 @@ impl CompStage {
             width: width as usize,
             height: height as usize,
             data,
+            change_sender: None,
+//            event_buffer_capacity,
+//            event_buffer: RwLock::new(None),
         }
     }
 
@@ -62,8 +73,22 @@ impl CompStage {
     // Set data of a point, handles locking internally.
     pub fn set(&self, x: u32, y: u32, data_point: DataPoint) {
         let idx=self.index(x,y);
-        let mut write_guard=self.data[idx].write().unwrap();
-        *write_guard = Option::Some(data_point);
+        {
+            let mut data_write_guard=self.data[idx].write().unwrap();
+            *data_write_guard = Option::Some(data_point);
+        }
+        /*
+        if self.event_buffer_capacity>0 {
+            let mut buffer_write_guard=self.event_buffer.write().unwrap();
+            if let None = *buffer_write_guard {
+                *buffer_write_guard = Option::Some(DataPointChangeBuffer::new(self.event_buffer_capacity));
+            }
+            *buffer_write_guard.unwrap().add_data_point_change(data_point);
+        }
+        */
+        if let Some(change_sender)=&self.change_sender {
+            let _ = change_sender.send(DataPointChange::new(x,y,&data_point));
+        }
     }
 
     /// Return the full data as a vector without the read-write locks

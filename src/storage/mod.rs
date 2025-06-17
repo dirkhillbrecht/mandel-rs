@@ -12,6 +12,7 @@
 // Subfolders
 pub mod computation;
 pub mod visualization;
+pub mod event;
 
 // Files herein
 pub mod data_point;

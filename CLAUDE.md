@@ -33,7 +33,7 @@ The application follows a three-layer design:
 - **Legacy Cleanup**: ✅ Removed deprecated DataStorage and DataPlane components
 - **Phase II Threading**: ✅ Complete parallel computation with MandelbrotEngine and enhanced algorithms
 - **Real-time Updates**: ✅ Advanced command-based GUI updates every 200ms with shuffled pixel computation
-- **Event-Based Communication**: Planned for Phase III implementation (manifesto-02)
+- **Event-Based Communication**: 🔄 Phase III implementation in progress (manifesto-02)
 
 **Computation Layer (Phase II - Complete Threading Architecture)**
 - `mandelbrot_engine.rs`: Advanced computation engine with enhanced algorithms and thread management
@@ -62,6 +62,14 @@ The application follows a three-layer design:
 - Clean dual storage integration: Arc<CompStorage> → VizStorage conversion for GUI display
 - Advanced threading patterns: Command::perform with tokio::time::sleep for non-blocking updates
 
+**Event System Layer (Phase III - In Progress Implementation)**
+- `data_point_change_event.rs`: Event data structures with `DataPointChange`, `DataPointChangeBuffer`, and `DataPointChangeEvent`
+- **Sophisticated Batching Architecture**: Buffer accumulates changes, converts to immutable events with completion signaling
+- **Channel-based Communication**: tokio mpsc channels for decoupled computation-to-visualization messaging
+- `event_batcher.rs`: Async event coordinator with dual-threshold batching (time + capacity based)
+- **Clean Separation of Concerns**: Computation layer stays pure, visualization layer controls event timing
+- **EventMessage Protocol**: Handles both pixel changes and computation completion signaling
+
 **Project Structure**
 ```
 src/
@@ -74,10 +82,14 @@ src/
 │   │   ├── mod.rs     # Computation module exports
 │   │   ├── comp_storage.rs  # CompStorage: thread-safe storage container
 │   │   └── comp_stage.rs    # CompStage: Vec<RwLock<Option<DataPoint>>> for concurrent access
-│   └── visualization/  # Single-threaded visualization storage
-│       ├── mod.rs     # Visualization module exports
-│       ├── viz_storage.rs  # VizStorage: GUI-focused storage container with Arc<CompStorage> support
-│       └── viz_stage.rs    # VizStage: Vec<Option<DataPoint>> for efficient GUI access
+│   ├── visualization/  # Single-threaded visualization storage
+│   │   ├── mod.rs     # Visualization module exports
+│   │   ├── viz_storage.rs  # VizStorage: GUI-focused storage container with Arc<CompStorage> support
+│   │   └── viz_stage.rs    # VizStage: Vec<Option<DataPoint>> for efficient GUI access
+│   └── event/          # Event-driven communication system (Phase III)
+│       ├── mod.rs     # Event module exports
+│       ├── data_point_change_event.rs  # Event data structures and batching buffer
+│       └── event_batcher.rs    # Async event coordinator with dual-threshold batching
 ├── comp/               # Computation algorithms
 │   ├── mod.rs         # Computation module exports
 │   └── mandelbrot_engine.rs # Threaded computation engine with MandelbrotEngine struct
@@ -167,6 +179,12 @@ src/
 - **Algorithm Optimization**: Shuffled pixel computation for improved progressive rendering feedback
 - **Independent Problem Solving**: Successfully completing complex threading architecture without AI guidance
 - **Tokio Integration**: Adding async runtime dependencies and leveraging tokio::time for enhanced timing control
+- **Slice Patterns**: Understanding `&[T]` as borrowed views into sequential data with zero-copy semantics
+- **Deref Coercion**: Automatic conversion from `Vec<T>` to `&[T]` for flexible API design
+- **Move Semantics**: Mastering `into_*` patterns for transferring ownership with `self` parameters
+- **Channel-based Architecture**: Designing decoupled systems with tokio mpsc for async communication
+- **Event-driven Patterns**: Implementing sophisticated batching systems with dual-threshold logic
+- **Message Passing**: Creating protocol enums for different message types in concurrent systems
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful
