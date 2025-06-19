@@ -9,7 +9,7 @@ use rand::seq::SliceRandom;
 
 use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::data_point::DataPoint;
-use crate::storage::image_comp_properties::ImageCompProperties;
+use crate::storage::image_comp_properties::{ImageCompProperties, StageState};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EngineState {
@@ -118,13 +118,15 @@ fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &Atom
     }
     coords.shuffle(&mut rng());
     let mut count=0;
+    storage.stage.set_state(StageState::Evolving);
     for i in 0..coords.len() {
         let tup=coords.get(i).unwrap();
         let x=tup.0;
         let y=tup.1;
         count=count+1;
-        if (count%1000==0) {
+        if count%1000==0 {
             if stop_flag.load(Ordering::Relaxed) {
+                storage.stage.set_state(StageState::Stalled);
                 return false;  // Computation was aborted
             }
         }
@@ -132,14 +134,17 @@ fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &Atom
             storage.stage.set(x,y,data_point_at(*(xcoo.get(x as usize).unwrap()),*(ycoo.get(y as usize).unwrap()),max_iteration));
         }
     };
+    storage.stage.set_state(StageState::Completed);
     true  // Computation ended successfully
 }
 
 fn stoppable_compute_mandelbrot_linear(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
     let max_iteration=storage.properties.max_iteration;
+    storage.stage.set_state(StageState::Evolving);
     for y in 0..storage.properties.stage_properties.height {
         // Check for cancellation every row, this is only interim as way too inflexible!
         if stop_flag.load(Ordering::Relaxed) {
+            storage.stage.set_state(StageState::Stalled);
             return false;  // Computation was aborted
         }
         let y_coo=storage.properties.stage_properties.y(y);
@@ -150,6 +155,7 @@ fn stoppable_compute_mandelbrot_linear(storage: &CompStorage, stop_flag: &Atomic
             }
         }
     }
+    storage.stage.set_state(StageState::Completed);
     true  // Computation ended successfully
 }
 

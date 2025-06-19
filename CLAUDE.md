@@ -33,7 +33,7 @@ The application follows a three-layer design:
 - **Legacy Cleanup**: ✅ Removed deprecated DataStorage and DataPlane components
 - **Phase II Threading**: ✅ Complete parallel computation with MandelbrotEngine and enhanced algorithms
 - **Real-time Updates**: ✅ Advanced command-based GUI updates every 200ms with shuffled pixel computation
-- **Event-Based Communication**: 🔄 Phase III implementation in progress (manifesto-02)
+- **Event-Based Communication**: ✅ Phase III advanced event batcher implementation completed (manifesto-02)
 
 **Computation Layer (Phase II - Complete Threading Architecture)**
 - `mandelbrot_engine.rs`: Advanced computation engine with enhanced algorithms and thread management
@@ -62,13 +62,16 @@ The application follows a three-layer design:
 - Clean dual storage integration: Arc<CompStorage> → VizStorage conversion for GUI display
 - Advanced threading patterns: Command::perform with tokio::time::sleep for non-blocking updates
 
-**Event System Layer (Phase III - In Progress Implementation)**
-- `data_point_change_event.rs`: Event data structures with `DataPointChange`, `DataPointChangeBuffer`, and `DataPointChangeEvent`
-- **Sophisticated Batching Architecture**: Buffer accumulates changes, converts to immutable events with completion signaling
+**Event System Layer (Phase III - Complete Implementation)**
+- `data_point_change_event.rs`: Complete event data structures with `DataPointChange` and `DataPointMultiChange`
+- `stage_event_batcher.rs`: Advanced async event coordinator with `StageEventBatcher` and comprehensive `StageEvent` protocol
+- **Sophisticated Batching Architecture**: Dual-threshold batching system (capacity + time-based) with efficient buffer management
 - **Channel-based Communication**: tokio mpsc channels for decoupled computation-to-visualization messaging
-- `event_batcher.rs`: Async event coordinator with dual-threshold batching (time + capacity based)
+- **Advanced Async Patterns**: Pin<Box<tokio::time::Sleep>> for stored futures, tokio::select! coordination
+- **One-Shot Timer Strategy**: Efficient timer management that only runs when batching is active
+- **State-Driven Event System**: Unified handling of content changes and state transitions (Completed/Stalled)
 - **Clean Separation of Concerns**: Computation layer stays pure, visualization layer controls event timing
-- **EventMessage Protocol**: Handles both pixel changes and computation completion signaling
+- **Production-Quality Architecture**: Professional async event streaming patterns with proper ownership management
 
 **Project Structure**
 ```
@@ -88,8 +91,8 @@ src/
 │   │   └── viz_stage.rs    # VizStage: Vec<Option<DataPoint>> for efficient GUI access
 │   └── event/          # Event-driven communication system (Phase III)
 │       ├── mod.rs     # Event module exports
-│       ├── data_point_change_event.rs  # Event data structures and batching buffer
-│       └── event_batcher.rs    # Async event coordinator with dual-threshold batching
+│       ├── data_point_change_event.rs  # Complete event data structures
+│       └── stage_event_batcher.rs    # Advanced async event coordinator with sophisticated batching
 ├── comp/               # Computation algorithms
 │   ├── mod.rs         # Computation module exports
 │   └── mandelbrot_engine.rs # Threaded computation engine with MandelbrotEngine struct
@@ -120,6 +123,7 @@ src/
 - **Mastered Rust ownership patterns: borrowing vs moving for function parameters**
 - **Achieved Phase I of manifesto-02: CompStorage → VizStorage integration**
 - **🎉 COMPLETED Phase II of manifesto-02: Full threading architecture with enhanced algorithms**
+- **🚀 COMPLETED Phase III of manifesto-02: Advanced async event-driven communication system**
 - **Independent Development Mastery: Phase II completed autonomously without AI assistance**
 
 ## Development Commands
@@ -185,6 +189,10 @@ src/
 - **Channel-based Architecture**: Designing decoupled systems with tokio mpsc for async communication
 - **Event-driven Patterns**: Implementing sophisticated batching systems with dual-threshold logic
 - **Message Passing**: Creating protocol enums for different message types in concurrent systems
+- **Pin and Box Patterns**: Managing self-referential futures with Pin<Box<T>> for stored async state
+- **Advanced tokio::select!**: Coordinating multiple async conditions with proper state management
+- **Future Storage**: Handling PhantomPinned constraints and async lifetime management
+- **Production Async Patterns**: Professional-grade event streaming architecture with efficient batching
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful

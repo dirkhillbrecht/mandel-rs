@@ -21,7 +21,7 @@ impl VizStage {
     pub fn width(&self) -> usize { self.width }
     pub fn height(&self) -> usize { self.height }
     fn index(&self,x:usize,y:usize) -> usize {
-        if (x>=self.width || y>=self.height) {
+        if x>=self.width || y>=self.height {
             panic!("Coordinates ({},{}) out of bounds for visualization stage of size {}*{}", x, y, self.width, self.height);
         }
         y*self.width+x

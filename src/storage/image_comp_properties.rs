@@ -111,4 +111,21 @@ impl ImageCompProperties {
     }
 }
 
+/// Current state of a stage, set from the outside
+///
+/// State graph is: Initialized → Evolving ←→ Stalled
+///                                  ↓
+///                               Finished
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum StageState {
+    /// The stage has been initialized but no data has been written.
+    Initialized,
+    /// The stage is currently evolving, i.e. computation takes place and the content changes continously
+    Evolving,
+    /// The stage is not finished, but work is stalled, so no changes to the content are to be expected
+    Stalled,
+    /// The stage 's content is complete, it matches the stage's properties, no more changes will happen
+    Completed,
+}
+
 // end of file
