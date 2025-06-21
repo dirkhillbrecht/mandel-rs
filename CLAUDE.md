@@ -46,32 +46,34 @@ The application follows a three-layer design:
 - Atomic cancellation support for responsive stop operations
 - **Independent Development Achievement**: Phase II completed without AI assistance, demonstrating mastery
 
-**Visualization Layer (Phase II - Complete Real-time Threading Integration)**
-- `mandel_iced_app.rs`: Advanced interactive GUI application with enhanced threaded computation support
+**Visualization Layer (Phase III - Complete Event-Driven Real-time Integration)**
+- `mandel_iced_app.rs`: Advanced interactive GUI application with full event-driven visualization support
 - Model-View-Update (MVU) pattern with pure functional UI description
-- Event-driven architecture with Message enum including UpdateViz for real-time updates
+- Event-driven architecture with Message enum including UpdateViz for real-time event processing
 - **Enhanced MandelbrotEngine Integration**: Complete start/stop controls with improved state management
 - Dynamic color mapping from iteration counts to RGB values
 - Cross-platform window with native look and feel and responsive image scaling
 - High-resolution rendering with configurable dimensions and instant visual feedback
-- **Advanced Real-time Visualization**: Shuffled pixel computation provides better progressive rendering
+- **True Real-time Visualization**: Event-driven pixel updates replace 200ms polling for immediate rendering
 - Interactive parameter input: coordinate bounds, image dimensions, and max iterations
 - Real-time parameter validation using Rust's Result pattern matching
 - Improved layout design with centered alignment and consistent spacing
-- **Optimized Command-based Updates**: Enhanced 200ms refresh cycle with improved user experience
-- Clean dual storage integration: Arc<CompStorage> → VizStorage conversion for GUI display
-- Advanced threading patterns: Command::perform with tokio::time::sleep for non-blocking updates
+- **Event-based Updates**: VizStorage.process_events() provides instant pixel-by-pixel visualization updates
+- Clean dual storage integration: Arc<CompStorage> → VizStorage with event channel coordination
+- Advanced async patterns: Proper ownership management in iced MVU with mutable event processing
 
-**Event System Layer (Phase III - Complete Implementation)**
+**Event System Layer (Phase III - Complete Implementation with Full Integration)**
 - `data_point_change_event.rs`: Complete event data structures with `DataPointChange` and `DataPointMultiChange`
 - `stage_event_batcher.rs`: Advanced async event coordinator with `StageEventBatcher` and comprehensive `StageEvent` protocol
 - **Sophisticated Batching Architecture**: Dual-threshold batching system (capacity + time-based) with efficient buffer management
 - **Channel-based Communication**: tokio mpsc channels for decoupled computation-to-visualization messaging
-- **Advanced Async Patterns**: Pin<Box<tokio::time::Sleep>> for stored futures, tokio::select! coordination
+- **Advanced Async Patterns**: Pin<Box<tokio::time::Sleep>> for stored futures, tokio::select! coordination with conditional futures
 - **One-Shot Timer Strategy**: Efficient timer management that only runs when batching is active
 - **State-Driven Event System**: Unified handling of content changes and state transitions (Completed/Stalled)
 - **Clean Separation of Concerns**: Computation layer stays pure, visualization layer controls event timing
 - **Production-Quality Architecture**: Professional async event streaming patterns with proper ownership management
+- **Full End-to-End Integration**: Real-time pixel updates from CompStorage → StageEventBatcher → VizStorage → GUI
+- **Advanced Race Condition Resolution**: std::future::pending() pattern for safe tokio::select! timer coordination
 
 **Project Structure**
 ```
@@ -123,7 +125,8 @@ src/
 - **Mastered Rust ownership patterns: borrowing vs moving for function parameters**
 - **Achieved Phase I of manifesto-02: CompStorage → VizStorage integration**
 - **🎉 COMPLETED Phase II of manifesto-02: Full threading architecture with enhanced algorithms**
-- **🚀 COMPLETED Phase III of manifesto-02: Advanced async event-driven communication system**
+- **🚀 COMPLETED Phase III of manifesto-02: Advanced async event-driven communication system with full integration**
+- **🌟 ACHIEVED Real-time Event-Driven Visualization: Complete end-to-end pixel streaming from computation to GUI**
 - **Independent Development Mastery: Phase II completed autonomously without AI assistance**
 
 ## Development Commands
@@ -193,6 +196,12 @@ src/
 - **Advanced tokio::select!**: Coordinating multiple async conditions with proper state management
 - **Future Storage**: Handling PhantomPinned constraints and async lifetime management
 - **Production Async Patterns**: Professional-grade event streaming architecture with efficient batching
+- **Conditional Futures**: std::future::pending() for race condition resolution in async select patterns
+- **Anonymous Async Blocks**: Inline future creation for complex tokio::select! branch logic
+- **Event-Driven GUI Integration**: Seamless async-to-sync event processing in iced MVU architecture
+- **Advanced Ownership in Async**: Channel ownership transfer, Arc sharing, and mutable borrowing in concurrent contexts
+- **Race Condition Debugging**: Identifying and resolving async timing issues with proper future coordination
+- **End-to-End System Integration**: Connecting independent async systems with proper lifecycle management
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful

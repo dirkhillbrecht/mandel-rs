@@ -2,6 +2,7 @@
 
 use crate::storage::data_point::DataPoint;
 use crate::storage::computation::comp_stage::CompStage;
+use crate::storage::event::data_point_change_event::DataPointChange;
 
 #[derive(Debug, Clone)]
 pub struct VizStage {
@@ -28,6 +29,13 @@ impl VizStage {
     }
     pub fn get(&self, x: usize, y: usize) -> Option<&DataPoint> {
         self.data[self.index(x,y)].as_ref()
+    }
+    pub fn set(&mut self, x: usize, y: usize, data_point: DataPoint) {
+        let index=self.index(x,y);
+        self.data[index]=Some(data_point);
+    }
+    pub fn set_from_change(&mut self, data_point_change: DataPointChange) {
+        self.set(data_point_change.x as usize, data_point_change.y as usize, data_point_change.data);
     }
 }
 

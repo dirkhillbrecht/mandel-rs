@@ -19,7 +19,7 @@ pub struct CompStage {
     /// Current state of the stage (set by whoever performs changes on the stage)
     state: RwLock<StageState>,
     /// channel end point for data points to be buffered to create events.
-    change_sender: Option<UnboundedSender<StageEvent>>,
+    change_sender: std::sync::Mutex<Option<UnboundedSender<StageEvent>>>,
 
 }
 
@@ -36,7 +36,7 @@ impl CompStage {
             height: height as usize,
             data,
             state: RwLock::new(StageState::Initialized),
-            change_sender: None,
+            change_sender: std::sync::Mutex::new(None),
 //            event_buffer_capacity,
 //            event_buffer: RwLock::new(None),
         }
@@ -69,6 +69,10 @@ impl CompStage {
         self.internal_get(self.index(x,y))
     }
 
+    pub fn set_change_sender(&self, sender: Option<UnboundedSender<StageEvent>>) {
+        *self.change_sender.lock().unwrap()=sender;
+    }
+
     /// Return the current stage of the stage as reported by the stage data writer
     pub fn get_state(&self) -> StageState {
         let guard=self.state.read().unwrap();
@@ -81,8 +85,8 @@ impl CompStage {
             let mut data_write_guard=self.data[self.index(x,y)].write().unwrap();
             *data_write_guard = Option::Some(data_point);
         }
-        if let Some(change_sender)=&self.change_sender {
-            let _ = change_sender.send(StageEvent::ContentChange(DataPointChange::new(x,y,&data_point)));
+        if let Some(sender)=&*self.change_sender.lock().unwrap() {
+            let _ = sender.send(StageEvent::ContentChange(DataPointChange::new(x,y,&data_point)));
         }
     }
 
@@ -97,8 +101,8 @@ impl CompStage {
             }
         }
         if send_new_state {
-            if let Some(change_sender)=&self.change_sender {
-                let _ = change_sender.send(StageEvent::StateChange(new_state));
+            if let Some(sender)=&*self.change_sender.lock().unwrap() {
+                let _ = sender.send(StageEvent::StateChange(new_state));
             }
         }
     }

@@ -2,7 +2,7 @@ use std::time::Duration;
 use iced::{Application, Command, Element, Theme};
 use crate::storage::visualization::viz_storage::VizStorage;
 use crate::comp::mandelbrot_engine::{EngineState, MandelbrotEngine};
-use crate::storage::image_comp_properties::{ImageCompProperties, StageProperties, Rect};
+use crate::storage::image_comp_properties::{ImageCompProperties, Rect, StageProperties, StageState};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -172,9 +172,11 @@ impl Application for MandelIcedApp {
                 }
             },
             Message::UpdateViz => {
-                if let Some(_) = self.engine {
-                    self.storage=Some(VizStorage::new(self.engine.as_ref().unwrap().storage()));
-                    let state=self.engine.as_ref().unwrap().state();
+                if let Some(ref mut vizstorage) = self.storage {
+                    vizstorage.process_events();
+                }
+                if let Some(engine) = &self.engine {
+                    let state=engine.state();
                     if state == EngineState::Aborted || state == EngineState::Finished {
                         self.engine=None;
                         self.computing=false;
@@ -182,7 +184,7 @@ impl Application for MandelIcedApp {
                     } else {
                         // Schedule next update
                         return Command::perform(
-                            async { tokio::time::sleep(Duration::from_millis(200)).await; },
+                            async { tokio::time::sleep(Duration::from_millis(20)).await; },
                             |_| Message::UpdateViz
                         );
                     }

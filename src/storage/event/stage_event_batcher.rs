@@ -115,41 +115,62 @@ impl StageEventBatcher {
 
         loop {
             tokio::select! {
-                // Branch 1: New event
-                Some(event) = input.recv() => {
-                    match event {
-                        StageEvent::ContentChange(change) => {
-                            Self::push_data_point_change_to_buffer(
-                                change,
-                                &mut current_buffer,
-                                &mut timer,
-                                self.max_capacity,
-                                self.max_interval,
-                                &output);
+                // Branch 1: Some stuff from the input channel receiver
+                result = input.recv() => {
+                    match result {
+
+                        // Branch 1.1: Empty option from input channel: Event handling is over
+                        None => {
+                            Self::flush_buffer_and_clear_timer(&mut current_buffer, &mut timer, &output);
+                            return; // This drops the output sender and therefore closes the output channel
                         }
-                        StageEvent::StateChange(new_state) => {
-                            if new_state==StageState::Stalled || new_state==StageState::Completed {
-                                Self::flush_buffer_and_clear_timer(&mut current_buffer, &mut timer, &output);
-                            }
-                        }
-                        StageEvent::ContentMultiChange(multi_change) => {
-                            for change in multi_change.changes() {
-                                Self::push_data_point_change_to_buffer(
-                                    *change,
-                                    &mut current_buffer,
-                                    &mut timer,
-                                    self.max_capacity,
-                                    self.max_interval,
-                                    &output);
+
+                        // Branch 1.2: New event
+                        Some(event) => {
+                            match event {
+                                StageEvent::ContentChange(change) => {
+                                    Self::push_data_point_change_to_buffer(
+                                        change,
+                                        &mut current_buffer,
+                                        &mut timer,
+                                        self.max_capacity,
+                                        self.max_interval,
+                                        &output);
+                                }
+                                StageEvent::StateChange(new_state) => {
+                                    let _ = output.send(StageEvent::StateChange(new_state));
+                                    if new_state==StageState::Stalled || new_state==StageState::Completed {
+                                        Self::flush_buffer_and_clear_timer(&mut current_buffer, &mut timer, &output);
+                                    }
+                                }
+                                StageEvent::ContentMultiChange(multi_change) => {
+                                    for change in multi_change.changes() {
+                                        Self::push_data_point_change_to_buffer(
+                                            *change,
+                                            &mut current_buffer,
+                                            &mut timer,
+                                            self.max_capacity,
+                                            self.max_interval,
+                                            &output);
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
                 // Branch 2: Timer fired (only if it actually exists)
-                () = timer.as_mut().unwrap(), if timer.is_some() => {
+                //() = timer.as_mut().unwrap(), if timer.is_some() => {
+                () = async {
+                    if let Some(t) = timer.as_mut() {
+                        t.await
+                    } else {
+                        std::future::pending().await
+                    }
+                } => {
                     Self::flush_buffer_and_clear_timer(&mut current_buffer, &mut timer, &output);
                 }
+
             }
         }
     }
