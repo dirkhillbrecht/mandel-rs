@@ -2,7 +2,8 @@
 use crate::gui::iced::app::MandelRSApp;
 use crate::gui::iced::message::Message;
 use crate::storage::visualization::viz_storage::VizStorage;
-use iced::widget::{button, column, container, row, text, text_input};
+use iced::widget::progress_bar::Style;
+use iced::widget::{button, column, container, progress_bar, row, text, text_input};
 use iced::{Element, Length};
 
 fn iteration_to_color(it: u32, maxit: u32) -> [u8; 3] {
@@ -41,7 +42,7 @@ fn render_fractal<'a>(_state: &'a MandelRSApp, storage: &'a VizStorage) -> Eleme
     image(handle).content_fit(iced::ContentFit::Contain).into()
 }
 
-fn open_sidebar(state: &MandelRSApp) -> container::Container<Message> {
+fn open_sidebar(state: &MandelRSApp) -> Element<Message> {
     container(
         column![
             button("<").on_press(Message::ToggleSidebar),
@@ -82,19 +83,33 @@ fn open_sidebar(state: &MandelRSApp) -> container::Container<Message> {
                 button("Stop").on_press(Message::StopClicked)
             } else {
                 button("Compute").on_press(Message::ComputeClicked)
+            },
+            if let Some(storage) = &state.storage {
+                if storage.stage.is_fully_computed() {
+                    Element::from(text("✓ Complete"))
+                } else {
+                    Element::from(
+                        progress_bar(0.0..=1.0, storage.stage.computed_ratio()).width(100),
+                    )
+                }
+            } else {
+                Element::from(text("Waiting…"))
             }
         ]
         .spacing(6)
         .align_x(iced::Alignment::Start),
     )
     .width(Length::Shrink)
+    .into()
 }
 
-fn collapsed_sidebar(_state: &MandelRSApp) -> container::Container<Message> {
-    container(button(">").on_press(Message::ToggleSidebar)).width(Length::Shrink)
+fn collapsed_sidebar(_state: &MandelRSApp) -> Element<Message> {
+    container(button(">").on_press(Message::ToggleSidebar))
+        .width(Length::Shrink)
+        .into()
 }
 
-fn fractal(state: &MandelRSApp) -> container::Container<Message> {
+fn fractal(state: &MandelRSApp) -> Element<Message> {
     container(if let Some(storage) = &state.storage {
         column![render_fractal(state, storage)].spacing(10)
     } else {
@@ -104,6 +119,7 @@ fn fractal(state: &MandelRSApp) -> container::Container<Message> {
     .height(Length::Fill)
     .center_x(Length::Fill)
     .center_y(Length::Fill)
+    .into()
 }
 
 pub fn view(state: &MandelRSApp) -> Element<Message> {

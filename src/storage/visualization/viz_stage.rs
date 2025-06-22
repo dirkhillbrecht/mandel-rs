@@ -9,14 +9,18 @@ pub struct VizStage {
     width: usize,
     height: usize,
     data: Vec<Option<DataPoint>>,
+    set_count: usize,
 }
 
 impl VizStage {
     pub fn new(comp_stage: &CompStage) -> Self {
+        let data = comp_stage.get_full_data();
+        let set_count = data.iter().filter(|p| p.is_some()).count();
         VizStage {
             width: comp_stage.width(),
             height: comp_stage.height(),
-            data: comp_stage.get_full_data(),
+            data,
+            set_count,
         }
     }
     pub fn width(&self) -> usize {
@@ -24,6 +28,20 @@ impl VizStage {
     }
     pub fn height(&self) -> usize {
         self.height
+    }
+    #[allow(dead_code)]
+    pub fn set_count(&self) -> usize {
+        self.set_count
+    }
+    /// Return the ratio of computed data in this stage, 1 is "all is computed"
+    pub fn computed_ratio(&self) -> f32 {
+        (self.set_count as f32 / self.data.len() as f32)
+            .min(1.0)
+            .max(0.0)
+    }
+    /// Returns whether this stage is fully computed
+    pub fn is_fully_computed(&self) -> bool {
+        self.set_count >= self.data.len()
     }
     fn index(&self, x: usize, y: usize) -> usize {
         if x >= self.width || y >= self.height {
@@ -39,6 +57,9 @@ impl VizStage {
     }
     pub fn set(&mut self, x: usize, y: usize, data_point: DataPoint) {
         let index = self.index(x, y);
+        if self.data[index].is_none() {
+            self.set_count += 1
+        }
         self.data[index] = Some(data_point);
     }
     pub fn set_from_change(&mut self, data_point_change: DataPointChange) {

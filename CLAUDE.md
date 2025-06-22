@@ -134,6 +134,7 @@ src/
 - **🌟 ACHIEVED Real-time Event-Driven Visualization: Complete end-to-end pixel streaming from computation to GUI**
 - **🔄 COMPLETED Major Framework Migration: iced 0.12 → 0.13 with modern function-based architecture**
 - **🎯 COMPLETED Phase B.1 of manifesto-03: GUI layout redesign with collapsible sidebar and clean modular architecture**
+- **📊 COMPLETED Issue 6 of manifesto-03: Progress bar implementation with real-time computation feedback**
 - **Independent Development Mastery: Phase II completed autonomously without AI assistance**
 
 ## Development Commands
@@ -223,6 +224,11 @@ src/
 - **Sidebar GUI Design**: Creating collapsible sidebar layouts with responsive design using container widgets
 - **Module Privacy Patterns**: Understanding when private modules work with `super::` paths vs requiring `pub` visibility
 - **GUI Refactoring**: Successfully restructuring monolithic GUI code into clean, maintainable modular architecture
+- **Progress Bar Integration**: Using iced's ProgressBar widget with real-time computation feedback
+- **Widget Type Unification**: Converting different widget types to common Element<Message> interface using From/Into traits
+- **Layout System Limitations**: Understanding iced's explicit sizing requirements vs automatic content-based sizing
+- **Trait Relationship Mastery**: From<T> trait automatically providing Into<T> implementation through blanket traits
+- **UI State Management**: Connecting VizStage::computed_ratio() to visual progress feedback for enhanced user experience
 - **Defensive Programming vs Race Condition Resolution**: Choosing proper architectural solutions over workarounds
 - **Auto-formatting Integration**: Using rustfmt and VS Code format-on-save for consistent Rust code style
 
