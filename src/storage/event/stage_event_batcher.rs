@@ -122,7 +122,7 @@ impl StageEventBatcher {
                         // Branch 1.1: Empty option from input channel: Event handling is over
                         None => {
                             Self::flush_buffer_and_clear_timer(&mut current_buffer, &mut timer, &output);
-                            return; // This drops the output sender and therefore closes the output channel
+                            break; // This drops the output sender and therefore closes the output channel
                         }
 
                         // Branch 1.2: New event
@@ -141,6 +141,7 @@ impl StageEventBatcher {
                                     let _ = output.send(StageEvent::StateChange(new_state));
                                     if new_state==StageState::Stalled || new_state==StageState::Completed {
                                         Self::flush_buffer_and_clear_timer(&mut current_buffer, &mut timer, &output);
+                                        break;
                                     }
                                 }
                                 StageEvent::ContentMultiChange(multi_change) => {
