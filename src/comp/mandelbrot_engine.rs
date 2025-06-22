@@ -13,26 +13,26 @@ use crate::storage::image_comp_properties::{ImageCompProperties, StageState};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EngineState {
-    PreStart, Running, Finished, Aborted,
+    PreStart,
+    Running,
+    Finished,
+    Aborted,
 }
 
 pub struct MandelbrotEngine {
-
-    #[allow(dead_code)]  // Could be needed for deriving images from the original coordinates
+    #[allow(dead_code)] // Could be needed for deriving images from the original coordinates
     pub original_properties: ImageCompProperties,
     pub state: Arc<Mutex<EngineState>>,
     storage: Arc<CompStorage>,
     thread_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
     stop_flag: Arc<AtomicBool>,
-
 }
 
 impl MandelbrotEngine {
-
     /// Create a new MandelbrotEngine for the given image computation properties
     /// The engine has _not_ started computation after
     pub fn new(original_properties: ImageCompProperties) -> MandelbrotEngine {
-        let storage_properties=original_properties.rectified(false);
+        let storage_properties = original_properties.rectified(false);
         MandelbrotEngine {
             original_properties,
             state: Arc::new(Mutex::new(EngineState::PreStart)),
@@ -48,7 +48,6 @@ impl MandelbrotEngine {
     }
 
     pub fn start(&self) {
-
         // Check if computation is already running
         // This block can only be entered _once_ at the same time, so the state test and change is atomic from the outside.
         {
@@ -64,22 +63,27 @@ impl MandelbrotEngine {
         self.stop_flag.store(false, Ordering::Relaxed);
 
         // Prepare starting the thread by creating moveable clones of the needed data
-        let storage_for_thread=self.storage.clone();
-        let state_for_thread=self.state.clone();
-        let stop_flag_for_thread=self.stop_flag.clone();
+        let storage_for_thread = self.storage.clone();
+        let state_for_thread = self.state.clone();
+        let stop_flag_for_thread = self.stop_flag.clone();
 
         // Now spawn the computation thread
-        let handle=thread::spawn(move || {
+        let handle = thread::spawn(move || {
             // Perform the computation
-            let result=stoppable_compute_mandelbrot_shuffled(&storage_for_thread, &stop_flag_for_thread);
+            let result =
+                stoppable_compute_mandelbrot_shuffled(&storage_for_thread, &stop_flag_for_thread);
             // Update the state once computation is either finished or aborted
-            let mut state=state_for_thread.lock().unwrap();
-            *state = if result { EngineState::Finished } else { EngineState::Aborted };
+            let mut state = state_for_thread.lock().unwrap();
+            *state = if result {
+                EngineState::Finished
+            } else {
+                EngineState::Aborted
+            };
         });
 
         // Store the thread handle
-        let mut thread_handle=self.thread_handle.lock().unwrap();
-        *thread_handle=Some(handle);
+        let mut thread_handle = self.thread_handle.lock().unwrap();
+        *thread_handle = Some(handle);
     }
 
     pub fn stop(&self) {
@@ -97,91 +101,100 @@ impl MandelbrotEngine {
     pub fn storage(&self) -> Arc<CompStorage> {
         self.storage.clone()
     }
-
 }
 
-
 fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
-    let max_iteration=storage.properties.max_iteration;
-    let height=storage.properties.stage_properties.height;
-    let width=storage.properties.stage_properties.width;
-    let mut coords=Vec::with_capacity((height*width) as usize);
-    let mut ycoo=Vec::with_capacity(height as usize);
-    let mut xcoo=Vec::with_capacity(width as usize);
+    let max_iteration = storage.properties.max_iteration;
+    let height = storage.properties.stage_properties.height;
+    let width = storage.properties.stage_properties.width;
+    let mut coords = Vec::with_capacity((height * width) as usize);
+    let mut ycoo = Vec::with_capacity(height as usize);
+    let mut xcoo = Vec::with_capacity(width as usize);
     for x in 0..storage.properties.stage_properties.width {
         xcoo.push(storage.properties.stage_properties.x(x));
     }
     for y in 0..storage.properties.stage_properties.height {
         ycoo.push(storage.properties.stage_properties.y(y));
         for x in 0..storage.properties.stage_properties.width {
-            coords.push((x,y));
+            coords.push((x, y));
         }
     }
     coords.shuffle(&mut rng());
-    let mut count=0;
+    let mut count = 0;
     storage.stage.set_state(StageState::Evolving);
     for i in 0..coords.len() {
-        let tup=coords.get(i).unwrap();
-        let x=tup.0;
-        let y=tup.1;
-        count=count+1;
-        if count%1000==0 {
+        let tup = coords.get(i).unwrap();
+        let x = tup.0;
+        let y = tup.1;
+        count = count + 1;
+        if count % 1000 == 0 {
             if stop_flag.load(Ordering::Relaxed) {
                 storage.stage.set_state(StageState::Stalled);
-                return false;  // Computation was aborted
+                return false; // Computation was aborted
             }
         }
-        if !storage.stage.is_computed(x,y) {
-            storage.stage.set(x,y,data_point_at(*(xcoo.get(x as usize).unwrap()),*(ycoo.get(y as usize).unwrap()),max_iteration));
+        if !storage.stage.is_computed(x, y) {
+            storage.stage.set(
+                x,
+                y,
+                data_point_at(
+                    *(xcoo.get(x as usize).unwrap()),
+                    *(ycoo.get(y as usize).unwrap()),
+                    max_iteration,
+                ),
+            );
         }
-    };
+    }
     storage.stage.set_state(StageState::Completed);
-    true  // Computation ended successfully
+    true // Computation ended successfully
 }
 
-#[allow(dead_code)]  // Currently not needed, but may be useful for testing or as blueprint for other algorithms
+#[allow(dead_code)] // Currently not needed, but may be useful for testing or as blueprint for other algorithms
 fn stoppable_compute_mandelbrot_linear(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
-    let max_iteration=storage.properties.max_iteration;
+    let max_iteration = storage.properties.max_iteration;
     storage.stage.set_state(StageState::Evolving);
     for y in 0..storage.properties.stage_properties.height {
         // Check for cancellation every row, this is only interim as way too inflexible!
         if stop_flag.load(Ordering::Relaxed) {
             storage.stage.set_state(StageState::Stalled);
-            return false;  // Computation was aborted
+            return false; // Computation was aborted
         }
-        let y_coo=storage.properties.stage_properties.y(y);
+        let y_coo = storage.properties.stage_properties.y(y);
         for x in 0..storage.properties.stage_properties.width {
-            let x_coo=storage.properties.stage_properties.x(x);
-            if !storage.stage.is_computed(x,y) {
-                storage.stage.set(x,y,data_point_at(x_coo,y_coo,max_iteration));
+            let x_coo = storage.properties.stage_properties.x(x);
+            if !storage.stage.is_computed(x, y) {
+                storage
+                    .stage
+                    .set(x, y, data_point_at(x_coo, y_coo, max_iteration));
             }
         }
     }
     storage.stage.set_state(StageState::Completed);
-    true  // Computation ended successfully
+    true // Computation ended successfully
 }
 
 // This is the actual mandelbrot set iteration depth computation algorithm, somehow the same as in 1978…
-pub fn data_point_at(c_real:f64,c_imag:f64,max_iteration:u32) -> DataPoint {
-    let mut z_real=0.0;
-    let mut z_imag=0.0;
+pub fn data_point_at(c_real: f64, c_imag: f64, max_iteration: u32) -> DataPoint {
+    let mut z_real = 0.0;
+    let mut z_imag = 0.0;
     for i in 0..max_iteration {
-        let z_real_square=z_real*z_real;
-        let z_imag_square=z_imag*z_imag;
-        let z_real_new=z_real_square-z_imag_square+c_real;
-        let z_imag_new=2.0*z_real*z_imag+c_imag;
-        if z_real_square+z_imag_square>4.0 { // make this configurable later
-            return DataPoint::new(i,z_real_new,z_imag_new);
+        let z_real_square = z_real * z_real;
+        let z_imag_square = z_imag * z_imag;
+        let z_real_new = z_real_square - z_imag_square + c_real;
+        let z_imag_new = 2.0 * z_real * z_imag + c_imag;
+        if z_real_square + z_imag_square > 4.0 {
+            // make this configurable later
+            return DataPoint::new(i, z_real_new, z_imag_new);
         }
-        z_real=z_real_new;
-        z_imag=z_imag_new;
+        z_real = z_real_new;
+        z_imag = z_imag_new;
     }
     // Final iteration must compute one more loop
-    let z_real_square=z_real*z_real;
-    let z_imag_square=z_imag*z_imag;
-    let z_real_new=z_real_square-z_imag_square+c_real;
-    let z_imag_new=2.0*z_real*z_imag+c_imag;
-    return DataPoint::new(max_iteration,z_real_new,z_imag_new);
+    let z_real_square = z_real * z_real;
+    let z_imag_square = z_imag * z_imag;
+    let z_real_new = z_real_square - z_imag_square + c_real;
+    let z_imag_new = 2.0 * z_real * z_imag + c_imag;
+    return DataPoint::new(max_iteration, z_real_new, z_imag_new);
 }
 
 // end of file

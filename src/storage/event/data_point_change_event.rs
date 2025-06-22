@@ -24,9 +24,13 @@ impl DataPointMultiChange {
     pub fn new(changes: Vec<DataPointChange>) -> Self {
         DataPointMultiChange { changes }
     }
-    pub fn changes(&self) -> &[DataPointChange] { &self.changes }
-    #[allow(dead_code)]  // kind of public API, may be useful in the future
-    pub fn len(&self) -> usize { self.changes.len() }
+    pub fn changes(&self) -> &[DataPointChange] {
+        &self.changes
+    }
+    #[allow(dead_code)] // kind of public API, may be useful in the future
+    pub fn len(&self) -> usize {
+        self.changes.len()
+    }
 }
 
 // end of file

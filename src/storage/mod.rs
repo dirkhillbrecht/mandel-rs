@@ -8,11 +8,10 @@
 ///
 /// Having these two storage types separate from each other decouples both functions
 /// and allows the computation algorithms highly efficient access to the storage.
-
 // Subfolders
 pub mod computation;
-pub mod visualization;
 pub mod event;
+pub mod visualization;
 
 // Files herein
 pub mod data_point;
