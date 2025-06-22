@@ -1,5 +1,5 @@
 use std::time::Duration;
-use iced::{Application, Command, Element, Theme};
+use iced::{Task, Element};
 use crate::storage::visualization::viz_storage::VizStorage;
 use crate::comp::mandelbrot_engine::{EngineState, MandelbrotEngine};
 use crate::storage::image_comp_properties::{ImageCompProperties, Rect, StageProperties};
@@ -21,6 +21,7 @@ pub enum Message {
 pub struct MandelIcedApp {
     storage: Option<VizStorage>,
     engine: Option<MandelbrotEngine>,
+    auto_start_computation: bool,
     computing: bool,
     left: String,
     right: String,
@@ -36,6 +37,7 @@ impl Default for MandelIcedApp {
         MandelIcedApp {
             storage: None,
             engine: None,
+            auto_start_computation: true,
             computing: false,
 
 /*            // Full mandelbrot set
@@ -112,59 +114,77 @@ impl MandelIcedApp {
                 }
             }
         }
-        let handle = image::Handle::from_pixels(width as u32,height as u32,pixels);
+        let handle = image::Handle::from_rgba(width as u32,height as u32,pixels);
         image(handle).into()
     }
 }
 
-impl Application for MandelIcedApp {
+/*
+impl Program for MandelIcedApp {
 
     type Message = Message;
     type Theme = Theme;
     type Executor = iced::executor::Default;
     type Flags = ();
+*/
 
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (Self::default(), Command::perform(async{}, |_| Message::ComputeClicked))
-    }
 
+//    fn new(_flags: ()) -> (Self, Task<Message>) {
+//        (Self::default(), Task::perform(async{}, |_| Message::ComputeClicked))
+//    }
+
+/*
     fn title(&self) -> String {
         "Mandelbrot Fractal Visualizer".to_string()
     }
+*/
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+pub fn subscription(state: &MandelIcedApp) -> iced::Subscription<Message> {
+    if state.auto_start_computation {
+        iced::Subscription::run(
+            || async_stream::stream! {
+                yield Message::ComputeClicked;
+            }
+        )
+    } else {
+        iced::Subscription::none()
+    }
+}
+
+    pub fn update(state: &mut MandelIcedApp, message: Message) -> Task<Message> {
         match message {
-            Message::LeftChanged(value) => self.left = value,
-            Message::RightChanged(value) => self.right = value,
-            Message::TopChanged(value) => self.top = value,
-            Message::BottomChanged(value) => self.bottom = value,
-            Message::WidthChanged(value) => self.width = value,
-            Message::HeightChanged(value) => self.height = value,
-            Message::MaxIterationChanged(value) => self.max_iteration = value,
+            Message::LeftChanged(value) => state.left = value,
+            Message::RightChanged(value) => state.right = value,
+            Message::TopChanged(value) => state.top = value,
+            Message::BottomChanged(value) => state.bottom = value,
+            Message::WidthChanged(value) => state.width = value,
+            Message::HeightChanged(value) => state.height = value,
+            Message::MaxIterationChanged(value) => state.max_iteration = value,
             Message::ComputeClicked => {
+                state.auto_start_computation=false;
                 if let (Ok(left), Ok(right), Ok(bottom), Ok(top),
                         Ok(width), Ok(height), Ok(max_iteration)) = (
-                    self.left.parse::<f64>(),
-                    self.right.parse::<f64>(),
-                    self.bottom.parse::<f64>(),
-                    self.top.parse::<f64>(),
-                    self.width.parse::<u32>(),
-                    self.height.parse::<u32>(),
-                    self.max_iteration.parse::<u32>(),
+                    state.left.parse::<f64>(),
+                    state.right.parse::<f64>(),
+                    state.bottom.parse::<f64>(),
+                    state.top.parse::<f64>(),
+                    state.width.parse::<u32>(),
+                    state.height.parse::<u32>(),
+                    state.max_iteration.parse::<u32>(),
                 ) {
-                    if let Some(_) = self.engine {
+                    if let Some(_) = state.engine {
                         println!("Engine already initialized");
                     }
                     else {
-                        self.computing=true;
+                        state.computing=true;
                         let comp_props=ImageCompProperties::new(StageProperties::new(
                             Rect::new(left,right,bottom,top), width, height),max_iteration);
-                        self.engine=Some(MandelbrotEngine::new(comp_props));
-                        self.storage=Some(VizStorage::new(self.engine.as_ref().unwrap().storage()));
-                        self.engine.as_ref().unwrap().start();
+                        state.engine=Some(MandelbrotEngine::new(comp_props));
+                        state.storage=Some(VizStorage::new(state.engine.as_ref().unwrap().storage()));
+                        state.engine.as_ref().unwrap().start();
 
                         // Schedule first update
-                        return Command::perform(async{}, |_| Message::UpdateViz);
+                        return Task::perform(async{}, |_| Message::UpdateViz);
                     }
                 }
                 else {
@@ -172,18 +192,18 @@ impl Application for MandelIcedApp {
                 }
             },
             Message::UpdateViz => {
-                if let Some(ref mut vizstorage) = self.storage {
+                if let Some(ref mut vizstorage) = state.storage {
                     vizstorage.process_events();
                 }
-                if let Some(engine) = &self.engine {
-                    let state=engine.state();
-                    if state == EngineState::Aborted || state == EngineState::Finished {
-                        self.engine=None;
-                        self.computing=false;
-                        return Command::none(); // Stop updates
+                if let Some(engine) = &state.engine {
+                    let engine_state=engine.state();
+                    if engine_state == EngineState::Aborted || engine_state == EngineState::Finished {
+                        state.engine=None;
+                        state.computing=false;
+                        return Task::none(); // Stop updates
                     } else {
                         // Schedule next update
-                        return Command::perform(
+                        return Task::perform(
                             async { tokio::time::sleep(Duration::from_millis(20)).await; },
                             |_| Message::UpdateViz
                         );
@@ -191,18 +211,18 @@ impl Application for MandelIcedApp {
                 }
             },
             Message::StopClicked => {
-                if let Some(_) = self.engine {
-                    self.engine.as_ref().unwrap().stop();
-                    self.engine=None;
-                    self.computing=false;
+                if let Some(_) = state.engine {
+                    state.engine.as_ref().unwrap().stop();
+                    state.engine=None;
+                    state.computing=false;
                 }
             },
         }
-        Command::none()
+        Task::none()
     }
 
 
-    fn view(&self) -> Element<Message> {
+    pub fn view(state: &MandelIcedApp) -> Element<Message> {
         use iced::widget::{button, column, row, text, text_input};
 
         column![
@@ -210,35 +230,35 @@ impl Application for MandelIcedApp {
             row![
                 iced::widget::horizontal_space(),
                 text("Computed size:"),
-                text_input("", &self.width).width(100).on_input(Message::WidthChanged),
+                text_input("", &state.width).width(100).on_input(Message::WidthChanged),
                 text("*"),
-                text_input("", &self.height).width(100).on_input(Message::HeightChanged),
+                text_input("", &state.height).width(100).on_input(Message::HeightChanged),
                 text("pixels, maximum depth:"),
-                text_input("", &self.max_iteration).width(100).on_input(Message::MaxIterationChanged),
+                text_input("", &state.max_iteration).width(100).on_input(Message::MaxIterationChanged),
                 text("iterations"),
                 iced::widget::horizontal_space(),
-            ].spacing(10).align_items(iced::Alignment::Center),
+            ].spacing(10).align_y(iced::Alignment::Center),
             row![
                 iced::widget::horizontal_space(),
-                if self.computing {
+                if state.computing {
                     button("Stop Computation").on_press(Message::StopClicked)
                 } else {
                     button("Compute Mandelbrot").on_press(Message::ComputeClicked)
                 },
-            ].align_items(iced::Alignment::Center),
+            ].align_y(iced::Alignment::Center),
             row![
                 iced::widget::horizontal_space(),
                 text("Coordinate (x:"),
-                text_input("", &self.right).width(100).on_input(Message::RightChanged),
+                text_input("", &state.right).width(100).on_input(Message::RightChanged),
                 text(",y:"),
-                text_input("", &self.top).width(100).on_input(Message::TopChanged),
+                text_input("", &state.top).width(100).on_input(Message::TopChanged),
                 text(")"),
-            ].spacing(10).align_items(iced::Alignment::Center),
+            ].spacing(10).align_y(iced::Alignment::Center),
             row![
                 iced::widget::horizontal_space(),
-                if let Some(storage) = &self.storage {
+                if let Some(storage) = &state.storage {
                     column![
-                        if self.computing {
+                        if state.computing {
                             text(format!("Computing {}*{} fractal", storage.properties.stage_properties.width, storage.properties.stage_properties.height))
                         }
                         else {
@@ -247,15 +267,15 @@ impl Application for MandelIcedApp {
                     ].spacing(10)
                 }
                 else {
-                  column![text(if self.computing { "Computing…" } else { "Ready to compute" })].spacing(10)
+                  column![text(if state.computing { "Computing…" } else { "Ready to compute" })].spacing(10)
                 },
                 iced::widget::horizontal_space(),
             ],
             row![
                 iced::widget::horizontal_space(),
-                if let Some(storage) = &self.storage {
+                if let Some(storage) = &state.storage {
                     column![
-                        self.render_fractal(storage)
+                        state.render_fractal(storage)
                     ].spacing(10)
                 }
                 else {
@@ -265,15 +285,15 @@ impl Application for MandelIcedApp {
             ],
             row![
                 text("Coordinate (x:"),
-                text_input("", &self.left).width(100).on_input(Message::LeftChanged),
+                text_input("", &state.left).width(100).on_input(Message::LeftChanged),
                 text(",y:"),
-                text_input("", &self.bottom).width(100).on_input(Message::BottomChanged),
+                text_input("", &state.bottom).width(100).on_input(Message::BottomChanged),
                 text(")"),
                 iced::widget::horizontal_space(),
-            ].spacing(10).align_items(iced::Alignment::Center),
+            ].spacing(10).align_y(iced::Alignment::Center),
         ].spacing(20).padding(20).into()
     }
 
-}
+//}
 
 // end of file

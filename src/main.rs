@@ -4,11 +4,14 @@ mod storage;
 mod gui;
 mod comp;
 
-use iced::Application;
-use gui::mandel_iced_app::MandelIcedApp;
-
 fn main() -> iced::Result {
-    MandelIcedApp::run(iced::Settings::default())
+    iced::application(
+        "Mandelbrot Fractal Visualizer",
+        gui::mandel_iced_app::update,
+        gui::mandel_iced_app::view
+    )
+    .subscription(gui::mandel_iced_app::subscription)
+    .run()
 }
 
 // end of file

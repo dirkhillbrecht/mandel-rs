@@ -8,8 +8,9 @@ authors = ["Dirk Hillbrecht <dirk@hillbrecht.de>", "Claude AI"]
 description = "A fractal graphics visualizer written in Rust, to produce nice graphics and to learn Rust"
 
 [dependencies]
-iced = { version = "0.12", features = ["image", "tokio"] }
+iced = { version = "0.13.1", features = ["image", "tokio"] }
 rand = "0.9.1"
 tokio = { version = "1.0", features = ["full"] }
+async-stream = "0.3"
 
 # end of file

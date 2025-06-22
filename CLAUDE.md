@@ -46,21 +46,22 @@ The application follows a three-layer design:
 - Atomic cancellation support for responsive stop operations
 - **Independent Development Achievement**: Phase II completed without AI assistance, demonstrating mastery
 
-**Visualization Layer (Phase III - Complete Event-Driven Real-time Integration)**
-- `mandel_iced_app.rs`: Advanced interactive GUI application with full event-driven visualization support
-- Model-View-Update (MVU) pattern with pure functional UI description
+**Visualization Layer (Phase III + iced 0.13 Migration - Complete Function-Based Architecture)**
+- `mandel_iced_app.rs`: Advanced interactive GUI with iced 0.13 function-based API
+- **Function-Based Architecture**: Migrated from trait-based to standalone functions (update, view, subscription)
+- **Reactive Subscriptions**: Single-fire startup events using async-stream for race-condition-free initialization
 - Event-driven architecture with Message enum including UpdateViz for real-time event processing
 - **Enhanced MandelbrotEngine Integration**: Complete start/stop controls with improved state management
-- Dynamic color mapping from iteration counts to RGB values
+- Dynamic color mapping from iteration counts to RGB values with Handle::from_rgba
 - Cross-platform window with native look and feel and responsive image scaling
 - High-resolution rendering with configurable dimensions and instant visual feedback
-- **True Real-time Visualization**: Event-driven pixel updates replace 200ms polling for immediate rendering
+- **True Real-time Visualization**: Event-driven pixel updates with proper lifecycle management
 - Interactive parameter input: coordinate bounds, image dimensions, and max iterations
 - Real-time parameter validation using Rust's Result pattern matching
-- Improved layout design with centered alignment and consistent spacing
+- Modern layout design with align_y() alignment patterns
 - **Event-based Updates**: VizStorage.process_events() provides instant pixel-by-pixel visualization updates
 - Clean dual storage integration: Arc<CompStorage> → VizStorage with event channel coordination
-- Advanced async patterns: Proper ownership management in iced MVU with mutable event processing
+- **Type-Inferred State Management**: Rust generics automatically infer MandelIcedApp as state type
 
 **Event System Layer (Phase III - Complete Implementation with Full Integration)**
 - `data_point_change_event.rs`: Complete event data structures with `DataPointChange` and `DataPointMultiChange`
@@ -78,7 +79,7 @@ The application follows a three-layer design:
 **Project Structure**
 ```
 src/
-├── main.rs              # Entry point launching GUI application
+├── main.rs              # Entry point with iced 0.13 function-based application launcher
 ├── storage/             # Dual storage architecture (computation + visualization)
 │   ├── mod.rs          # Module declarations and architecture documentation
 │   ├── data_point.rs   # Shared DataPoint struct (Copy semantics)
@@ -98,26 +99,30 @@ src/
 ├── comp/               # Computation algorithms
 │   ├── mod.rs         # Computation module exports
 │   └── mandelbrot_engine.rs # Threaded computation engine with MandelbrotEngine struct
-└── gui/               # GUI application
+└── gui/               # GUI application  
     ├── mod.rs         # GUI module exports
-    └── mandel_iced_app.rs   # Interactive GUI with dual storage integration
+    └── mandel_iced_app.rs   # Interactive GUI with iced 0.13 function-based API and dual storage integration
 ```
 
 ## Technical Context
 - Language: Rust (educational focus)
-- Development: VS Code with Rust Extension Pack
-- GUI Framework: iced for cross-platform native applications with MVU architecture
+- Development: VS Code with Rust Extension Pack, auto-format on save with rustfmt
+- GUI Framework: iced 0.13.1 for cross-platform native applications with function-based API
 - Async Runtime: tokio for non-blocking operations and enhanced threading
+- Streaming: async-stream for creating finite event streams
 - Version Control: Git repository
 - Target Platform: Linux/Ubuntu (system-independent design)
 - Human Background: Experienced Java programmer learning Rust
 
-## Major Achievement: Complete Functional Application with Dual Storage Architecture
+## Major Achievement: Complete Functional Application with Modern Architecture
 **Accomplished comprehensive Rust development:**
 - Built complete fractal visualizer from scratch
 - Mastered Rust's ownership system and advanced concepts
 - Created interactive GUI application with real-time graphics
 - Successfully migrated from egui to iced, learning MVU architecture
+- **✅ COMPLETED Phase A: Foundation (manifesto-03)**
+  - **Phase A.1**: Eliminated all VS Code warnings with strategic `#[allow(dead_code)]` annotations
+  - **Phase A.2**: Successfully migrated from iced 0.12 to 0.13.1 with function-based API
 - Implemented mathematical algorithms and coordinate transformations
 - Achieved high-resolution (800×800) fractal rendering with custom coloring
 - Demonstrated architecture independence by reusing business logic across UI frameworks
@@ -127,6 +132,7 @@ src/
 - **🎉 COMPLETED Phase II of manifesto-02: Full threading architecture with enhanced algorithms**
 - **🚀 COMPLETED Phase III of manifesto-02: Advanced async event-driven communication system with full integration**
 - **🌟 ACHIEVED Real-time Event-Driven Visualization: Complete end-to-end pixel streaming from computation to GUI**
+- **🔄 COMPLETED Major Framework Migration: iced 0.12 → 0.13 with modern function-based architecture**
 - **Independent Development Mastery: Phase II completed autonomously without AI assistance**
 
 ## Development Commands
@@ -151,7 +157,7 @@ src/
 - **Struct Design**: Separating concerns (DataStorage metadata vs DataPlane operations)
 - **GUI Programming**: iced framework, MVU architecture, event handling, state management
 - **Graphics Programming**: Color mapping, image rendering with RGBA format, real-time rendering
-- **Trait Implementation**: Implementing `iced::Application` for MVU-based application behavior
+- **Function-Based Architecture**: Using standalone functions instead of traits for MVU-based application behavior
 - **Functional Reactive Programming**: Pure functions for UI description, message-driven updates
 - **Architecture Patterns**: Model-View-Update (MVU) pattern, separation of concerns
 - **Cargo Dependencies**: Adding external crates and managing project dependencies
@@ -160,7 +166,7 @@ src/
 - **String Manipulation**: Converting between String and numeric types with proper error handling
 - **Layout Management**: iced alignment system, horizontal spacing, fixed-width components
 - **UI Design Patterns**: Center-aligned layouts, consistent spacing, visual balance
-- **Command System**: Using Command::perform for initial actions and async message dispatch
+- **Task System**: Using Task::perform for async actions and message dispatch
 - **Async/Concurrent Programming**: Background computation with tokio channels and Arc for shared ownership
 - **Progress Reporting**: ComputeProgress struct with completion ratios for real-time updates
 - **Module System Deep Dive**: Directory-based module organization with `mod.rs` files, explicit declarations vs automatic scanning
@@ -181,7 +187,7 @@ src/
 - **Thread Management**: `std::thread::spawn` with proper handle storage and lifecycle management
 - **Atomic Operations**: `AtomicBool` for lock-free cancellation signals across threads
 - **State Machines**: Enum-based state tracking with thread-safe Arc<Mutex<T>> for shared state
-- **Command-based Async**: iced Command::perform with tokio for non-blocking periodic operations
+- **Task-based Async**: iced Task::perform with tokio for non-blocking periodic operations
 - **Engine Architecture**: Structured computation management with start/stop lifecycle methods
 - **Algorithm Optimization**: Shuffled pixel computation for improved progressive rendering feedback
 - **Independent Problem Solving**: Successfully completing complex threading architecture without AI guidance
@@ -202,6 +208,17 @@ src/
 - **Advanced Ownership in Async**: Channel ownership transfer, Arc sharing, and mutable borrowing in concurrent contexts
 - **Race Condition Debugging**: Identifying and resolving async timing issues with proper future coordination
 - **End-to-End System Integration**: Connecting independent async systems with proper lifecycle management
+- **Framework Migration Strategies**: Successfully migrating between major GUI framework versions with breaking changes
+- **Function-Based GUI Architecture**: Understanding iced 0.13's move from trait-based to function-based APIs
+- **Type Inference in Generics**: How Rust automatically infers state types from function signatures in generic frameworks
+- **Reactive Subscription Patterns**: Building conditional, state-driven event streams that start/stop based on application state
+- **Single-Fire Event Streams**: Using async-stream to create streams that yield exactly once, preventing race conditions
+- **Finite Stream Architecture**: Understanding stream lifecycle management and proper termination patterns
+- **Closure Syntax Mastery**: Understanding `|| { }` (no parameters) vs `|x| { }` (one parameter) closure patterns
+- **API Evolution Handling**: Adapting to breaking changes like `Command` → `Task`, `align_items()` → `align_y()`
+- **Image Handle API Changes**: Migrating from `from_pixels` to `from_rgba` with proper pixel format understanding
+- **Defensive Programming vs Race Condition Resolution**: Choosing proper architectural solutions over workarounds
+- **Auto-formatting Integration**: Using rustfmt and VS Code format-on-save for consistent Rust code style
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful
