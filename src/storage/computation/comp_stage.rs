@@ -53,12 +53,7 @@ impl CompStage {
         y as usize*self.width+x as usize
     }
 
-    /// Return whether the point at the given location has already been computed
-    pub fn is_computed(&self, x: u32, y: u32) -> bool {
-        let idx=self.index(x,y);
-        self.data[idx].read().unwrap().is_some()
-    }
-
+    /// Internal base operation to get one point from the stage with handling the RwLock internally
     fn internal_get(&self,idx:usize) -> Option<DataPoint> {
         let guard=self.data[idx].read().unwrap();
         *guard
@@ -67,6 +62,11 @@ impl CompStage {
     // Get the data of the point at the given position, returns independent data, uses lock internally
     pub fn get(&self, x: u32, y: u32) -> Option<DataPoint> {
         self.internal_get(self.index(x,y))
+    }
+
+    /// Return whether the point at the given location has already been computed
+    pub fn is_computed(&self, x: u32, y: u32) -> bool {
+        self.get(x,y).is_some()
     }
 
     pub fn set_change_sender(&self, sender: Option<UnboundedSender<StageEvent>>) {

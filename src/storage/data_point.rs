@@ -17,7 +17,9 @@ impl DataPoint {
     }
 
     pub fn iteration_count(&self) -> u32 { self.iteration_count }
+    #[allow(dead_code)]  // To be used for images using more than the pure iteration depth for visualization in the future.
     pub fn final_x(&self) -> f64 { self.final_x }
+    #[allow(dead_code)]  // To be used for images using more than the pure iteration depth for visualization in the future.
     pub fn final_y(&self) -> f64 { self.final_y }
 
 }

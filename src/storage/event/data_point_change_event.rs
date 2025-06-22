@@ -1,5 +1,3 @@
-use std::time::{Duration, Instant};
-
 use crate::storage::data_point::DataPoint;
 
 /// Description of the change of a single data point
@@ -27,6 +25,7 @@ impl DataPointMultiChange {
         DataPointMultiChange { changes }
     }
     pub fn changes(&self) -> &[DataPointChange] { &self.changes }
+    #[allow(dead_code)]  // kind of public API, may be useful in the future
     pub fn len(&self) -> usize { self.changes.len() }
 }
 

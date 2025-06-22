@@ -36,6 +36,10 @@ impl DataPointChangeBuffer {
     }
 
     /// Check if the event should be sent due to timeout
+    ///
+    /// Note: This function is not used at the moment as time-based event sending is performed on base of an absolute time scale.
+    /// This function might become interesting in the future again.
+    #[allow(dead_code)]
     pub fn is_timeout_reached(&self, max_duration: Duration) -> bool {
         self.created.elapsed()>=max_duration
     }

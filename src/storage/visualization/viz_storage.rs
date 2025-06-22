@@ -15,8 +15,10 @@ pub struct VizStorage {
     pub properties: ImageCompProperties,
     pub stage: VizStage,
     /// State of the comp storage which is seen by the viz storage, can change through events.
+    #[allow(dead_code)]
     pub seen_state: StageState,
 
+    comp_storage: Arc<CompStorage>,
     event_receiver: Option<UnboundedReceiver<StageEvent>>,
 
 }
@@ -36,6 +38,7 @@ impl VizStorage {
             properties: arc_of_comp_storage.as_ref().properties,
             stage,
             seen_state,
+            comp_storage: arc_of_comp_storage,
             event_receiver: event_receiver_result,
         }
     }
@@ -54,7 +57,7 @@ impl VizStorage {
                     }
                     StageEvent::StateChange(thestate) => {
                         if thestate==StageState::Stalled || thestate==StageState::Completed {
-                            // hm…
+                            let _ = self.comp_storage.drop_event_receiver();
                         }
                     }
                 }

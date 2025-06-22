@@ -18,6 +18,7 @@ pub enum EngineState {
 
 pub struct MandelbrotEngine {
 
+    #[allow(dead_code)]  // Could be needed for deriving images from the original coordinates
     pub original_properties: ImageCompProperties,
     pub state: Arc<Mutex<EngineState>>,
     storage: Arc<CompStorage>,
@@ -138,6 +139,7 @@ fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &Atom
     true  // Computation ended successfully
 }
 
+#[allow(dead_code)]  // Currently not needed, but may be useful for testing or as blueprint for other algorithms
 fn stoppable_compute_mandelbrot_linear(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
     let max_iteration=storage.properties.max_iteration;
     storage.stage.set_state(StageState::Evolving);

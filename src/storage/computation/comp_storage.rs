@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use tokio::sync::mpsc;
 
-use crate::storage::{event::stage_event_batcher::{StageEvent, StageEventBatcher}, image_comp_properties::{ImageCompProperties, StageState}};
+use crate::storage::{event::stage_event_batcher::{StageEvent, StageEventBatcher}, image_comp_properties::ImageCompProperties};
 use super::comp_stage::CompStage;
 
 struct EventSystem {

@@ -2,7 +2,7 @@ use std::time::Duration;
 use iced::{Application, Command, Element, Theme};
 use crate::storage::visualization::viz_storage::VizStorage;
 use crate::comp::mandelbrot_engine::{EngineState, MandelbrotEngine};
-use crate::storage::image_comp_properties::{ImageCompProperties, Rect, StageProperties, StageState};
+use crate::storage::image_comp_properties::{ImageCompProperties, Rect, StageProperties};
 
 #[derive(Debug, Clone)]
 pub enum Message {
