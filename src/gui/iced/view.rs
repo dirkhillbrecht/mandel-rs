@@ -1,36 +1,26 @@
 /// View part of the mandel-rs-Iced-GUI
 use crate::gui::iced::app::MandelRSApp;
 use crate::gui::iced::message::Message;
+use crate::storage::visualization::coloring::base::GradientColors;
+use crate::storage::visualization::coloring::presets::GradientColorPresets;
 use crate::storage::visualization::viz_storage::VizStorage;
-use iced::widget::progress_bar::Style;
 use iced::widget::{button, column, container, progress_bar, row, text, text_input};
 use iced::{Element, Length};
 
-fn iteration_to_color(it: u32, maxit: u32) -> [u8; 3] {
-    if it == maxit {
-        [0, 0, 0]
-    } else {
-        // Some simple color gradient
-        let ratio = it as f32 / maxit as f32;
-        let xor = ((it % 2) * 255) as u8;
-        let red = ((255.0 * ratio * 5.0) % 255.0) as u8 ^ xor;
-        let green = ((255.0 * (1.0 - ratio) * 3.0) % 255.0) as u8 ^ xor;
-        let blue = ((128.0 + 127.0 * ratio * 2.0) % 255.0) as u8 ^ xor;
-        [red, green, blue]
-    }
-}
 fn render_fractal<'a>(_state: &'a MandelRSApp, storage: &'a VizStorage) -> Element<'a, Message> {
     use iced::widget::image;
 
     let width = storage.stage.width();
     let height = storage.stage.height();
 
+    let color_scheme = GradientColors::new(&GradientColorPresets::Sunrise.scheme(), 256);
+
     let mut pixels = Vec::new();
     for y in 0..height {
         for x in 0..width {
             if let Some(point) = storage.stage.get(x, y) {
-                let color =
-                    iteration_to_color(point.iteration_count(), storage.properties.max_iteration);
+                let color = color_scheme
+                    .iteration_to_color(point.iteration_count(), storage.properties.max_iteration);
                 pixels.extend_from_slice(&color);
                 pixels.push(255);
             } else {
