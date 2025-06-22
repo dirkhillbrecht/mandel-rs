@@ -133,6 +133,7 @@ src/
 - **🚀 COMPLETED Phase III of manifesto-02: Advanced async event-driven communication system with full integration**
 - **🌟 ACHIEVED Real-time Event-Driven Visualization: Complete end-to-end pixel streaming from computation to GUI**
 - **🔄 COMPLETED Major Framework Migration: iced 0.12 → 0.13 with modern function-based architecture**
+- **🎯 COMPLETED Phase B.1 of manifesto-03: GUI layout redesign with collapsible sidebar and clean modular architecture**
 - **Independent Development Mastery: Phase II completed autonomously without AI assistance**
 
 ## Development Commands
@@ -217,6 +218,11 @@ src/
 - **Closure Syntax Mastery**: Understanding `|| { }` (no parameters) vs `|x| { }` (one parameter) closure patterns
 - **API Evolution Handling**: Adapting to breaking changes like `Command` → `Task`, `align_items()` → `align_y()`
 - **Image Handle API Changes**: Migrating from `from_pixels` to `from_rgba` with proper pixel format understanding
+- **Lifetime Annotations**: Explicit lifetime parameters `<'a>` for functions with multiple references and complex return types
+- **MVU Code Organization**: Separating GUI code into discrete modules (app, message, view, update, subscription) following iced patterns
+- **Sidebar GUI Design**: Creating collapsible sidebar layouts with responsive design using container widgets
+- **Module Privacy Patterns**: Understanding when private modules work with `super::` paths vs requiring `pub` visibility
+- **GUI Refactoring**: Successfully restructuring monolithic GUI code into clean, maintainable modular architecture
 - **Defensive Programming vs Race Condition Resolution**: Choosing proper architectural solutions over workarounds
 - **Auto-formatting Integration**: Using rustfmt and VS Code format-on-save for consistent Rust code style
 
