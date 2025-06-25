@@ -14,6 +14,7 @@ pub mod event;
 pub mod visualization;
 
 // Files herein
+pub mod coord_spaces;
 pub mod data_point;
 pub mod image_comp_properties;
 
