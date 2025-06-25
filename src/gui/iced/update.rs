@@ -1,24 +1,24 @@
 /// Update part of the mandel-rs-Iced-GUI
 use crate::comp::mandelbrot_engine::{EngineState, MandelbrotEngine};
-use crate::gui::iced::app::MandelRSApp;
+use crate::gui::iced::app::AppState;
 use crate::gui::iced::message::Message;
 use crate::storage::image_comp_properties::{ImageCompProperties, Rect, StageProperties};
 use crate::storage::visualization::viz_storage::VizStorage;
 use iced::Task;
 use std::time::Duration;
 
-pub fn update(state: &mut MandelRSApp, message: Message) -> Task<Message> {
+pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
     match message {
-        Message::ToggleSidebar => state.sidebar_visible = !state.sidebar_visible,
-        Message::LeftChanged(value) => state.left = value,
-        Message::RightChanged(value) => state.right = value,
-        Message::TopChanged(value) => state.top = value,
-        Message::BottomChanged(value) => state.bottom = value,
-        Message::WidthChanged(value) => state.width = value,
-        Message::HeightChanged(value) => state.height = value,
-        Message::MaxIterationChanged(value) => state.max_iteration = value,
+        Message::ToggleSidebar => state.viz.sidebar_visible = !state.viz.sidebar_visible,
+        Message::LeftChanged(value) => state.math.left = value,
+        Message::RightChanged(value) => state.math.right = value,
+        Message::TopChanged(value) => state.math.top = value,
+        Message::BottomChanged(value) => state.math.bottom = value,
+        Message::WidthChanged(value) => state.math.width = value,
+        Message::HeightChanged(value) => state.math.height = value,
+        Message::MaxIterationChanged(value) => state.math.max_iteration = value,
         Message::ComputeClicked => {
-            state.auto_start_computation = false;
+            state.viz.auto_start_computation = false;
             if let (
                 Ok(left),
                 Ok(right),
@@ -28,18 +28,18 @@ pub fn update(state: &mut MandelRSApp, message: Message) -> Task<Message> {
                 Ok(height),
                 Ok(max_iteration),
             ) = (
-                state.left.parse::<f64>(),
-                state.right.parse::<f64>(),
-                state.bottom.parse::<f64>(),
-                state.top.parse::<f64>(),
-                state.width.parse::<u32>(),
-                state.height.parse::<u32>(),
-                state.max_iteration.parse::<u32>(),
+                state.math.left.parse::<f64>(),
+                state.math.right.parse::<f64>(),
+                state.math.bottom.parse::<f64>(),
+                state.math.top.parse::<f64>(),
+                state.math.width.parse::<u32>(),
+                state.math.height.parse::<u32>(),
+                state.math.max_iteration.parse::<u32>(),
             ) {
                 if let Some(_) = state.engine {
                     println!("Engine already initialized");
                 } else {
-                    state.computing = true;
+                    state.runtime.computing = true;
                     let comp_props = ImageCompProperties::new(
                         StageProperties::new(Rect::new(left, right, bottom, top), width, height),
                         max_iteration,
@@ -63,7 +63,7 @@ pub fn update(state: &mut MandelRSApp, message: Message) -> Task<Message> {
                 let engine_state = engine.state();
                 if engine_state == EngineState::Aborted || engine_state == EngineState::Finished {
                     state.engine = None;
-                    state.computing = false;
+                    state.runtime.computing = false;
                     return Task::none(); // Stop updates
                 } else {
                     // Schedule next update
@@ -80,7 +80,7 @@ pub fn update(state: &mut MandelRSApp, message: Message) -> Task<Message> {
             if let Some(_) = state.engine {
                 state.engine.as_ref().unwrap().stop();
                 state.engine = None;
-                state.computing = false;
+                state.runtime.computing = false;
             }
         }
     }

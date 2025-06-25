@@ -1,5 +1,5 @@
 /// View part of the mandel-rs-Iced-GUI
-use crate::gui::iced::app::MandelRSApp;
+use crate::gui::iced::app::AppState;
 use crate::gui::iced::message::Message;
 use crate::storage::visualization::coloring::base::GradientColors;
 use crate::storage::visualization::coloring::presets::GradientColorPresets;
@@ -7,7 +7,7 @@ use crate::storage::visualization::viz_storage::VizStorage;
 use iced::widget::{button, column, container, progress_bar, row, text, text_input};
 use iced::{Element, Length};
 
-fn render_fractal<'a>(_state: &'a MandelRSApp, storage: &'a VizStorage) -> Element<'a, Message> {
+fn render_fractal<'a>(_state: &'a AppState, storage: &'a VizStorage) -> Element<'a, Message> {
     use iced::widget::image;
 
     let width = storage.stage.width();
@@ -32,17 +32,17 @@ fn render_fractal<'a>(_state: &'a MandelRSApp, storage: &'a VizStorage) -> Eleme
     image(handle).content_fit(iced::ContentFit::Contain).into()
 }
 
-fn open_sidebar(state: &MandelRSApp) -> Element<Message> {
+fn open_sidebar(state: &AppState) -> Element<Message> {
     container(
         column![
             button("<").on_press(Message::ToggleSidebar),
             text("Computed size:"),
             row![
-                text_input("", &state.width)
+                text_input("", &state.math.width)
                     .width(50)
                     .on_input(Message::WidthChanged),
                 text("*"),
-                text_input("", &state.height)
+                text_input("", &state.math.height)
                     .width(50)
                     .on_input(Message::HeightChanged),
                 text("px")
@@ -50,26 +50,26 @@ fn open_sidebar(state: &MandelRSApp) -> Element<Message> {
             .spacing(6)
             .align_y(iced::Alignment::Center),
             text("Max. iterations:"),
-            text_input("", &state.max_iteration)
+            text_input("", &state.math.max_iteration)
                 .width(100)
                 .on_input(Message::MaxIterationChanged),
             text("Right:"),
-            text_input("", &state.right)
+            text_input("", &state.math.right)
                 .width(100)
                 .on_input(Message::RightChanged),
             text("Top:"),
-            text_input("", &state.top)
+            text_input("", &state.math.top)
                 .width(100)
                 .on_input(Message::TopChanged),
             text("Left:"),
-            text_input("", &state.left)
+            text_input("", &state.math.left)
                 .width(100)
                 .on_input(Message::LeftChanged),
             text("Bottom:"),
-            text_input("", &state.bottom)
+            text_input("", &state.math.bottom)
                 .width(100)
                 .on_input(Message::BottomChanged),
-            if state.computing {
+            if state.runtime.computing {
                 button("Stop").on_press(Message::StopClicked)
             } else {
                 button("Compute").on_press(Message::ComputeClicked)
@@ -93,13 +93,13 @@ fn open_sidebar(state: &MandelRSApp) -> Element<Message> {
     .into()
 }
 
-fn collapsed_sidebar(_state: &MandelRSApp) -> Element<Message> {
+fn collapsed_sidebar(_state: &AppState) -> Element<Message> {
     container(button(">").on_press(Message::ToggleSidebar))
         .width(Length::Shrink)
         .into()
 }
 
-fn fractal(state: &MandelRSApp) -> Element<Message> {
+fn fractal(state: &AppState) -> Element<Message> {
     container(if let Some(storage) = &state.storage {
         column![render_fractal(state, storage)].spacing(10)
     } else {
@@ -112,9 +112,9 @@ fn fractal(state: &MandelRSApp) -> Element<Message> {
     .into()
 }
 
-pub fn view(state: &MandelRSApp) -> Element<Message> {
+pub fn view(state: &AppState) -> Element<Message> {
     row![
-        if state.sidebar_visible {
+        if state.viz.sidebar_visible {
             open_sidebar(state)
         } else {
             collapsed_sidebar(state)

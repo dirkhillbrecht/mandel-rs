@@ -1,66 +1,116 @@
 /// Application frame for the Iced-based mandel-rs GUI
 use crate::comp::mandelbrot_engine::MandelbrotEngine;
+use crate::comp::math_data::{MathData, MathPresets};
 use crate::storage::visualization::viz_storage::VizStorage;
 
-pub struct MandelRSApp {
-    pub storage: Option<VizStorage>,
-    pub engine: Option<MandelbrotEngine>,
-    pub auto_start_computation: bool,
-    pub computing: bool,
-    pub sidebar_visible: bool,
+/// Mathematical state of the app
+pub struct MathState {
+    pub width: String,
+    pub height: String,
     pub left: String,
     pub right: String,
     pub top: String,
     pub bottom: String,
-    pub width: String,
-    pub height: String,
     pub max_iteration: String,
 }
 
-impl Default for MandelRSApp {
+impl MathState {
+    pub fn new(
+        width: String,
+        height: String,
+        left: String,
+        right: String,
+        top: String,
+        bottom: String,
+        max_iteration: String,
+    ) -> Self {
+        MathState {
+            width,
+            height,
+            left,
+            right,
+            top,
+            bottom,
+            max_iteration,
+        }
+    }
+    pub fn from_math_data(width: String, height: String, data: MathData) -> Self {
+        Self::new(
+            width,
+            height,
+            data.coordinates().min_x().to_string(),
+            data.coordinates().max_x().to_string(),
+            data.coordinates().max_y().to_string(),
+            data.coordinates().min_y().to_string(),
+            data.max_iteration().to_string(),
+        )
+    }
+}
+
+impl Default for MathState {
     fn default() -> Self {
-        MandelRSApp {
+        Self::from_math_data(
+            "800".to_string(),
+            "600".to_string(),
+            MathPresets::preset(&MathPresets::MandelbrotFull),
+        )
+    }
+}
+
+/// Visual state of the app
+pub struct VizState {
+    pub auto_start_computation: bool,
+    pub sidebar_visible: bool,
+}
+
+impl VizState {
+    pub fn new(auto_start_computation: bool, sidebar_visible: bool) -> Self {
+        VizState {
+            auto_start_computation,
+            sidebar_visible,
+        }
+    }
+}
+
+impl Default for VizState {
+    fn default() -> Self {
+        Self::new(true, true)
+    }
+}
+
+/// Runtime state of the app
+pub struct RuntimeState {
+    pub computing: bool,
+}
+
+impl RuntimeState {
+    pub fn new(computing: bool) -> Self {
+        RuntimeState { computing }
+    }
+}
+
+impl Default for RuntimeState {
+    fn default() -> Self {
+        Self::new(false)
+    }
+}
+
+pub struct AppState {
+    pub storage: Option<VizStorage>,
+    pub engine: Option<MandelbrotEngine>,
+    pub math: MathState,
+    pub viz: VizState,
+    pub runtime: RuntimeState,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        AppState {
             storage: None,
             engine: None,
-            auto_start_computation: true,
-            computing: false,
-            sidebar_visible: true,
-
-            /*            // Full mandelbrot set
-                        left: "-2.1".to_string(),
-                        right: "0.75".to_string(),
-                        top: "1.25".to_string(),
-                        bottom: "-1.25".to_string(),
-                        width: "800".to_string(),
-                        height: "600".to_string(),
-                        max_iteration: "200".to_string(),
-            */
-            /*            // Deep zoom elephant valley
-                        left: "-0.7512".to_string(),
-                        right: "-0.7502".to_string(),
-                        top: "0.1103".to_string(),
-                        bottom: "0.1093".to_string(),
-                        width: "800".to_string(),
-                        height: "600".to_string(),
-                        max_iteration: "2000".to_string(),
-            */
-            /*            // Spiral region
-                        left: "-0.7269".to_string(),
-                        right: "-0.7259".to_string(),
-                        top: "0.1889".to_string(),
-                        bottom: "0.1879".to_string(),
-                        width: "2800".to_string(),
-                        height: "1800".to_string(),
-                        max_iteration: "2000".to_string(),
-            */
-            // Seahorse valley
-            left: "-0.7463".to_string(),
-            right: "-0.7453".to_string(),
-            top: "0.1102".to_string(),
-            bottom: "0.1092".to_string(),
-            width: "1200".to_string(),
-            height: "800".to_string(),
-            max_iteration: "2000".to_string(),
+            math: MathState::default(),
+            viz: VizState::default(),
+            runtime: RuntimeState::default(),
         }
     }
 }
