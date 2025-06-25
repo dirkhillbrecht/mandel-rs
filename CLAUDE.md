@@ -98,16 +98,25 @@ src/
 │       └── stage_event_batcher.rs    # Advanced async event coordinator with sophisticated batching
 ├── comp/               # Computation algorithms
 │   ├── mod.rs         # Computation module exports
-│   └── mandelbrot_engine.rs # Threaded computation engine with MandelbrotEngine struct
+│   ├── mandelbrot_engine.rs # Threaded computation engine with MandelbrotEngine struct
+│   └── math_data.rs   # Mathematical data structures and preset coordinate regions with euclid integration
 └── gui/               # GUI application  
     ├── mod.rs         # GUI module exports
-    └── mandel_iced_app.rs   # Interactive GUI with iced 0.13 function-based API and dual storage integration
+    └── iced/          # Modular iced GUI architecture
+        ├── mod.rs     # iced module exports
+        ├── app.rs     # Application state management (MathState, VizState, RuntimeState)
+        ├── message.rs # MVU message definitions for user interactions
+        ├── update.rs  # State update logic and event handlers
+        ├── view.rs    # UI layout and widget definitions
+        └── subscription.rs # Event subscriptions and real-time updates
 ```
 
 ## Technical Context
 - Language: Rust (educational focus)
 - Development: VS Code with Rust Extension Pack, auto-format on save with rustfmt
 - GUI Framework: iced 0.13.1 for cross-platform native applications with function-based API
+- Color Science: palette 0.7.6 for professional color space operations and gradient generation
+- Coordinate System: euclid for type-safe mathematical coordinate handling
 - Async Runtime: tokio for non-blocking operations and enhanced threading
 - Streaming: async-stream for creating finite event streams
 - Version Control: Git repository
@@ -136,6 +145,9 @@ src/
 - **🎯 COMPLETED Phase B.1 of manifesto-03: GUI layout redesign with collapsible sidebar and clean modular architecture**
 - **📊 COMPLETED Issue 6 of manifesto-03: Progress bar implementation with real-time computation feedback**
 - **🎨 COMPLETED Issue 4 of manifesto-03: Professional gradient color system with palette library integration**
+- **✅ COMPLETED Phase B of manifesto-03: Full visual polish phase with color system and mathematical presets**
+- **🌈 ACHIEVED Professional Color Architecture: Complete gradient system with function pointer transformations**
+- **📐 ENHANCED Mathematical Interface: Preset system for famous Mandelbrot regions with euclid integration**
 - **Independent Development Mastery: Phase II completed autonomously without AI assistance**
 
 ## Development Commands
@@ -242,6 +254,15 @@ src/
 - **Professional API Design**: Simple, clean interfaces hiding complex color science implementation
 - **Defensive Programming vs Race Condition Resolution**: Choosing proper architectural solutions over workarounds
 - **Auto-formatting Integration**: Using rustfmt and VS Code format-on-save for consistent Rust code style
+- **Function Pointers**: Using `fn(T) -> R` for efficient mathematical transformations without heap allocation
+- **Pick List Widgets**: iced dropdown selection with enum-based options and Display trait implementation
+- **Conditional Button States**: `on_press_maybe()` pattern for dynamic UI behavior based on application state
+- **Task Chaining**: Using `Task::perform()` to trigger follow-up actions and maintain UI responsiveness
+- **Preset Architecture**: Enum-driven configuration system combining UI choices with mathematical data
+- **Macro Delimiter Flexibility**: Understanding interchangeable use of `()`, `[]`, `{}` in Rust macros
+- **Anonymous Lifetimes**: `<'_>` syntax for compiler-inferred lifetime parameters in trait implementations
+- **Mathematical Transformations**: Implementing iteration assignment functions (cubic, logarithmic, etc.) for color mapping
+- **Euclid Integration**: Type-safe coordinate system using phantom types for mathematical vs pixel spaces
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful

@@ -1,6 +1,7 @@
 /// Application frame for the Iced-based mandel-rs GUI
 use crate::comp::mandelbrot_engine::MandelbrotEngine;
-use crate::comp::math_data::{MathData, MathPresets};
+use crate::comp::math_data::{MathData, MathPreset};
+use crate::storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment};
 use crate::storage::visualization::viz_storage::VizStorage;
 
 /// Mathematical state of the app
@@ -52,29 +53,47 @@ impl Default for MathState {
         Self::from_math_data(
             "800".to_string(),
             "600".to_string(),
-            MathPresets::preset(&MathPresets::MandelbrotFull),
+            MathPreset::preset(&MathPreset::MandelbrotFull),
         )
     }
 }
 
 /// Visual state of the app
 pub struct VizState {
+    pub math_preset: MathPreset,
     pub auto_start_computation: bool,
     pub sidebar_visible: bool,
+    pub gradient_color_preset: GradientColorPreset,
+    pub iteration_assignment: IterationAssignment,
 }
 
 impl VizState {
-    pub fn new(auto_start_computation: bool, sidebar_visible: bool) -> Self {
+    pub fn new(
+        math_preset: MathPreset,
+        auto_start_computation: bool,
+        sidebar_visible: bool,
+        gradient_color_preset: GradientColorPreset,
+        iteration_assignment: IterationAssignment,
+    ) -> Self {
         VizState {
+            math_preset,
             auto_start_computation,
             sidebar_visible,
+            gradient_color_preset,
+            iteration_assignment,
         }
     }
 }
 
 impl Default for VizState {
     fn default() -> Self {
-        Self::new(true, true)
+        Self::new(
+            MathPreset::MandelbrotFull,
+            true,
+            true,
+            GradientColorPreset::Sunrise,
+            IterationAssignment::Linear,
+        )
     }
 }
 

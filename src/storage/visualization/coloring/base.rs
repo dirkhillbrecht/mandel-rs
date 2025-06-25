@@ -79,11 +79,11 @@ impl GradientColors {
         [color.red, color.green, color.blue]
     }
 
-    pub fn iteration_to_color(&self, it: u32, maxit: u32) -> [u8; 3] {
+    pub fn iteration_to_color(&self, it: u32, assigner: fn(u32) -> u32, maxit: u32) -> [u8; 3] {
         if it == maxit {
             Self::rgb_to_u83(&self.body_color)
         } else {
-            Self::rgb_to_u83(&self.stripes[it as usize % self.stripes.len()])
+            Self::rgb_to_u83(&self.stripes[assigner(it) as usize % self.stripes.len()])
         }
     }
 }

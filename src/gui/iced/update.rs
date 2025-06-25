@@ -10,6 +10,16 @@ use std::time::Duration;
 pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
     match message {
         Message::ToggleSidebar => state.viz.sidebar_visible = !state.viz.sidebar_visible,
+        Message::PresetChanged(value) => state.viz.math_preset = value,
+        Message::PresetClicked => {
+            let data = &state.viz.math_preset.preset();
+            state.math.left = data.coordinates().min_x().to_string();
+            state.math.right = data.coordinates().max_x().to_string();
+            state.math.top = data.coordinates().max_y().to_string();
+            state.math.bottom = data.coordinates().min_y().to_string();
+            state.math.max_iteration = data.max_iteration().to_string();
+            return Task::perform(async {}, |_| Message::ComputeClicked);
+        }
         Message::LeftChanged(value) => state.math.left = value,
         Message::RightChanged(value) => state.math.right = value,
         Message::TopChanged(value) => state.math.top = value,
@@ -82,6 +92,12 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 state.engine = None;
                 state.runtime.computing = false;
             }
+        }
+        Message::ColorSchemeChanged(value) => {
+            state.viz.gradient_color_preset = value;
+        }
+        Message::IterationAssignmentChanged(value) => {
+            state.viz.iteration_assignment = value;
         }
     }
     Task::none()

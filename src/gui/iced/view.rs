@@ -1,26 +1,30 @@
+use crate::comp::math_data::MathPreset;
 /// View part of the mandel-rs-Iced-GUI
 use crate::gui::iced::app::AppState;
 use crate::gui::iced::message::Message;
 use crate::storage::visualization::coloring::base::GradientColors;
-use crate::storage::visualization::coloring::presets::GradientColorPresets;
+use crate::storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment};
 use crate::storage::visualization::viz_storage::VizStorage;
-use iced::widget::{button, column, container, progress_bar, row, text, text_input};
+use iced::widget::{button, column, container, pick_list, progress_bar, row, text, text_input};
 use iced::{Element, Length};
 
-fn render_fractal<'a>(_state: &'a AppState, storage: &'a VizStorage) -> Element<'a, Message> {
+fn render_fractal<'a>(state: &'a AppState, storage: &'a VizStorage) -> Element<'a, Message> {
     use iced::widget::image;
 
     let width = storage.stage.width();
     let height = storage.stage.height();
 
-    let color_scheme = GradientColors::new(&GradientColorPresets::Sunrise.scheme(), 256);
+    let color_scheme = GradientColors::new(&state.viz.gradient_color_preset.scheme(), 256);
 
     let mut pixels = Vec::new();
     for y in 0..height {
         for x in 0..width {
             if let Some(point) = storage.stage.get(x, y) {
-                let color = color_scheme
-                    .iteration_to_color(point.iteration_count(), storage.properties.max_iteration);
+                let color = color_scheme.iteration_to_color(
+                    point.iteration_count(),
+                    state.viz.iteration_assignment.assignment_function(),
+                    storage.properties.max_iteration,
+                );
                 pixels.extend_from_slice(&color);
                 pixels.push(255);
             } else {
@@ -49,6 +53,18 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
             ]
             .spacing(6)
             .align_y(iced::Alignment::Center),
+            text("Preset"),
+            pick_list(
+                MathPreset::all(),
+                Some(state.viz.math_preset),
+                Message::PresetChanged,
+            )
+            .width(200),
+            button("Apply").on_press_maybe(if state.runtime.computing {
+                None
+            } else {
+                Some(Message::PresetClicked)
+            }),
             text("Max. iterations:"),
             text_input("", &state.math.max_iteration)
                 .width(100)
@@ -84,7 +100,21 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
                 }
             } else {
                 Element::from(text("Waiting…"))
-            }
+            },
+            text("Color scheme:"),
+            pick_list(
+                GradientColorPreset::all(),
+                Some(state.viz.gradient_color_preset),
+                Message::ColorSchemeChanged,
+            )
+            .width(150),
+            text("Iteration Mapping:"),
+            pick_list(
+                IterationAssignment::all(),
+                Some(state.viz.iteration_assignment),
+                Message::IterationAssignmentChanged,
+            )
+            .width(150),
         ]
         .spacing(6)
         .align_x(iced::Alignment::Start),

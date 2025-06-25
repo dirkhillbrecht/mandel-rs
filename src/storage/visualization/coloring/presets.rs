@@ -3,8 +3,8 @@ use palette::Srgb;
 
 use crate::storage::visualization::coloring::base::GradientColorScheme;
 
-#[allow(dead_code)]
-pub enum GradientColorPresets {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GradientColorPreset {
     Sunrise,
     Woods,
     Moonlight,
@@ -12,8 +12,7 @@ pub enum GradientColorPresets {
     UglyColors,
 }
 
-impl GradientColorPresets {
-    #[allow(dead_code)]
+impl GradientColorPreset {
     pub fn all() -> &'static [Self] {
         &[
             Self::Sunrise,
@@ -23,7 +22,6 @@ impl GradientColorPresets {
             Self::UglyColors,
         ]
     }
-    #[allow(dead_code)]
     pub fn name(&self) -> &'static str {
         match self {
             Self::Sunrise => "Sunrise",
@@ -77,6 +75,65 @@ impl GradientColorPresets {
                 ],
             ),
         }
+    }
+}
+
+impl std::fmt::Display for GradientColorPreset {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum IterationAssignment {
+    Cubic,
+    Squared,
+    Linear,
+    SquareRoot,
+    CubicRoot,
+    Logarithmic,
+    LogLog,
+}
+
+impl IterationAssignment {
+    pub fn all() -> &'static [Self] {
+        &[
+            Self::Cubic,
+            Self::Squared,
+            Self::Linear,
+            Self::SquareRoot,
+            Self::CubicRoot,
+            Self::Logarithmic,
+            Self::LogLog,
+        ]
+    }
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Cubic => "x → x³ (cubic)",
+            Self::Squared => "x → x² (squared)",
+            Self::Linear => "x → x (linear)",
+            Self::SquareRoot => "x → √x (square root)",
+            Self::CubicRoot => "x → ∛x (cube root)",
+            Self::Logarithmic => "x → ln(x) (logarithmic)",
+            Self::LogLog => "x → ln(ln(x)) (double log)",
+        }
+    }
+    pub fn assignment_function(&self) -> fn(u32) -> u32 {
+        match self {
+            Self::Cubic => |it| it * it * it,
+            Self::Squared => |it| it * it,
+            Self::Linear => |it| it,
+            Self::SquareRoot => |it| (it as f64).sqrt() as u32,
+            Self::CubicRoot => |it| (it as f64).powf(1.0 / 3.0) as u32,
+            Self::Logarithmic => |it| (it as f64).ln() as u32,
+            Self::LogLog => |it| (it as f64).ln().ln() as u32,
+        }
+    }
+}
+
+impl std::fmt::Display for IterationAssignment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name())
     }
 }
 

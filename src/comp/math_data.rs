@@ -60,16 +60,15 @@ impl MathData {
     }
 }
 
-#[allow(dead_code)]
-pub enum MathPresets {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MathPreset {
     MandelbrotFull,
     MandelbrotElephantValley,
     MandelbrotSpirals,
     MandelbrotSeahorseValley,
 }
 
-impl MathPresets {
-    #[allow(dead_code)]
+impl MathPreset {
     pub fn all() -> &'static [Self] {
         &[
             Self::MandelbrotFull,
@@ -78,7 +77,6 @@ impl MathPresets {
             Self::MandelbrotSeahorseValley,
         ]
     }
-    #[allow(dead_code)]
     pub fn name(&self) -> &'static str {
         match self {
             Self::MandelbrotFull => "Full Mandelbrot Set",
@@ -117,6 +115,12 @@ impl MathPresets {
                 2000,
             ),
         }
+    }
+}
+
+impl std::fmt::Display for MathPreset {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name())
     }
 }
 
