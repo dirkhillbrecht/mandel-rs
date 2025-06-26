@@ -148,6 +148,12 @@ src/
 - **✅ COMPLETED Phase B of manifesto-03: Full visual polish phase with color system and mathematical presets**
 - **🌈 ACHIEVED Professional Color Architecture: Complete gradient system with function pointer transformations**
 - **📐 ENHANCED Mathematical Interface: Preset system for famous Mandelbrot regions with euclid integration**
+- **🎯 STARTED Phase C of manifesto-03: Advanced interactive features planning**
+  - **Issue 7 Architecture Planning**: Comprehensive analysis of interactive area selection requirements
+  - **Canvas Widget Strategy**: Identified need to migrate from Image to Canvas widget for pixel-level mouse interaction
+  - **Coordinate Mapping Design**: Planned screen-to-mathematical coordinate transformation system
+  - **Display Mode Strategy**: Designed fit vs crop toggle for optimal fractal display in variable canvas sizes
+  - **Implementation Scope**: Focused architecture changes in view.rs::render_fractal() for contained development
 - **Independent Development Mastery: Phase II completed autonomously without AI assistance**
 
 ## Development Commands
