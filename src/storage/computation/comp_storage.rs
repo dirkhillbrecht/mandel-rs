@@ -42,10 +42,7 @@ pub struct CompStorage {
 impl CompStorage {
     /// Create a new comp storage instance, initialize the stage internally.
     pub fn new(properties: ImageCompProperties) -> CompStorage {
-        let stage = CompStage::new(
-            properties.stage_properties.width,
-            properties.stage_properties.height,
-        );
+        let stage = CompStage::new(properties.stage_properties.pixels);
         CompStorage {
             properties,
             stage,

@@ -1,79 +1,68 @@
 // Collective storage for the computational image parameters.
 
-/// Simple data structure storing the mathematical coordinates of a rectangle
-#[derive(Debug, Clone, Copy)]
-pub struct Rect {
-    /// left edge value
-    pub x_min: f64,
-    /// right edge value
-    pub x_max: f64,
-    /// bottom edge value
-    pub y_min: f64,
-    /// top edge value
-    pub y_max: f64,
-}
+use euclid::{Point2D, Rect, Size2D};
 
-impl Rect {
-    /// Create a new Rect instance, min and max values are sliently swapped if in wrong order
-    pub fn new(x_min: f64, x_max: f64, y_min: f64, y_max: f64) -> Rect {
-        Rect {
-            x_min: x_min.min(x_max),
-            x_max: x_max.max(x_min),
-            y_min: y_min.min(y_max),
-            y_max: y_max.max(y_min),
-        }
-    }
-    /// return the distance between right and left edge, always positive
-    pub fn x_dist(&self) -> f64 {
-        self.x_max - self.x_min
-    }
-    /// return the distance between top and bottom edge, always positive
-    pub fn y_dist(&self) -> f64 {
-        self.y_max - self.y_min
-    }
-}
+use crate::storage::coord_spaces::{MathSpace, StageSpace};
 
 /// Properties of the computation stage, not only mathematical coordinates, but also pixel raster size
 #[derive(Debug, Clone, Copy)]
 pub struct StageProperties {
     /// The mathematical coordinates of the stage
-    pub coo: Rect,
-    /// Number of pixels in width
-    pub width: u32,
-    /// Number of pixels in height
-    pub height: u32,
+    pub coo: Rect<f64, MathSpace>,
+    pub pixels: Size2D<u32, StageSpace>,
 
-    x_dotsize: f64,
-    y_dotsize: f64,
-    x_coo_base: f64,
-    y_coo_base: f64,
+    pub dotsize: Size2D<f64, MathSpace>,
+    pub coo_base: Point2D<f64, MathSpace>,
 }
 
 impl StageProperties {
     /// Create a new stage properties instance
-    pub fn new(coo: Rect, width: u32, height: u32) -> StageProperties {
-        let x_dotsize = coo.x_dist() / width as f64;
-        let y_dotsize = coo.y_dist() / height as f64;
-        let x_coo_base = coo.x_min + (x_dotsize / 2.0);
-        let y_coo_base = coo.y_max - (y_dotsize / 2.0);
+    pub fn new(coo: Rect<f64, MathSpace>, pixels: Size2D<u32, StageSpace>) -> StageProperties {
+        let dotsize = Size2D::new(
+            coo.width() / pixels.width as f64,
+            coo.height() / pixels.height as f64,
+        );
+        let coo_base = Point2D::new(
+            coo.min_x() + (dotsize.width / 2.0),
+            coo.max_y() - (dotsize.height / 2.0),
+        );
         StageProperties {
             coo,
-            width,
-            height,
-            x_dotsize,
-            y_dotsize,
-            x_coo_base,
-            y_coo_base,
+            pixels,
+            dotsize,
+            coo_base,
         }
     }
 
     /// Return the mathematical x coordinate for the given pixel x coordinate
     pub fn x(&self, x_pix: u32) -> f64 {
-        self.x_coo_base + x_pix as f64 * self.x_dotsize
+        self.coo_base.x + x_pix as f64 * self.dotsize.width
     }
     /// Return the mathematical y coordinate for the given pixel y coordinate
     pub fn y(&self, y_pix: u32) -> f64 {
-        self.y_coo_base - y_pix as f64 * self.y_dotsize
+        self.coo_base.y - y_pix as f64 * self.dotsize.height
+    }
+
+    /// Return the mathematical coordiates of a pixel
+    #[allow(dead_code)]
+    pub fn pix_to_math(&self, pix: Point2D<u32, StageSpace>) -> Point2D<f64, MathSpace> {
+        Point2D::new(self.x(pix.x), self.y(pix.y))
+    }
+
+    /// Return the pixel coordinates of some mathematical coordinates, if they are in bounds
+    #[allow(dead_code)]
+    pub fn math_to_pix(&self, math: Point2D<f64, MathSpace>) -> Option<Point2D<u32, StageSpace>> {
+        if math.x < self.coo_base.x || math.y > self.coo_base.y {
+            None
+        } else {
+            let x = ((math.x - self.coo_base.x) / self.dotsize.width).floor() as u32;
+            let y = ((self.coo_base.y - math.y) / self.dotsize.height).floor() as u32;
+            if x >= self.pixels.width || y >= self.pixels.height {
+                None
+            } else {
+                Some(Point2D::new(x, y))
+            }
+        }
     }
 
     /// Return a rectified version of the stage, i.e. guarantee that the pixels of the image cover a square area.
@@ -84,29 +73,23 @@ impl StageProperties {
     /// # Arguments
     /// * `inner` - Flag whether the new coordinates should describe a rectangle _within_ or _outside_ the original one
     pub fn rectified(&self, inner: bool) -> StageProperties {
-        let x_dotsize = self.coo.x_dist() / self.width as f64;
-        let y_dotsize = self.coo.y_dist() / self.height as f64;
-        if (1.0 - (x_dotsize / y_dotsize)).abs() < 1e-5 {
+        let dotsize_min = self.dotsize.width.min(self.dotsize.height);
+        let dotsize_max = self.dotsize.width.max(self.dotsize.height);
+        if (1.0 - (dotsize_min / dotsize_max)) < 1e-5 {
             self.clone()
         } else {
-            let dotsize = if inner {
-                x_dotsize.min(y_dotsize)
-            } else {
-                x_dotsize.max(y_dotsize)
-            };
-            let x_center = self.coo.x_min + (self.coo.x_dist() / 2.0);
-            let y_center = self.coo.y_min + (self.coo.y_dist() / 2.0);
-            let x_dist = dotsize * ((self.width as f64) / 2.0);
-            let y_dist = dotsize * ((self.height as f64) / 2.0);
+            let dotsize = if inner { dotsize_min } else { dotsize_max };
+            let center = Point2D::new(
+                self.coo.min_x() + (self.coo.width() / 2.0),
+                self.coo.min_y() + (self.coo.height() / 2.0),
+            );
+            let dist = Size2D::new(
+                dotsize * ((self.pixels.width as f64) / 2.0),
+                dotsize * ((self.pixels.height as f64) / 2.0),
+            );
             StageProperties::new(
-                Rect {
-                    x_min: x_center - x_dist,
-                    x_max: x_center + x_dist,
-                    y_min: y_center - y_dist,
-                    y_max: y_center + y_dist,
-                },
-                self.width,
-                self.height,
+                Rect::from_points([center - dist, center + dist]),
+                self.pixels,
             )
         }
     }

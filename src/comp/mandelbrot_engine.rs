@@ -4,10 +4,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
+use euclid::Point2D;
 use rand::rng;
 use rand::seq::SliceRandom;
 
 use crate::storage::computation::comp_storage::CompStorage;
+use crate::storage::coord_spaces::MathSpace;
 use crate::storage::data_point::DataPoint;
 use crate::storage::image_comp_properties::{ImageCompProperties, StageState};
 
@@ -105,46 +107,46 @@ impl MandelbrotEngine {
 
 fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
     let max_iteration = storage.properties.max_iteration;
-    let height = storage.properties.stage_properties.height;
-    let width = storage.properties.stage_properties.width;
-    let mut coords = Vec::with_capacity((height * width) as usize);
+    let height = storage.properties.stage_properties.pixels.height;
+    let width = storage.properties.stage_properties.pixels.width;
+    let mut coords: Vec<Point2D<u32, MathSpace>> = Vec::with_capacity((height * width) as usize);
     let mut ycoo = Vec::with_capacity(height as usize);
     let mut xcoo = Vec::with_capacity(width as usize);
-    for x in 0..storage.properties.stage_properties.width {
+    for x in 0..width {
         xcoo.push(storage.properties.stage_properties.x(x));
     }
-    for y in 0..storage.properties.stage_properties.height {
+    for y in 0..height {
         ycoo.push(storage.properties.stage_properties.y(y));
-        for x in 0..storage.properties.stage_properties.width {
-            coords.push((x, y));
+        for x in 0..width {
+            coords.push(Point2D::new(x, y));
         }
     }
     coords.shuffle(&mut rng());
     let mut count = 0;
+    let mut do_comp = true;
     storage.stage.set_state(StageState::Evolving);
-    for i in 0..coords.len() {
-        let tup = coords.get(i).unwrap();
-        let x = tup.0;
-        let y = tup.1;
-        count = count + 1;
-        if count % 1000 == 0 {
-            if stop_flag.load(Ordering::Relaxed) {
-                storage.stage.set_state(StageState::Stalled);
-                return false; // Computation was aborted
+    coords.into_iter().for_each(|point| {
+        if do_comp {
+            count += 1;
+            if count % 1000 == 0 {
+                if stop_flag.load(Ordering::Relaxed) {
+                    storage.stage.set_state(StageState::Stalled);
+                    do_comp = false; // Computation was aborted
+                }
+            }
+            if !storage.stage.is_computed(point.x, point.y) {
+                storage.stage.set(
+                    point.x,
+                    point.y,
+                    data_point_at(
+                        *(xcoo.get(point.x as usize).unwrap()),
+                        *(ycoo.get(point.y as usize).unwrap()),
+                        max_iteration,
+                    ),
+                );
             }
         }
-        if !storage.stage.is_computed(x, y) {
-            storage.stage.set(
-                x,
-                y,
-                data_point_at(
-                    *(xcoo.get(x as usize).unwrap()),
-                    *(ycoo.get(y as usize).unwrap()),
-                    max_iteration,
-                ),
-            );
-        }
-    }
+    });
     storage.stage.set_state(StageState::Completed);
     true // Computation ended successfully
 }
@@ -153,14 +155,14 @@ fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &Atom
 fn stoppable_compute_mandelbrot_linear(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
     let max_iteration = storage.properties.max_iteration;
     storage.stage.set_state(StageState::Evolving);
-    for y in 0..storage.properties.stage_properties.height {
+    for y in 0..storage.properties.stage_properties.pixels.height {
         // Check for cancellation every row, this is only interim as way too inflexible!
         if stop_flag.load(Ordering::Relaxed) {
             storage.stage.set_state(StageState::Stalled);
             return false; // Computation was aborted
         }
         let y_coo = storage.properties.stage_properties.y(y);
-        for x in 0..storage.properties.stage_properties.width {
+        for x in 0..storage.properties.stage_properties.pixels.width {
             let x_coo = storage.properties.stage_properties.x(x);
             if !storage.stage.is_computed(x, y) {
                 storage

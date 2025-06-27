@@ -2,8 +2,9 @@
 use crate::comp::mandelbrot_engine::{EngineState, MandelbrotEngine};
 use crate::gui::iced::app::AppState;
 use crate::gui::iced::message::Message;
-use crate::storage::image_comp_properties::{ImageCompProperties, Rect, StageProperties};
+use crate::storage::image_comp_properties::{ImageCompProperties, StageProperties};
 use crate::storage::visualization::viz_storage::VizStorage;
+use euclid::{Point2D, Rect, Size2D};
 use iced::Task;
 use std::time::Duration;
 
@@ -51,7 +52,13 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 } else {
                     state.runtime.computing = true;
                     let comp_props = ImageCompProperties::new(
-                        StageProperties::new(Rect::new(left, right, bottom, top), width, height),
+                        StageProperties::new(
+                            Rect::from_points([
+                                Point2D::new(left, bottom),
+                                Point2D::new(right, top),
+                            ]),
+                            Size2D::new(width, height),
+                        ),
                         max_iteration,
                     );
                     state.engine = Some(MandelbrotEngine::new(comp_props));
