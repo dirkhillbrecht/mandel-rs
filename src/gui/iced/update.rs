@@ -64,6 +64,7 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                     state.engine = Some(MandelbrotEngine::new(comp_props));
                     state.storage = Some(VizStorage::new(state.engine.as_ref().unwrap().storage()));
                     state.engine.as_ref().unwrap().start();
+                    state.runtime.canvas_cache.clear();
 
                     // Schedule first update
                     return Task::perform(async {}, |_| Message::UpdateViz);
@@ -74,7 +75,9 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
         }
         Message::UpdateViz => {
             if let Some(ref mut vizstorage) = state.storage {
-                vizstorage.process_events();
+                if vizstorage.process_events() {
+                    state.runtime.canvas_cache.clear();
+                }
             }
             if let Some(engine) = &state.engine {
                 let engine_state = engine.state();
@@ -102,10 +105,19 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
         }
         Message::ColorSchemeChanged(value) => {
             state.viz.gradient_color_preset = value;
+            state.runtime.canvas_cache.clear();
         }
         Message::IterationAssignmentChanged(value) => {
             state.viz.iteration_assignment = value;
+            state.runtime.canvas_cache.clear();
         }
+        Message::RenderSchemeChanged(value) => {
+            state.viz.render_scheme = value;
+            state.runtime.canvas_cache.clear();
+        }
+        Message::MousePressed(_point) => {}
+        Message::MouseDragged(_point) => {}
+        Message::MouseReleased(_point) => {}
     }
     Task::none()
 }

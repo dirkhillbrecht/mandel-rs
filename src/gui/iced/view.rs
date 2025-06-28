@@ -1,16 +1,20 @@
 use crate::comp::math_data::MathPreset;
 /// View part of the mandel-rs-Iced-GUI
-use crate::gui::iced::app::AppState;
+use crate::gui::iced::app::{AppState, ImageRenderScheme};
+use crate::gui::iced::fract_canvas::FractalCanvas;
 use crate::gui::iced::message::Message;
 use crate::storage::visualization::coloring::base::GradientColors;
 use crate::storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment};
-use crate::storage::visualization::viz_storage::VizStorage;
-use iced::widget::{button, column, container, pick_list, progress_bar, row, text, text_input};
+use iced::widget::{
+    button, canvas, column, container, pick_list, progress_bar, row, text, text_input,
+};
 use iced::{Element, Length};
 
-fn render_fractal<'a>(state: &'a AppState, storage: &'a VizStorage) -> Element<'a, Message> {
+#[allow(dead_code)]
+fn render_fractal_old(state: &AppState) -> Element<Message> {
     use iced::widget::image;
 
+    let storage = state.storage.as_ref().unwrap();
     let width = storage.stage.width();
     let height = storage.stage.height();
 
@@ -34,6 +38,14 @@ fn render_fractal<'a>(state: &'a AppState, storage: &'a VizStorage) -> Element<'
     }
     let handle = image::Handle::from_rgba(width as u32, height as u32, pixels);
     image(handle).content_fit(iced::ContentFit::Contain).into()
+}
+
+fn render_fractal(app_state: &AppState) -> Element<Message> {
+    let fract_canvas = FractalCanvas::new(app_state);
+    canvas(fract_canvas)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
 }
 
 fn open_sidebar(state: &AppState) -> Element<Message> {
@@ -115,6 +127,14 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
                 Message::IterationAssignmentChanged,
             )
             .width(150),
+            text("Render scheme:"),
+            pick_list(
+                //ImageRenderScheme::all(),
+                [ImageRenderScheme::Cropped, ImageRenderScheme::Filled],
+                Some(state.viz.render_scheme),
+                Message::RenderSchemeChanged,
+            )
+            .width(150),
         ]
         .spacing(6)
         .align_x(iced::Alignment::Start),
@@ -130,8 +150,8 @@ fn collapsed_sidebar(_state: &AppState) -> Element<Message> {
 }
 
 fn fractal(state: &AppState) -> Element<Message> {
-    container(if let Some(storage) = &state.storage {
-        column![render_fractal(state, storage)].spacing(10)
+    container(if let Some(_) = &state.storage {
+        column![render_fractal(state)].spacing(10)
     } else {
         column![text("")]
     })

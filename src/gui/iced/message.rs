@@ -1,5 +1,6 @@
 use crate::{
     comp::math_data::MathPreset,
+    gui::iced::app::ImageRenderScheme,
     storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment},
 };
 
@@ -21,6 +22,13 @@ pub enum Message {
     UpdateViz,
     ColorSchemeChanged(GradientColorPreset),
     IterationAssignmentChanged(IterationAssignment),
+    RenderSchemeChanged(ImageRenderScheme),
+    #[allow(dead_code)]
+    MousePressed(iced::Point),
+    #[allow(dead_code)]
+    MouseDragged(iced::Point),
+    #[allow(dead_code)]
+    MouseReleased(iced::Point),
 }
 
 // end of file

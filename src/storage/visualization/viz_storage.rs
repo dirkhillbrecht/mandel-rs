@@ -43,11 +43,13 @@ impl VizStorage {
         }
     }
 
-    /// Process events received from the comp storage
-    pub fn process_events(&mut self) {
+    /// Process events received from the comp storage, true if there have been events, false if not
+    pub fn process_events(&mut self) -> bool {
+        let mut events_handled = false;
         if let Some(receiver) = &mut self.event_receiver {
             // Read and handle events as long as there are some
             while let Ok(event) = receiver.try_recv() {
+                events_handled = true;
                 match event {
                     StageEvent::ContentChange(change) => {
                         self.stage.set_from_change(change);
@@ -66,6 +68,7 @@ impl VizStorage {
                 }
             }
         }
+        events_handled
     }
 }
 

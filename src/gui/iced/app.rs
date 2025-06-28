@@ -1,3 +1,5 @@
+use iced::widget::canvas::Cache;
+
 /// Application frame for the Iced-based mandel-rs GUI
 use crate::comp::mandelbrot_engine::MandelbrotEngine;
 use crate::comp::math_data::{MathData, MathPreset};
@@ -58,6 +60,44 @@ impl Default for MathState {
     }
 }
 
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ImageRenderScheme {
+    Cropped,
+    FilledWithBackground,
+    Filled,
+    ShrunkWithBackground,
+    Shrunk,
+}
+
+impl ImageRenderScheme {
+    #[allow(dead_code)]
+    pub fn all() -> &'static [Self] {
+        &[
+            Self::Cropped,
+            Self::FilledWithBackground,
+            Self::Filled,
+            Self::ShrunkWithBackground,
+            Self::Shrunk,
+        ]
+    }
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Cropped => "Scaled to crop",
+            Self::FilledWithBackground => "Scaled to fill",
+            Self::Filled => "Scaled to fill (blank)",
+            Self::ShrunkWithBackground => "No upscale",
+            Self::Shrunk => "No upscale (blank)",
+        }
+    }
+}
+
+impl std::fmt::Display for ImageRenderScheme {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
 /// Visual state of the app
 pub struct VizState {
     pub math_preset: MathPreset,
@@ -65,6 +105,7 @@ pub struct VizState {
     pub sidebar_visible: bool,
     pub gradient_color_preset: GradientColorPreset,
     pub iteration_assignment: IterationAssignment,
+    pub render_scheme: ImageRenderScheme,
 }
 
 impl VizState {
@@ -74,6 +115,7 @@ impl VizState {
         sidebar_visible: bool,
         gradient_color_preset: GradientColorPreset,
         iteration_assignment: IterationAssignment,
+        render_scheme: ImageRenderScheme,
     ) -> Self {
         VizState {
             math_preset,
@@ -81,6 +123,7 @@ impl VizState {
             sidebar_visible,
             gradient_color_preset,
             iteration_assignment,
+            render_scheme,
         }
     }
 }
@@ -93,6 +136,7 @@ impl Default for VizState {
             true,
             GradientColorPreset::Sunrise,
             IterationAssignment::Linear,
+            ImageRenderScheme::Filled,
         )
     }
 }
@@ -100,11 +144,15 @@ impl Default for VizState {
 /// Runtime state of the app
 pub struct RuntimeState {
     pub computing: bool,
+    pub canvas_cache: Cache,
 }
 
 impl RuntimeState {
     pub fn new(computing: bool) -> Self {
-        RuntimeState { computing }
+        RuntimeState {
+            computing,
+            canvas_cache: Cache::new(),
+        }
     }
 }
 
