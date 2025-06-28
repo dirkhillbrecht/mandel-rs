@@ -1,10 +1,7 @@
 // Code for the central canvas where the interaction with the fractal image happens
 
 use crate::{
-    gui::iced::{
-        app::{AppState, ImageRenderScheme},
-        message::Message,
-    },
+    gui::iced::{app::AppState, message::Message},
     storage::visualization::coloring::base::GradientColors,
 };
 use iced::{
@@ -55,6 +52,12 @@ impl Pixels {
                 Size::new(self.size.width, new_height),
                 new_pixels,
             ))
+        }
+    }
+    pub fn change_alpha(&mut self, new_alpha: f32) {
+        let a = (new_alpha * 255.0) as u8;
+        for p in 0..self.size.width * self.size.height {
+            self.pixels[(p * 4) + 3] = a;
         }
     }
 }
@@ -119,49 +122,58 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
             .runtime
             .canvas_cache
             .draw(renderer, canvas_size, |frame| {
-                if let Some(rawpixels) = self.create_pixels() {
-                    let cropped = self.app_state.viz.render_scheme == ImageRenderScheme::Cropped;
-                    let pixels = if cropped {
-                        rawpixels
-                            .extract_center(canvas_size.width / canvas_size.height)
-                            .unwrap_or(rawpixels)
-                    } else {
-                        rawpixels
-                    };
-                    let stage_size = Size::new(pixels.size.width as f32, pixels.size.height as f32);
+                if let Some(pixels) = self.create_pixels() {
+                    let render_scheme = self.app_state.viz.render_scheme;
+                    if render_scheme.needs_cropped() {
+                        if let Some(mut croppixels) =
+                            pixels.extract_center(canvas_size.width / canvas_size.height)
+                        {
+                            if render_scheme.needs_background_cropped() {
+                                croppixels.change_alpha(0.4);
+                            }
+                            let image = canvas::Image::new(Handle::from_rgba(
+                                croppixels.size.width as u32,
+                                croppixels.size.height as u32,
+                                croppixels.pixels,
+                            ))
+                            .filter_method(iced::widget::image::FilterMethod::Linear);
+                            frame.draw_image(iced::Rectangle::with_size(canvas_size), image);
+                        }
+                    }
+                    if render_scheme.needs_filled() {
+                        let stage_size =
+                            Size::new(pixels.size.width as f32, pixels.size.height as f32);
 
-                    let canvas_by_stage = Size::new(
-                        canvas_size.width / stage_size.width,
-                        canvas_size.height / stage_size.height,
-                    );
+                        let canvas_by_stage = Size::new(
+                            canvas_size.width / stage_size.width,
+                            canvas_size.height / stage_size.height,
+                        );
 
-                    let scale_min = canvas_by_stage.width.min(canvas_by_stage.height);
-                    let scale_max = canvas_by_stage.width.max(canvas_by_stage.height);
+                        let mut scale_min = canvas_by_stage.width.min(canvas_by_stage.height);
+                        if !render_scheme.needs_upscaled_filled() {
+                            scale_min = scale_min.min(1.0);
+                        }
 
-                    let cropped_size =
-                        Size::new(stage_size.width * scale_max, stage_size.height * scale_max);
-                    let filled_size =
-                        Size::new(stage_size.width * scale_min, stage_size.height * scale_min);
+                        let draw_size =
+                            Size::new(stage_size.width * scale_min, stage_size.height * scale_min);
 
-                    let image = canvas::Image::new(Handle::from_rgba(
-                        pixels.size.width as u32,
-                        pixels.size.height as u32,
-                        pixels.pixels,
-                    ))
-                    .filter_method(iced::widget::image::FilterMethod::Linear);
+                        let image = canvas::Image::new(Handle::from_rgba(
+                            pixels.size.width as u32,
+                            pixels.size.height as u32,
+                            pixels.pixels,
+                        ))
+                        .filter_method(iced::widget::image::FilterMethod::Linear);
 
-                    let draw_size = if cropped { &cropped_size } else { &filled_size };
-                    let draw_rect = iced::Rectangle::new(
-                        iced::Point::new(
-                            (canvas_size.width - draw_size.width) / 2.0,
-                            (canvas_size.height - draw_size.height) / 2.0,
-                        ),
-                        *draw_size,
-                    );
-                    println!("GGG - draw_rect: {:?}", draw_rect);
-                    frame.with_clip(iced::Rectangle::with_size(canvas_size), |f| {
-                        f.draw_image(draw_rect, image);
-                    });
+                        let draw_rect = iced::Rectangle::new(
+                            iced::Point::new(
+                                (canvas_size.width - draw_size.width) / 2.0,
+                                (canvas_size.height - draw_size.height) / 2.0,
+                            ),
+                            draw_size,
+                        );
+                        println!("GGG - draw_rect: {:?}", draw_rect);
+                        frame.draw_image(draw_rect, image);
+                    }
                 }
             });
         vec![geometry]

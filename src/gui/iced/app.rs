@@ -90,6 +90,29 @@ impl ImageRenderScheme {
             Self::Shrunk => "No upscale (blank)",
         }
     }
+    pub fn needs_cropped(&self) -> bool {
+        matches!(
+            *self,
+            ImageRenderScheme::Cropped
+                | ImageRenderScheme::FilledWithBackground
+                | ImageRenderScheme::ShrunkWithBackground
+        )
+    }
+    pub fn needs_background_cropped(&self) -> bool {
+        matches!(
+            *self,
+            ImageRenderScheme::FilledWithBackground | ImageRenderScheme::ShrunkWithBackground
+        )
+    }
+    pub fn needs_filled(&self) -> bool {
+        !matches!(*self, ImageRenderScheme::Cropped)
+    }
+    pub fn needs_upscaled_filled(&self) -> bool {
+        matches!(
+            *self,
+            ImageRenderScheme::Filled | ImageRenderScheme::FilledWithBackground
+        )
+    }
 }
 
 impl std::fmt::Display for ImageRenderScheme {
@@ -136,7 +159,7 @@ impl Default for VizState {
             true,
             GradientColorPreset::Sunrise,
             IterationAssignment::Linear,
-            ImageRenderScheme::Filled,
+            ImageRenderScheme::FilledWithBackground,
         )
     }
 }

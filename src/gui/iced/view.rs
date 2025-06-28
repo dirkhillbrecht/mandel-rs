@@ -129,8 +129,7 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
             .width(150),
             text("Render scheme:"),
             pick_list(
-                //ImageRenderScheme::all(),
-                [ImageRenderScheme::Cropped, ImageRenderScheme::Filled],
+                ImageRenderScheme::all(),
                 Some(state.viz.render_scheme),
                 Message::RenderSchemeChanged,
             )
