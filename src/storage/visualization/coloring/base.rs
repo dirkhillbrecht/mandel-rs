@@ -75,15 +75,23 @@ impl GradientColors {
         }
     }
 
-    fn rgb_to_u83(color: &Srgb<u8>) -> [u8; 3] {
-        [color.red, color.green, color.blue]
+    fn rgb_to_u84(color: &Srgb<u8>) -> [u8; 4] {
+        [color.red, color.green, color.blue, 255]
     }
 
-    pub fn iteration_to_color(&self, it: u32, assigner: fn(u32) -> u32, maxit: u32) -> [u8; 3] {
+    pub fn iteration_to_color(
+        &self,
+        it: u32,
+        assigner: fn(u32, u32) -> u32,
+        maxit: u32,
+    ) -> [u8; 4] {
         if it == maxit {
-            Self::rgb_to_u83(&self.body_color)
+            Self::rgb_to_u84(&self.body_color)
         } else {
-            Self::rgb_to_u83(&self.stripes[assigner(it) as usize % self.stripes.len()])
+            Self::rgb_to_u84(
+                &self.stripes
+                    [assigner(it, self.stripes.len() as u32) as usize % self.stripes.len()],
+            )
         }
     }
 }

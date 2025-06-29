@@ -118,15 +118,15 @@ impl IterationAssignment {
             Self::LogLog => "x → ln(ln(x)) (double log)",
         }
     }
-    pub fn assignment_function(&self) -> fn(u32) -> u32 {
+    pub fn assignment_function(&self) -> fn(u32, u32) -> u32 {
         match self {
-            Self::Cubic => |it| it * it * it,
-            Self::Squared => |it| it * it,
-            Self::Linear => |it| it,
-            Self::SquareRoot => |it| (it as f64).sqrt() as u32,
-            Self::CubicRoot => |it| (it as f64).powf(1.0 / 3.0) as u32,
-            Self::Logarithmic => |it| (it as f64).ln() as u32,
-            Self::LogLog => |it| (it as f64).ln().ln() as u32,
+            Self::Cubic => |it, modulo| (it % modulo) * (it % modulo) * (it % modulo),
+            Self::Squared => |it, modulo| (it % modulo) * (it % modulo),
+            Self::Linear => |it, _modulo| it,
+            Self::SquareRoot => |it, _modulo| (it as f64).sqrt() as u32,
+            Self::CubicRoot => |it, _modulo| (it as f64).powf(1.0 / 3.0) as u32,
+            Self::Logarithmic => |it, _modulo| (it as f64).ln() as u32,
+            Self::LogLog => |it, _modulo| (it as f64).ln().ln() as u32,
         }
     }
 }

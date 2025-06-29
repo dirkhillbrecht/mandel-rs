@@ -2,7 +2,10 @@
 
 use crate::{
     gui::iced::{app::AppState, message::Message},
-    storage::visualization::coloring::base::GradientColors,
+    storage::{
+        data_point::DataPoint,
+        visualization::{coloring::base::GradientColors, viz_storage::VizStorage},
+    },
 };
 use iced::{
     widget::{
@@ -67,9 +70,41 @@ pub struct FractalCanvas<'a> {
 }
 
 impl<'a> FractalCanvas<'a> {
+    /// Create a new canvas with the current application state
     pub fn new(app_state: &'a AppState) -> Self {
         FractalCanvas { app_state }
     }
+    /// Get one pixel from the canvas, return none if no pixel has been computed
+    fn get_pixel(&self, storage: &'a VizStorage, x: usize, y: usize) -> Option<&'a DataPoint> {
+        storage.stage.get(x, y)
+    }
+    /// Guess a pixel from already computed values, call only if get_pixel returned None
+    fn guess_pixel(&self, storage: &VizStorage, x: usize, y: usize) -> Option<DataPoint> {
+        let mut modrest = 2;
+        while modrest < x || modrest < y {
+            if let Some(guesspix) = storage.stage.get(x - (x % modrest), y - (y % modrest)) {
+                return Some(guesspix.as_guessed());
+            }
+            modrest *= 2;
+        }
+        None
+    }
+    fn generate_pixel(
+        &self,
+        storage: &VizStorage,
+        color_scheme: &GradientColors,
+        point: &DataPoint,
+    ) -> [u8; 4] {
+        color_scheme.iteration_to_color(
+            point.iteration_count,
+            self.app_state
+                .viz
+                .iteration_assignment
+                .assignment_function(),
+            storage.properties.max_iteration,
+        )
+    }
+    /// Actually create the pixels needed in the canvas.
     fn create_pixels(&self) -> Option<Pixels> {
         if let Some(storage) = self.app_state.storage.as_ref() {
             let width = storage.stage.width();
@@ -82,19 +117,24 @@ impl<'a> FractalCanvas<'a> {
             let mut pixels = Vec::new();
             for y in 0..height {
                 for x in 0..width {
-                    if let Some(point) = storage.stage.get(x, y) {
-                        let color = color_scheme.iteration_to_color(
-                            point.iteration_count(),
-                            self.app_state
-                                .viz
-                                .iteration_assignment
-                                .assignment_function(),
-                            storage.properties.max_iteration,
-                        );
-                        pixels.extend_from_slice(&color);
-                        pixels.push(255);
+                    if let Some(point) = self.get_pixel(storage, x, y) {
+                        // computed points: handled as reference in the storage
+                        pixels.extend_from_slice(&self.generate_pixel(
+                            storage,
+                            &color_scheme,
+                            point,
+                        ));
+                    } else if let Some(point) = self.guess_pixel(storage, x, y) {
+                        // guessed points: Have to be generated on the fly
+                        pixels.extend_from_slice(&self.generate_pixel(
+                            storage,
+                            &color_scheme,
+                            &point,
+                        ));
                     } else {
-                        pixels.extend_from_slice(&[255, 0, 255, 255]);
+                        // unknown points: A nice neutral grey…
+                        let pix = 128;
+                        pixels.extend_from_slice(&[pix, pix, pix, 255]);
                     }
                 }
             }

@@ -3,42 +3,11 @@ use crate::comp::math_data::MathPreset;
 use crate::gui::iced::app::{AppState, ImageRenderScheme};
 use crate::gui::iced::fract_canvas::FractalCanvas;
 use crate::gui::iced::message::Message;
-use crate::storage::visualization::coloring::base::GradientColors;
 use crate::storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment};
 use iced::widget::{
     button, canvas, column, container, pick_list, progress_bar, row, text, text_input,
 };
 use iced::{Element, Length};
-
-#[allow(dead_code)]
-fn render_fractal_old(state: &AppState) -> Element<Message> {
-    use iced::widget::image;
-
-    let storage = state.storage.as_ref().unwrap();
-    let width = storage.stage.width();
-    let height = storage.stage.height();
-
-    let color_scheme = GradientColors::new(&state.viz.gradient_color_preset.scheme(), 256);
-
-    let mut pixels = Vec::new();
-    for y in 0..height {
-        for x in 0..width {
-            if let Some(point) = storage.stage.get(x, y) {
-                let color = color_scheme.iteration_to_color(
-                    point.iteration_count(),
-                    state.viz.iteration_assignment.assignment_function(),
-                    storage.properties.max_iteration,
-                );
-                pixels.extend_from_slice(&color);
-                pixels.push(255);
-            } else {
-                pixels.extend_from_slice(&[255, 0, 255, 255]);
-            }
-        }
-    }
-    let handle = image::Handle::from_rgba(width as u32, height as u32, pixels);
-    image(handle).content_fit(iced::ContentFit::Contain).into()
-}
 
 fn render_fractal(app_state: &AppState) -> Element<Message> {
     let fract_canvas = FractalCanvas::new(app_state);

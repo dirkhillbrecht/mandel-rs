@@ -105,6 +105,14 @@ impl MandelbrotEngine {
     }
 }
 
+fn coord_sort_idx<T>(p: &Point2D<u32, T>) -> u32 {
+    p.x.trailing_zeros().min(p.y.trailing_zeros())
+}
+
+fn order_coords<T>(p: &Point2D<u32, T>, q: &Point2D<u32, T>) -> std::cmp::Ordering {
+    coord_sort_idx(p).cmp(&coord_sort_idx(q)).reverse()
+}
+
 fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
     let max_iteration = storage.properties.max_iteration;
     let height = storage.properties.stage_properties.pixels.height;
@@ -122,6 +130,7 @@ fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &Atom
         }
     }
     coords.shuffle(&mut rng());
+    coords.sort_by(order_coords); // Needs appropriate presentation code, otherwise looks a bit strange
     let mut count = 0;
     let mut do_comp = true;
     storage.stage.set_state(StageState::Evolving);
@@ -186,7 +195,7 @@ pub fn data_point_at(c_real: f64, c_imag: f64, max_iteration: u32) -> DataPoint 
         let z_imag_new = 2.0 * z_real * z_imag + c_imag;
         if z_real_square + z_imag_square > 4.0 {
             // make this configurable later
-            return DataPoint::new(i, z_real_new, z_imag_new);
+            return DataPoint::computed(i, Point2D::new(z_real_new, z_imag_new));
         }
         z_real = z_real_new;
         z_imag = z_imag_new;
@@ -196,7 +205,7 @@ pub fn data_point_at(c_real: f64, c_imag: f64, max_iteration: u32) -> DataPoint 
     let z_imag_square = z_imag * z_imag;
     let z_real_new = z_real_square - z_imag_square + c_real;
     let z_imag_new = 2.0 * z_real * z_imag + c_imag;
-    return DataPoint::new(max_iteration, z_real_new, z_imag_new);
+    return DataPoint::computed(max_iteration, Point2D::new(z_real_new, z_imag_new));
 }
 
 // end of file
