@@ -170,6 +170,20 @@ src/
   - **Sophisticated Visual Effects**: Multi-layer rendering with alpha transparency for background context
   - **Professional UI Architecture**: Five distinct render modes (cropped, filled, shrunk, with/without backgrounds)
   - **Scale Control Logic**: Intelligent upscaling prevention for pixel-perfect display modes
+- **🚀 ENHANCED Computation & Visualization Architecture: Priority-based computation with smart pixel estimation**
+  - **Hierarchical Computation Order**: Priority-based pixel computation at mod(2^x) coordinates with decreasing x for optimal progressive rendering
+  - **Smart Pixel Estimation**: Intelligent guessing algorithm for uncomputed pixels using nearest computed neighbors
+  - **Data Quality Framework**: Enhanced DataPoint structure with quality tracking (Unknown, Guessed, Derived, Computed)
+  - **Three-Tier Pixel Pipeline**: Computed pixels (storage references), guessed pixels (generated on-demand), unknown pixels (neutral fallback)
+  - **Mathematical Stability**: Fixed color assignment crashes by proper iteration parameter passing to assignment functions
+  - **Code Architecture**: Clean separation of pixel lookup, estimation, and generation methods with comprehensive documentation
+- **🎯 STARTED Issue 7: Interactive area selection foundation with mouse interaction infrastructure**
+  - **Canvas State Management**: Implemented CanvasState struct for tracking drag operations with Option<Point> pattern
+  - **Mouse Event Framework**: Complete skeleton for handling button press, cursor movement, and button release events
+  - **Event Status Management**: Proper Status::Captured vs Status::Ignored handling for responsive UI behavior
+  - **Coordinate Conversion Preparation**: Enhanced Pixels struct with origin tracking for pixel-to-stage mapping
+  - **Architecture Insight**: Identified need to separate drawing parameter computation from rendering for coordinate access
+  - **Debug Infrastructure**: Mouse event logging for development and testing of interaction patterns
 - **Independent Development Mastery: Phase II completed autonomously without AI assistance**
 
 ## Development Commands

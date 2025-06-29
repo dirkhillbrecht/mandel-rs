@@ -3,26 +3,37 @@
 use crate::{
     gui::iced::{app::AppState, message::Message},
     storage::{
+        coord_spaces::{PixelSpace, StageSpace},
         data_point::DataPoint,
         visualization::{coloring::base::GradientColors, viz_storage::VizStorage},
     },
 };
+use euclid::Point2D;
 use iced::{
+    mouse,
     widget::{
-        canvas::{self},
+        canvas::{self, event, Event},
         image::Handle,
     },
-    Size,
+    Point, Size,
 };
 
 struct Pixels {
+    origin: Point<usize>,
     size: Size<usize>,
     pixels: Vec<u8>,
 }
 
 impl Pixels {
-    pub fn new(size: Size<usize>, pixels: Vec<u8>) -> Self {
-        Pixels { size, pixels }
+    pub fn new(origin: Point<usize>, size: Size<usize>, pixels: Vec<u8>) -> Self {
+        Pixels {
+            origin,
+            size,
+            pixels,
+        }
+    }
+    pub fn at_zero_origin(size: Size<usize>, pixels: Vec<u8>) -> Self {
+        Self::new(Point::new(0, 0), size, pixels)
     }
     pub fn extract_center(&self, new_aspect_ratio: f32) -> Option<Pixels> {
         let old_aspect_ratio = self.size.width as f32 / self.size.height as f32;
@@ -39,6 +50,7 @@ impl Pixels {
                 new_pixels.extend_from_slice(&self.pixels[firstpix..firstpix + new_width * 4]);
             }
             Some(Pixels::new(
+                Point::new(line_start, 0),
                 Size::new(new_width, self.size.height),
                 new_pixels,
             ))
@@ -52,6 +64,7 @@ impl Pixels {
                 &self.pixels[firstpix..firstpix + self.size.width * new_height * 4],
             );
             Some(Pixels::new(
+                Point::new(0, first_line),
                 Size::new(self.size.width, new_height),
                 new_pixels,
             ))
@@ -62,6 +75,16 @@ impl Pixels {
         for p in 0..self.size.width * self.size.height {
             self.pixels[(p * 4) + 3] = a;
         }
+    }
+}
+
+pub struct CanvasState {
+    drag_start: Option<Point>,
+}
+
+impl Default for CanvasState {
+    fn default() -> Self {
+        Self { drag_start: None }
     }
 }
 
@@ -138,15 +161,24 @@ impl<'a> FractalCanvas<'a> {
                     }
                 }
             }
-            Some(Pixels::new(Size::new(width, height), pixels))
+            Some(Pixels::at_zero_origin(Size::new(width, height), pixels))
         } else {
             None
         }
     }
+    /// convert some pixel coordinates into coordinates on the stage
+    fn pixel_to_stage(
+        pixel: &Point,
+        bounds: &iced::Rectangle,
+
+        pixels: &Pixels,
+    ) -> Option<Point2D<u32, StageSpace>> {
+        None
+    }
 }
 
 impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
-    type State = ();
+    type State = CanvasState;
 
     fn draw(
         &self,
@@ -211,7 +243,6 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                             ),
                             draw_size,
                         );
-                        println!("GGG - draw_rect: {:?}", draw_rect);
                         frame.draw_image(draw_rect, image);
                     }
                 }
@@ -221,12 +252,52 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
 
     fn update(
         &self,
-        _state: &mut Self::State,
-        _event: iced::widget::canvas::Event,
-        _bounds: iced::Rectangle,
-        _cursor: iced::mouse::Cursor,
-    ) -> (iced::widget::canvas::event::Status, Option<Message>) {
-        //todo!("Implement mouse handling");
-        (iced::widget::canvas::event::Status::Ignored, None)
+        state: &mut Self::State,
+        event: Event,
+        bounds: iced::Rectangle,
+        cursor: iced::mouse::Cursor,
+    ) -> (event::Status, Option<Message>) {
+        match event {
+            Event::Mouse(mouse_event) => {
+                match mouse_event {
+                    mouse::Event::ButtonPressed(mouse::Button::Left) => {
+                        state.drag_start = cursor.position();
+                        if (state.drag_start.is_none()) {
+                            (event::Status::Ignored, None)
+                        } else {
+                            println!("GGG - button pressed at {:?}", state.drag_start);
+                            // do something
+                            (event::Status::Captured, None)
+                        }
+                    }
+                    mouse::Event::CursorMoved { position } => {
+                        if let Some(drag_start) = state.drag_start {
+                            println!(
+                                "GGG - handling a cursor moved at position {:?}, bounds are {:?}",
+                                position, bounds
+                            );
+                            // do something
+                            (event::Status::Captured, None)
+                        } else {
+                            (event::Status::Ignored, None)
+                        }
+                    }
+                    mouse::Event::ButtonReleased(mouse::Button::Left) => {
+                        if let Some(drag_start) = state.drag_start {
+                            if let Some(drag_stop) = cursor.position() {
+                                println!("GGG - button released at {:?}", drag_stop);
+                                // do something
+                            }
+                            state.drag_start = None; // In any case, dragging is ended.
+                            (event::Status::Captured, None)
+                        } else {
+                            (event::Status::Ignored, None)
+                        }
+                    }
+                    _ => (event::Status::Ignored, None),
+                }
+            }
+            _ => (event::Status::Ignored, None),
+        }
     }
 }
