@@ -20,8 +20,12 @@ fn render_fractal(app_state: &AppState) -> Element<Message> {
 fn open_sidebar(state: &AppState) -> Element<Message> {
     container(
         column![
-            button("<").on_press(Message::ToggleSidebar),
-            text("Computed size:"),
+            row![
+                button("<").on_press(Message::ToggleSidebar),
+                text("Computed size:")
+            ]
+            .spacing(6)
+            .align_y(iced::Alignment::Center),
             row![
                 text_input("", &state.math.width)
                     .width(50)
@@ -50,22 +54,30 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
             text_input("", &state.math.max_iteration)
                 .width(100)
                 .on_input(Message::MaxIterationChanged),
-            text("Right:"),
-            text_input("", &state.math.right)
-                .width(100)
-                .on_input(Message::RightChanged),
-            text("Top:"),
-            text_input("", &state.math.top)
-                .width(100)
-                .on_input(Message::TopChanged),
-            text("Left:"),
-            text_input("", &state.math.left)
-                .width(100)
-                .on_input(Message::LeftChanged),
-            text("Bottom:"),
-            text_input("", &state.math.bottom)
-                .width(100)
-                .on_input(Message::BottomChanged),
+            text("Right/Top:"),
+            row![
+                text_input("", &state.math.right)
+                    .width(100)
+                    .on_input(Message::RightChanged),
+                text("/"),
+                text_input("", &state.math.top)
+                    .width(100)
+                    .on_input(Message::TopChanged),
+            ]
+            .spacing(6)
+            .align_y(iced::Alignment::Center),
+            text("Left/Bottom:"),
+            row![
+                text_input("", &state.math.left)
+                    .width(100)
+                    .on_input(Message::LeftChanged),
+                text("/"),
+                text_input("", &state.math.bottom)
+                    .width(100)
+                    .on_input(Message::BottomChanged),
+            ]
+            .spacing(6)
+            .align_y(iced::Alignment::Center),
             if state.runtime.computing {
                 button("Stop").on_press(Message::StopClicked)
             } else {

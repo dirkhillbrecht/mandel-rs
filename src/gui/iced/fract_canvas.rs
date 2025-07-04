@@ -1,9 +1,12 @@
 // Code for the central canvas where the interaction with the fractal image happens
 
 use crate::{
-    gui::iced::{app::AppState, message::Message},
+    gui::iced::{
+        app::{AppState, ImageRenderScheme},
+        message::Message,
+    },
     storage::{
-        coord_spaces::{PixelSpace, StageSpace},
+        coord_spaces::StageSpace,
         data_point::DataPoint,
         visualization::{coloring::base::GradientColors, viz_storage::VizStorage},
     },
@@ -15,7 +18,7 @@ use iced::{
         canvas::{self, event, Event},
         image::Handle,
     },
-    Point, Size,
+    Point, Rectangle, Size,
 };
 
 struct Pixels {
@@ -35,45 +38,211 @@ impl Pixels {
     pub fn at_zero_origin(size: Size<usize>, pixels: Vec<u8>) -> Self {
         Self::new(Point::new(0, 0), size, pixels)
     }
-    pub fn extract_center(&self, new_aspect_ratio: f32) -> Option<Pixels> {
-        let old_aspect_ratio = self.size.width as f32 / self.size.height as f32;
-        if (old_aspect_ratio - new_aspect_ratio).abs() < 1e-3 {
-            // almost the same: Don't extract anything
-            None
-        } else if old_aspect_ratio > new_aspect_ratio {
-            // get horizontal mid section of all lines
-            let new_width = (self.size.height as f32 * new_aspect_ratio) as usize;
-            let line_start = (self.size.width - new_width) / 2;
-            let mut new_pixels = Vec::with_capacity(new_width * self.size.height * 4);
-            for line in 0..self.size.height {
-                let firstpix = (line * self.size.width + line_start) * 4;
-                new_pixels.extend_from_slice(&self.pixels[firstpix..firstpix + new_width * 4]);
-            }
-            Some(Pixels::new(
-                Point::new(line_start, 0),
-                Size::new(new_width, self.size.height),
-                new_pixels,
-            ))
-        } else {
-            // get the complete lines in the vertical middle
-            let new_height = (self.size.width as f32 / new_aspect_ratio) as usize;
-            let first_line = (self.size.height - new_height) / 2;
-            let firstpix = self.size.width * first_line * 4;
-            let mut new_pixels = Vec::with_capacity(self.size.width * new_height * 4);
-            new_pixels.extend_from_slice(
-                &self.pixels[firstpix..firstpix + self.size.width * new_height * 4],
+    pub fn extract_part(&self, image_part: iced::Rectangle) -> Pixels {
+        let new_linestart = image_part.x.abs() as usize;
+        let new_firstline: usize = image_part.y.abs() as usize;
+        let new_size = Size::new(image_part.width as usize, image_part.height as usize);
+        let bytecount = new_size.width * new_size.height * 4;
+        let mut new_pixels = Vec::with_capacity(bytecount);
+        if new_linestart == 0 && new_size.width == self.size.width {
+            // Copy one chunk covering the given number of lines
+            let firstpix = self.size.width * image_part.y as usize * 4;
+            println!(
+                "self size is {}*{}, new size is {}*{}, firstpix is {}, bytecount is {}",
+                self.size.width,
+                self.size.height,
+                new_size.width,
+                new_size.height,
+                firstpix,
+                bytecount
             );
-            Some(Pixels::new(
-                Point::new(0, first_line),
-                Size::new(self.size.width, new_height),
-                new_pixels,
-            ))
+            new_pixels.extend_from_slice(&self.pixels[firstpix..firstpix + bytecount]);
+        } else {
+            // Copy part of each line over the whole height
+            for line in new_firstline..new_firstline + new_size.height {
+                let firstpix = (line * self.size.width + new_linestart) * 4;
+                new_pixels.extend_from_slice(&self.pixels[firstpix..firstpix + new_size.width * 4]);
+            }
+        }
+        Self::at_zero_origin(new_size, new_pixels)
+    }
+    pub fn extract_part_it_needed(&self, image_part: iced::Rectangle) -> Option<Pixels> {
+        if image_part.x.abs() as usize == self.origin.x
+            && image_part.y.abs() as usize == self.origin.y
+            && image_part.width.abs() as usize == self.size.width
+            && image_part.height.abs() as usize == self.size.height
+        {
+            None
+        } else {
+            Some(self.extract_part(image_part))
         }
     }
     pub fn change_alpha(&mut self, new_alpha: f32) {
         let a = (new_alpha * 255.0) as u8;
         for p in 0..self.size.width * self.size.height {
             self.pixels[(p * 4) + 3] = a;
+        }
+    }
+}
+
+/// Parts of canvas and image actually used for presentation
+/// Define which part of the image is drawn into which part of the canvas
+/// It is up to the creator of this struct to make sure that aspect ratio is correct.
+#[derive(Debug)]
+struct UsedParts {
+    /// Used image part: upper left point, width and height in pixels
+    /// Defines: Which part of the image is actually drawn
+    /// Cannot be larger then the actual image.
+    pub used_image_part: iced::Rectangle,
+    /// Used canvas part: upper left point relative to the actual canvas area, width and height
+    /// Defines: Into which part of the canvas is the used part of the image drawn
+    /// Cannot be larger than the actual canvas.
+    pub used_canvas_part: iced::Rectangle,
+}
+
+/// Data for relating image and canvas so that coordinates can be transformed back and forth
+#[derive(Debug)]
+#[allow(dead_code)]
+struct ImageInCanvas {
+    /// Original canvas bounds including the canvas base point (for mouse coordinate translation)
+    pub canvas_bounds: iced::Rectangle,
+    /// The original image size (top-left is always (0,0))
+    pub image_size: Size<f32>,
+    /// Actually used parts of image and canvas
+    pub used_parts: UsedParts,
+}
+
+impl ImageInCanvas {
+    pub fn init(
+        canvas_bounds: iced::Rectangle,
+        image_size: Size<f32>,
+        render_scheme: ImageRenderScheme,
+    ) -> Self {
+        let canvas_size = canvas_bounds.size();
+        ImageInCanvas {
+            canvas_bounds,
+            image_size,
+            used_parts: match render_scheme {
+                ImageRenderScheme::Cropped => UsedParts::cropped_bounds(canvas_size, image_size),
+                ImageRenderScheme::FilledWithBackground | ImageRenderScheme::Filled => {
+                    UsedParts::filled_bounds(canvas_size, image_size, true)
+                }
+                ImageRenderScheme::ShrunkWithBackground | ImageRenderScheme::Shrunk => {
+                    UsedParts::filled_bounds(canvas_size, image_size, false)
+                }
+                ImageRenderScheme::CenteredWithBackground | ImageRenderScheme::Centered => {
+                    UsedParts::centered_bounds(canvas_size, image_size)
+                }
+            },
+        }
+    }
+}
+
+impl UsedParts {
+    /// Generate parts which crop the picture in the canvas
+    /// In this case, always the complete canvas is used and the image is cropped
+    pub fn cropped_bounds(canvas_size: Size<f32>, image_size: Size<f32>) -> Self {
+        let used_canvas_part = Rectangle::new(Point::new(0.0, 0.0), canvas_size);
+        let canvas_aspect_ratio = canvas_size.width / canvas_size.height;
+        let image_aspect_ratio = image_size.width / image_size.height;
+        if image_aspect_ratio < canvas_aspect_ratio {
+            // image narrower than canvas, takes all image width, mid of image height
+            let new_image_height = image_size.width / canvas_aspect_ratio;
+            let new_image_top = (image_size.height - new_image_height).max(0.0) / 2.0;
+            UsedParts {
+                used_image_part: Rectangle::new(
+                    Point::new(0.0, new_image_top),
+                    Size::new(image_size.width, new_image_height),
+                ),
+                used_canvas_part,
+            }
+        } else {
+            // image wider than canvas, takes all image height, mid of image width
+            let new_image_width = image_size.height * canvas_aspect_ratio;
+            let new_image_left = (image_size.width - new_image_width).max(0.0) / 2.0;
+            UsedParts {
+                used_image_part: Rectangle::new(
+                    Point::new(new_image_left, 0.0),
+                    Size::new(new_image_width, image_size.height),
+                ),
+                used_canvas_part,
+            }
+        }
+    }
+    /// Generate bounds which show the complete image in the canvas
+    /// In this case, always the complete image is used but potentially only parts of the canvas
+    fn filled_bounds(canvas_size: Size<f32>, image_size: Size<f32>, upscale: bool) -> Self {
+        let used_image_part = Rectangle::new(Point::new(0.0, 0.0), image_size);
+
+        let canvas_by_stage = Size::new(
+            canvas_size.width / image_size.width,
+            canvas_size.height / image_size.height,
+        );
+
+        let mut scale_min = canvas_by_stage.width.min(canvas_by_stage.height);
+        if !upscale {
+            scale_min = scale_min.min(1.0);
+        }
+
+        let used_canvas_size =
+            Size::new(image_size.width * scale_min, image_size.height * scale_min);
+
+        UsedParts {
+            used_image_part,
+            used_canvas_part: Rectangle::new(
+                Point::new(
+                    ((canvas_size.width - used_canvas_size.width) / 2.0).max(0.0),
+                    ((canvas_size.height - used_canvas_size.height) / 2.0).max(0.0),
+                ),
+                used_canvas_size,
+            ),
+        }
+    }
+    /// Generate bounds which show the unscaled (center of the) image in the center of the canvas
+    /// In this case, the image is always unscaled and fills either a part of the canvas
+    /// or is not shown fully
+    fn centered_bounds(canvas_size: Size<f32>, image_size: Size<f32>) -> Self {
+        let (image_left, image_width, canvas_left, canvas_width) =
+            if image_size.width <= canvas_size.width {
+                (
+                    0.0,
+                    image_size.width,
+                    (canvas_size.width - image_size.width) / 2.0,
+                    image_size.width,
+                )
+            } else {
+                (
+                    (image_size.width - canvas_size.width) / 2.0,
+                    canvas_size.width,
+                    0.0,
+                    canvas_size.width,
+                )
+            };
+        let (image_top, image_height, canvas_top, canvas_height) =
+            if image_size.height <= canvas_size.height {
+                (
+                    0.0,
+                    image_size.height,
+                    (canvas_size.height - image_size.height) / 2.0,
+                    image_size.height,
+                )
+            } else {
+                (
+                    (image_size.height - canvas_size.height) / 2.0,
+                    canvas_size.height,
+                    0.0,
+                    canvas_size.height,
+                )
+            };
+        UsedParts {
+            used_image_part: Rectangle::new(
+                Point::new(image_left, image_top),
+                Size::new(image_width, image_height),
+            ),
+            used_canvas_part: Rectangle::new(
+                Point::new(canvas_left, canvas_top),
+                Size::new(canvas_width, canvas_height),
+            ),
         }
     }
 }
@@ -167,11 +336,11 @@ impl<'a> FractalCanvas<'a> {
         }
     }
     /// convert some pixel coordinates into coordinates on the stage
-    fn pixel_to_stage(
-        pixel: &Point,
-        bounds: &iced::Rectangle,
+    fn _pixel_to_stage(
+        _pixel: &Point,
+        _bounds: &iced::Rectangle,
 
-        pixels: &Pixels,
+        _pixels: &Pixels,
     ) -> Option<Point2D<u32, StageSpace>> {
         None
     }
@@ -185,10 +354,10 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
         _state: &Self::State,
         renderer: &iced::Renderer,
         _theme: &iced::Theme,
-        bounds: iced::Rectangle,
+        canvas_bounds: iced::Rectangle,
         _cursor: iced::mouse::Cursor,
     ) -> Vec<iced::widget::canvas::Geometry> {
-        let canvas_size = bounds.size();
+        let canvas_size = canvas_bounds.size();
         let geometry = self
             .app_state
             .runtime
@@ -196,55 +365,39 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
             .draw(renderer, canvas_size, |frame| {
                 if let Some(pixels) = self.create_pixels() {
                     let render_scheme = self.app_state.viz.render_scheme;
-                    if render_scheme.needs_cropped() {
-                        if let Some(mut croppixels) =
-                            pixels.extract_center(canvas_size.width / canvas_size.height)
+                    let image_size = Size::new(pixels.size.width as f32, pixels.size.height as f32);
+                    if render_scheme.needs_background_cropped() {
+                        let background_mgr = ImageInCanvas::init(
+                            canvas_bounds,
+                            image_size,
+                            ImageRenderScheme::Cropped,
+                        );
+                        if let Some(mut background_pixels) =
+                            pixels.extract_part_it_needed(background_mgr.used_parts.used_image_part)
                         {
-                            if render_scheme.needs_background_cropped() {
-                                croppixels.change_alpha(0.4);
-                            }
+                            background_pixels.change_alpha(0.4);
                             let image = canvas::Image::new(Handle::from_rgba(
-                                croppixels.size.width as u32,
-                                croppixels.size.height as u32,
-                                croppixels.pixels,
+                                background_pixels.size.width as u32,
+                                background_pixels.size.height as u32,
+                                background_pixels.pixels,
                             ))
                             .filter_method(iced::widget::image::FilterMethod::Linear);
-                            frame.draw_image(iced::Rectangle::with_size(canvas_size), image);
+                            frame.draw_image(background_mgr.used_parts.used_canvas_part, image);
                         }
                     }
-                    if render_scheme.needs_filled() {
-                        let stage_size =
-                            Size::new(pixels.size.width as f32, pixels.size.height as f32);
-
-                        let canvas_by_stage = Size::new(
-                            canvas_size.width / stage_size.width,
-                            canvas_size.height / stage_size.height,
-                        );
-
-                        let mut scale_min = canvas_by_stage.width.min(canvas_by_stage.height);
-                        if !render_scheme.needs_upscaled_filled() {
-                            scale_min = scale_min.min(1.0);
-                        }
-
-                        let draw_size =
-                            Size::new(stage_size.width * scale_min, stage_size.height * scale_min);
-
-                        let image = canvas::Image::new(Handle::from_rgba(
-                            pixels.size.width as u32,
-                            pixels.size.height as u32,
-                            pixels.pixels,
-                        ))
-                        .filter_method(iced::widget::image::FilterMethod::Linear);
-
-                        let draw_rect = iced::Rectangle::new(
-                            iced::Point::new(
-                                (canvas_size.width - draw_size.width) / 2.0,
-                                (canvas_size.height - draw_size.height) / 2.0,
-                            ),
-                            draw_size,
-                        );
-                        frame.draw_image(draw_rect, image);
-                    }
+                    let foreground_mgr =
+                        ImageInCanvas::init(canvas_bounds, image_size, render_scheme);
+                    println!("GGG - Foreground mgr: {:?}", foreground_mgr);
+                    let foreground_pixels = pixels
+                        .extract_part_it_needed(foreground_mgr.used_parts.used_image_part)
+                        .unwrap_or(pixels);
+                    let image = canvas::Image::new(Handle::from_rgba(
+                        foreground_pixels.size.width as u32,
+                        foreground_pixels.size.height as u32,
+                        foreground_pixels.pixels,
+                    ))
+                    .filter_method(iced::widget::image::FilterMethod::Linear);
+                    frame.draw_image(foreground_mgr.used_parts.used_canvas_part, image);
                 }
             });
         vec![geometry]
@@ -262,7 +415,7 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                 match mouse_event {
                     mouse::Event::ButtonPressed(mouse::Button::Left) => {
                         state.drag_start = cursor.position();
-                        if (state.drag_start.is_none()) {
+                        if state.drag_start.is_none() {
                             (event::Status::Ignored, None)
                         } else {
                             println!("GGG - button pressed at {:?}", state.drag_start);
@@ -271,7 +424,7 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                         }
                     }
                     mouse::Event::CursorMoved { position } => {
-                        if let Some(drag_start) = state.drag_start {
+                        if let Some(_) = state.drag_start {
                             println!(
                                 "GGG - handling a cursor moved at position {:?}, bounds are {:?}",
                                 position, bounds
@@ -283,7 +436,7 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                         }
                     }
                     mouse::Event::ButtonReleased(mouse::Button::Left) => {
-                        if let Some(drag_start) = state.drag_start {
+                        if let Some(_) = state.drag_start {
                             if let Some(drag_stop) = cursor.position() {
                                 println!("GGG - button released at {:?}", drag_stop);
                                 // do something

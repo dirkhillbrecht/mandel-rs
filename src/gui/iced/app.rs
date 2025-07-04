@@ -68,6 +68,8 @@ pub enum ImageRenderScheme {
     Filled,
     ShrunkWithBackground,
     Shrunk,
+    CenteredWithBackground,
+    Centered,
 }
 
 impl ImageRenderScheme {
@@ -79,6 +81,8 @@ impl ImageRenderScheme {
             Self::Filled,
             Self::ShrunkWithBackground,
             Self::Shrunk,
+            Self::CenteredWithBackground,
+            Self::Centered,
         ]
     }
     pub fn name(&self) -> &'static str {
@@ -88,29 +92,16 @@ impl ImageRenderScheme {
             Self::Filled => "Scaled to fill (blank)",
             Self::ShrunkWithBackground => "No upscale",
             Self::Shrunk => "No upscale (blank)",
+            Self::CenteredWithBackground => "Unscaled centered",
+            Self::Centered => "Unscaled centered (blank)",
         }
-    }
-    pub fn needs_cropped(&self) -> bool {
-        matches!(
-            *self,
-            ImageRenderScheme::Cropped
-                | ImageRenderScheme::FilledWithBackground
-                | ImageRenderScheme::ShrunkWithBackground
-        )
     }
     pub fn needs_background_cropped(&self) -> bool {
         matches!(
             *self,
-            ImageRenderScheme::FilledWithBackground | ImageRenderScheme::ShrunkWithBackground
-        )
-    }
-    pub fn needs_filled(&self) -> bool {
-        !matches!(*self, ImageRenderScheme::Cropped)
-    }
-    pub fn needs_upscaled_filled(&self) -> bool {
-        matches!(
-            *self,
-            ImageRenderScheme::Filled | ImageRenderScheme::FilledWithBackground
+            ImageRenderScheme::FilledWithBackground
+                | ImageRenderScheme::ShrunkWithBackground
+                | ImageRenderScheme::CenteredWithBackground
         )
     }
 }
