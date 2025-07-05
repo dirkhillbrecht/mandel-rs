@@ -115,8 +115,8 @@ fn order_coords<T>(p: &Point2D<u32, T>, q: &Point2D<u32, T>) -> std::cmp::Orderi
 
 fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
     let max_iteration = storage.properties.max_iteration;
-    let height = storage.properties.stage_properties.pixels.height;
-    let width = storage.properties.stage_properties.pixels.width;
+    let height = storage.properties.stage_properties.pixels.height as i32;
+    let width = storage.properties.stage_properties.pixels.width as i32;
     let mut coords: Vec<Point2D<u32, MathSpace>> = Vec::with_capacity((height * width) as usize);
     let mut ycoo = Vec::with_capacity(height as usize);
     let mut xcoo = Vec::with_capacity(width as usize);
@@ -126,7 +126,7 @@ fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &Atom
     for y in 0..height {
         ycoo.push(storage.properties.stage_properties.y(y));
         for x in 0..width {
-            coords.push(Point2D::new(x, y));
+            coords.push(Point2D::new(x as u32, y as u32));
         }
     }
     coords.shuffle(&mut rng());
@@ -170,9 +170,9 @@ fn stoppable_compute_mandelbrot_linear(storage: &CompStorage, stop_flag: &Atomic
             storage.stage.set_state(StageState::Stalled);
             return false; // Computation was aborted
         }
-        let y_coo = storage.properties.stage_properties.y(y);
+        let y_coo = storage.properties.stage_properties.y(y as i32);
         for x in 0..storage.properties.stage_properties.pixels.width {
-            let x_coo = storage.properties.stage_properties.x(x);
+            let x_coo = storage.properties.stage_properties.x(x as i32);
             if !storage.stage.is_computed(x, y) {
                 storage
                     .stage

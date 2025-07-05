@@ -35,34 +35,48 @@ impl StageProperties {
     }
 
     /// Return the mathematical x coordinate for the given pixel x coordinate
-    pub fn x(&self, x_pix: u32) -> f64 {
+    pub fn x(&self, x_pix: i32) -> f64 {
         self.coo_base.x + x_pix as f64 * self.dotsize.width
     }
     /// Return the mathematical y coordinate for the given pixel y coordinate
-    pub fn y(&self, y_pix: u32) -> f64 {
+    pub fn y(&self, y_pix: i32) -> f64 {
         self.coo_base.y - y_pix as f64 * self.dotsize.height
     }
 
+    /// Return whether the given point is within the stage's bounds
+    pub fn is_valid_pix(&self, p: &Point2D<i32, StageSpace>) -> bool {
+        p.x >= 0 && p.x < self.pixels.width as i32 && p.y >= 0 && p.y < self.pixels.height as i32
+    }
+
     /// Return the mathematical coordiates of a pixel
-    #[allow(dead_code)]
-    pub fn pix_to_math(&self, pix: Point2D<u32, StageSpace>) -> Point2D<f64, MathSpace> {
+    pub fn pix_to_math(&self, pix: Point2D<i32, StageSpace>) -> Point2D<f64, MathSpace> {
         Point2D::new(self.x(pix.x), self.y(pix.y))
     }
 
+    /// Return the mathematical coordinates of a pixel if it is within the image's bounds
+    pub fn pix_to_math_if_valid(
+        &self,
+        pix: Point2D<i32, StageSpace>,
+    ) -> Option<Point2D<f64, MathSpace>> {
+        Some(pix)
+            .filter(|p| self.is_valid_pix(p))
+            .map(|p| self.pix_to_math(p))
+    }
+
+    /// Return the pixel of the given math coordinates
+    /// Returns out of bounds values if the given math coordinates are not within the image bounds
+    pub fn math_to_pix(&self, math: Point2D<f64, MathSpace>) -> Point2D<i32, StageSpace> {
+        let x = ((math.x - self.coo_base.x) / self.dotsize.width).floor() as i32;
+        let y = ((self.coo_base.y - math.y) / self.dotsize.height).floor() as i32;
+        Point2D::new(x, y)
+    }
+
     /// Return the pixel coordinates of some mathematical coordinates, if they are in bounds
-    #[allow(dead_code)]
-    pub fn math_to_pix(&self, math: Point2D<f64, MathSpace>) -> Option<Point2D<u32, StageSpace>> {
-        if math.x < self.coo_base.x || math.y > self.coo_base.y {
-            None
-        } else {
-            let x = ((math.x - self.coo_base.x) / self.dotsize.width).floor() as u32;
-            let y = ((self.coo_base.y - math.y) / self.dotsize.height).floor() as u32;
-            if x >= self.pixels.width || y >= self.pixels.height {
-                None
-            } else {
-                Some(Point2D::new(x, y))
-            }
-        }
+    pub fn math_to_pix_if_valid(
+        &self,
+        math: Point2D<f64, MathSpace>,
+    ) -> Option<Point2D<i32, StageSpace>> {
+        Some(self.math_to_pix(math)).filter(|p| self.is_valid_pix(p))
     }
 
     /// Return a rectified version of the stage, i.e. guarantee that the pixels of the image cover a square area.

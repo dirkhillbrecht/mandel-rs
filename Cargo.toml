@@ -3,7 +3,7 @@
 [package]
 name = "mandel-rs"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Dirk Hillbrecht <dirk@hillbrecht.de>", "Claude AI"]
 description = "A fractal graphics visualizer written in Rust, to produce nice graphics and to learn Rust"
 
