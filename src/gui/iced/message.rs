@@ -1,7 +1,12 @@
+use euclid::Vector2D;
+
 use crate::{
     comp::math_data::MathPreset,
     gui::iced::app::ImageRenderScheme,
-    storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment},
+    storage::{
+        coord_spaces::StageSpace,
+        visualization::coloring::presets::{GradientColorPreset, IterationAssignment},
+    },
 };
 
 /// Messages passed around in the Iced-based mandel-rs-GUI
@@ -23,6 +28,7 @@ pub enum Message {
     ColorSchemeChanged(GradientColorPreset),
     IterationAssignmentChanged(IterationAssignment),
     RenderSchemeChanged(ImageRenderScheme),
+    ShiftStage(Vector2D<i32, StageSpace>),
     #[allow(dead_code)]
     MousePressed(iced::Point),
     #[allow(dead_code)]

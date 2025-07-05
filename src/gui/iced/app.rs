@@ -1,8 +1,13 @@
+use std::sync::Arc;
+
+use euclid::Rect;
 use iced::widget::canvas::Cache;
 
 /// Application frame for the Iced-based mandel-rs GUI
 use crate::comp::mandelbrot_engine::MandelbrotEngine;
 use crate::comp::math_data::{MathData, MathPreset};
+use crate::storage::computation::comp_storage::CompStorage;
+use crate::storage::coord_spaces::MathSpace;
 use crate::storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment};
 use crate::storage::visualization::viz_storage::VizStorage;
 
@@ -10,10 +15,7 @@ use crate::storage::visualization::viz_storage::VizStorage;
 pub struct MathState {
     pub width: String,
     pub height: String,
-    pub left: String,
-    pub right: String,
-    pub top: String,
-    pub bottom: String,
+    pub area: Rect<f64, MathSpace>,
     pub max_iteration: String,
 }
 
@@ -21,19 +23,13 @@ impl MathState {
     pub fn new(
         width: String,
         height: String,
-        left: String,
-        right: String,
-        top: String,
-        bottom: String,
+        area: Rect<f64, MathSpace>,
         max_iteration: String,
     ) -> Self {
         MathState {
             width,
             height,
-            left,
-            right,
-            top,
-            bottom,
+            area,
             max_iteration,
         }
     }
@@ -41,10 +37,7 @@ impl MathState {
         Self::new(
             width,
             height,
-            data.coordinates().min_x().to_string(),
-            data.coordinates().max_x().to_string(),
-            data.coordinates().max_y().to_string(),
-            data.coordinates().min_y().to_string(),
+            data.coordinates(),
             data.max_iteration().to_string(),
         )
     }
@@ -178,6 +171,7 @@ impl Default for RuntimeState {
 
 pub struct AppState {
     pub storage: Option<VizStorage>,
+    pub comp_storage: Option<Arc<CompStorage>>,
     pub engine: Option<MandelbrotEngine>,
     pub math: MathState,
     pub viz: VizState,
@@ -188,6 +182,7 @@ impl Default for AppState {
     fn default() -> Self {
         AppState {
             storage: None,
+            comp_storage: None,
             engine: None,
             math: MathState::default(),
             viz: VizState::default(),

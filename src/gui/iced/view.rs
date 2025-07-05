@@ -56,11 +56,11 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
                 .on_input(Message::MaxIterationChanged),
             text("Right/Top:"),
             row![
-                text_input("", &state.math.right)
+                text_input("", &state.math.area.max_x().to_string())
                     .width(100)
                     .on_input(Message::RightChanged),
                 text("/"),
-                text_input("", &state.math.top)
+                text_input("", &state.math.area.max_y().to_string())
                     .width(100)
                     .on_input(Message::TopChanged),
             ]
@@ -68,11 +68,11 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
             .align_y(iced::Alignment::Center),
             text("Left/Bottom:"),
             row![
-                text_input("", &state.math.left)
+                text_input("", &state.math.area.min_x().to_string())
                     .width(100)
                     .on_input(Message::LeftChanged),
                 text("/"),
-                text_input("", &state.math.bottom)
+                text_input("", &state.math.area.min_y().to_string())
                     .width(100)
                     .on_input(Message::BottomChanged),
             ]

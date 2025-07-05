@@ -1,9 +1,11 @@
 use std::time::Duration;
 
+use euclid::Vector2D;
 use tokio::sync::mpsc;
 
 use super::comp_stage::CompStage;
 use crate::storage::{
+    coord_spaces::StageSpace,
     event::stage_event_batcher::{StageEvent, StageEventBatcher},
     image_comp_properties::ImageCompProperties,
 };
@@ -33,6 +35,7 @@ pub enum EventSystemError {
 /// Storage for image data computation
 /// Contains parameters of computation and the actual computation stage
 pub struct CompStorage {
+    pub original_properties: ImageCompProperties,
     pub properties: ImageCompProperties,
     pub stage: CompStage,
 
@@ -41,11 +44,12 @@ pub struct CompStorage {
 
 impl CompStorage {
     /// Create a new comp storage instance, initialize the stage internally.
-    pub fn new(properties: ImageCompProperties) -> CompStorage {
-        let stage = CompStage::new(properties.stage_properties.pixels);
+    pub fn new(original_properties: ImageCompProperties) -> CompStorage {
+        let properties = original_properties.rectified(false);
         CompStorage {
+            original_properties,
             properties,
-            stage,
+            stage: CompStage::new(properties.stage_properties.pixels),
             event_system: std::sync::Mutex::new(EventSystem::new()),
         }
     }
@@ -92,6 +96,17 @@ impl CompStorage {
         event_system.sender.take().unwrap(); // Dropping the sender automatically closes the channel - according to Claude…
 
         Ok(())
+    }
+
+    pub fn shifted_clone_by_pixels(&self, offset: Vector2D<i32, StageSpace>) -> Self {
+        CompStorage {
+            original_properties: self
+                .original_properties
+                .shifted_clone_by_math(self.properties.pixel_to_math_offset(offset)),
+            properties: self.properties.shifted_clone_by_pixels(offset),
+            stage: self.stage.shifted_clone(offset),
+            event_system: std::sync::Mutex::new(EventSystem::new()),
+        }
     }
 }
 

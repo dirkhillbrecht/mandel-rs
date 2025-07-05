@@ -2,10 +2,12 @@
 use crate::comp::mandelbrot_engine::{EngineState, MandelbrotEngine};
 use crate::gui::iced::app::AppState;
 use crate::gui::iced::message::Message;
+use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::image_comp_properties::{ImageCompProperties, StageProperties};
 use crate::storage::visualization::viz_storage::VizStorage;
 use euclid::{Point2D, Rect, Size2D};
 use iced::Task;
+use std::sync::Arc;
 use std::time::Duration;
 
 pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
@@ -14,35 +16,48 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
         Message::PresetChanged(value) => state.viz.math_preset = value,
         Message::PresetClicked => {
             let data = &state.viz.math_preset.preset();
-            state.math.left = data.coordinates().min_x().to_string();
-            state.math.right = data.coordinates().max_x().to_string();
-            state.math.top = data.coordinates().max_y().to_string();
-            state.math.bottom = data.coordinates().min_y().to_string();
+            state.math.area = data.coordinates();
             state.math.max_iteration = data.max_iteration().to_string();
             return Task::perform(async {}, |_| Message::ComputeClicked);
         }
-        Message::LeftChanged(value) => state.math.left = value,
-        Message::RightChanged(value) => state.math.right = value,
-        Message::TopChanged(value) => state.math.top = value,
-        Message::BottomChanged(value) => state.math.bottom = value,
+        Message::LeftChanged(value) => {
+            if let Ok(value) = value.parse::<f64>() {
+                state.math.area = Rect::from_points([
+                    Point2D::new(value, state.math.area.min_y()),
+                    state.math.area.max(),
+                ]);
+            }
+        }
+        Message::RightChanged(value) => {
+            if let Ok(value) = value.parse::<f64>() {
+                state.math.area = Rect::from_points([
+                    state.math.area.min(),
+                    Point2D::new(value, state.math.area.max_y()),
+                ]);
+            }
+        }
+        Message::TopChanged(value) => {
+            if let Ok(value) = value.parse::<f64>() {
+                state.math.area = Rect::from_points([
+                    state.math.area.min(),
+                    Point2D::new(state.math.area.max_x(), value),
+                ]);
+            }
+        }
+        Message::BottomChanged(value) => {
+            if let Ok(value) = value.parse::<f64>() {
+                state.math.area = Rect::from_points([
+                    Point2D::new(state.math.area.min_x(), value),
+                    state.math.area.max(),
+                ]);
+            }
+        }
         Message::WidthChanged(value) => state.math.width = value,
         Message::HeightChanged(value) => state.math.height = value,
         Message::MaxIterationChanged(value) => state.math.max_iteration = value,
         Message::ComputeClicked => {
             state.viz.auto_start_computation = false;
-            if let (
-                Ok(left),
-                Ok(right),
-                Ok(bottom),
-                Ok(top),
-                Ok(width),
-                Ok(height),
-                Ok(max_iteration),
-            ) = (
-                state.math.left.parse::<f64>(),
-                state.math.right.parse::<f64>(),
-                state.math.bottom.parse::<f64>(),
-                state.math.top.parse::<f64>(),
+            if let (Ok(width), Ok(height), Ok(max_iteration)) = (
                 state.math.width.parse::<u32>(),
                 state.math.height.parse::<u32>(),
                 state.math.max_iteration.parse::<u32>(),
@@ -52,17 +67,13 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 } else {
                     state.runtime.computing = true;
                     let comp_props = ImageCompProperties::new(
-                        StageProperties::new(
-                            Rect::from_points([
-                                Point2D::new(left, bottom),
-                                Point2D::new(right, top),
-                            ]),
-                            Size2D::new(width, height),
-                        ),
+                        StageProperties::new(state.math.area, Size2D::new(width, height)),
                         max_iteration,
                     );
-                    state.engine = Some(MandelbrotEngine::new(comp_props));
-                    state.storage = Some(VizStorage::new(state.engine.as_ref().unwrap().storage()));
+                    state.comp_storage = Some(Arc::new(CompStorage::new(comp_props)));
+                    state.engine =
+                        Some(MandelbrotEngine::new(&state.comp_storage.as_ref().unwrap()));
+                    state.storage = Some(VizStorage::new(&state.comp_storage.as_ref().unwrap()));
                     state.engine.as_ref().unwrap().start();
                     state.runtime.canvas_cache.clear();
 
@@ -114,6 +125,27 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
         Message::RenderSchemeChanged(value) => {
             state.viz.render_scheme = value;
             state.runtime.canvas_cache.clear();
+        }
+        Message::ShiftStage(offset) => {
+            if let Some(engine) = &state.engine {
+                engine.stop();
+            }
+            state.runtime.computing = false;
+            let new_storage = state
+                .comp_storage
+                .as_ref()
+                .unwrap()
+                .as_ref()
+                .shifted_clone_by_pixels(offset);
+            state.math.area = new_storage.original_properties.stage_properties.coo;
+            state.comp_storage = Some(Arc::new(new_storage));
+            state.engine = Some(MandelbrotEngine::new(&state.comp_storage.as_ref().unwrap()));
+            state.storage = Some(VizStorage::new(state.comp_storage.as_ref().unwrap()));
+            state.engine.as_ref().unwrap().start();
+            state.runtime.canvas_cache.clear();
+
+            // Schedule first update
+            return Task::perform(async {}, |_| Message::UpdateViz);
         }
         Message::MousePressed(_point) => {}
         Message::MouseDragged(_point) => {}

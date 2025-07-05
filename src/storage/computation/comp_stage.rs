@@ -1,6 +1,6 @@
 use std::sync::RwLock;
 
-use euclid::Size2D;
+use euclid::{Size2D, Vector2D};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::storage::{
@@ -131,6 +131,58 @@ impl CompStage {
             retval.push(self.internal_get(i));
         }
         retval
+    }
+
+    /// Generate a new, independent comp stage which contains a shifted part of the current stage
+    /// If the offset is (0,0), an unshifted independent clone of this stage is returned,
+    /// try to prevent this from happening
+    /// If the offset is so large that the new stage is completely outside this one,
+    /// an empty new stage of the same size is returned.
+    pub fn shifted_clone(&self, offset: Vector2D<i32, StageSpace>) -> Self {
+        if offset.x.abs() as usize >= self.size.width || offset.y.abs() as usize >= self.size.height
+        {
+            Self::new(Size2D::new(self.size.width as u32, self.size.height as u32))
+        } else {
+            let ox = offset.x;
+            let oy = offset.y;
+            let empty_line_start = (ox.max(0) as usize).min(self.size.width);
+            let empty_line_end = ((-ox).max(0) as usize).min(self.size.width);
+            let empty_start_lines = (oy.max(0) as usize).min(self.size.height);
+            let empty_end_lines = ((-oy).max(0) as usize).min(self.size.height);
+            let line_width = self.size.width - (empty_line_start.max(empty_line_end));
+            let first_line = empty_end_lines;
+            let last_line = self.size.height - empty_start_lines;
+            let mut data = Vec::with_capacity(self.size.area());
+            for _ in 0..empty_start_lines {
+                for _ in 0..self.size.width {
+                    data.push(RwLock::new(None));
+                }
+            }
+            for line in first_line..last_line {
+                for _ in 0..empty_line_start {
+                    data.push(RwLock::new(None));
+                }
+                let first_idx = line * self.size.width + empty_line_end;
+                let last_idx = first_idx + line_width;
+                for idx in first_idx..last_idx {
+                    data.push(RwLock::new(self.internal_get(idx)));
+                }
+                for _ in 0..empty_line_end {
+                    data.push(RwLock::new(None));
+                }
+            }
+            for _ in 0..empty_end_lines {
+                for _ in 0..self.size.width {
+                    data.push(RwLock::new(None));
+                }
+            }
+            CompStage {
+                size: self.size,
+                data,
+                state: RwLock::new(StageState::Stalled),
+                change_sender: std::sync::Mutex::new(None),
+            }
+        }
     }
 }
 

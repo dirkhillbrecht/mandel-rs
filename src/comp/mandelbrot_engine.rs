@@ -11,7 +11,7 @@ use rand::seq::SliceRandom;
 use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::coord_spaces::MathSpace;
 use crate::storage::data_point::DataPoint;
-use crate::storage::image_comp_properties::{ImageCompProperties, StageState};
+use crate::storage::image_comp_properties::StageState;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EngineState {
@@ -23,7 +23,6 @@ pub enum EngineState {
 
 pub struct MandelbrotEngine {
     #[allow(dead_code)] // Could be needed for deriving images from the original coordinates
-    pub original_properties: ImageCompProperties,
     pub state: Arc<Mutex<EngineState>>,
     storage: Arc<CompStorage>,
     thread_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
@@ -33,12 +32,10 @@ pub struct MandelbrotEngine {
 impl MandelbrotEngine {
     /// Create a new MandelbrotEngine for the given image computation properties
     /// The engine has _not_ started computation after
-    pub fn new(original_properties: ImageCompProperties) -> MandelbrotEngine {
-        let storage_properties = original_properties.rectified(false);
+    pub fn new(storage: &Arc<CompStorage>) -> Self {
         MandelbrotEngine {
-            original_properties,
             state: Arc::new(Mutex::new(EngineState::PreStart)),
-            storage: Arc::new(CompStorage::new(storage_properties)),
+            storage: storage.clone(),
             thread_handle: Arc::new(Mutex::new(None)),
             stop_flag: Arc::new(AtomicBool::new(false)),
         }
@@ -115,8 +112,8 @@ fn order_coords<T>(p: &Point2D<u32, T>, q: &Point2D<u32, T>) -> std::cmp::Orderi
 
 fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
     let max_iteration = storage.properties.max_iteration;
-    let height = storage.properties.stage_properties.pixels.height;
-    let width = storage.properties.stage_properties.pixels.width;
+    let height = storage.properties.stage_properties.pixels.height as i32;
+    let width = storage.properties.stage_properties.pixels.width as i32;
     let mut coords: Vec<Point2D<u32, MathSpace>> = Vec::with_capacity((height * width) as usize);
     let mut ycoo = Vec::with_capacity(height as usize);
     let mut xcoo = Vec::with_capacity(width as usize);
@@ -126,7 +123,7 @@ fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &Atom
     for y in 0..height {
         ycoo.push(storage.properties.stage_properties.y(y));
         for x in 0..width {
-            coords.push(Point2D::new(x, y));
+            coords.push(Point2D::new(x as u32, y as u32));
         }
     }
     coords.shuffle(&mut rng());
@@ -170,9 +167,9 @@ fn stoppable_compute_mandelbrot_linear(storage: &CompStorage, stop_flag: &Atomic
             storage.stage.set_state(StageState::Stalled);
             return false; // Computation was aborted
         }
-        let y_coo = storage.properties.stage_properties.y(y);
+        let y_coo = storage.properties.stage_properties.y(y as i32);
         for x in 0..storage.properties.stage_properties.pixels.width {
-            let x_coo = storage.properties.stage_properties.x(x);
+            let x_coo = storage.properties.stage_properties.x(x as i32);
             if !storage.stage.is_computed(x, y) {
                 storage
                     .stage

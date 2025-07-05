@@ -1,6 +1,6 @@
 // Collective storage for the computational image parameters.
 
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D, Vector2D};
 
 use crate::storage::coord_spaces::{MathSpace, StageSpace};
 
@@ -34,35 +34,87 @@ impl StageProperties {
         }
     }
 
+    /// Convert a pixel offset into a math offset based on the local pixel sizes
+    pub fn pixel_to_math_offset(
+        &self,
+        offset: Vector2D<i32, StageSpace>,
+    ) -> Vector2D<f64, MathSpace> {
+        Vector2D::new(
+            offset.x as f64 * -self.dotsize.width,
+            offset.y as f64 * self.dotsize.height,
+        )
+    }
+
+    /// Shift the stage properties by the given amount of pixels while retaining size
+    /// and aspect ratio of everything.
+    pub fn shifted_clone_by_math(&self, offset: Vector2D<f64, MathSpace>) -> StageProperties {
+        let new_coo = self.coo.translate(offset);
+        let coo_base = Point2D::new(
+            new_coo.min_x() + (self.dotsize.width / 2.0),
+            new_coo.max_y() - (self.dotsize.height / 2.0),
+        );
+        StageProperties {
+            coo: new_coo,
+            pixels: self.pixels,
+            dotsize: self.dotsize,
+            coo_base,
+        }
+    }
+
+    /// Shift the stage properties by the given amount of pixels while retaining size
+    /// and aspect ratio of everything.
+    pub fn shifted_clone_by_pixels(&self, offset: Vector2D<i32, StageSpace>) -> StageProperties {
+        self.shifted_clone_by_math(self.pixel_to_math_offset(offset))
+    }
+
     /// Return the mathematical x coordinate for the given pixel x coordinate
-    pub fn x(&self, x_pix: u32) -> f64 {
+    pub fn x(&self, x_pix: i32) -> f64 {
         self.coo_base.x + x_pix as f64 * self.dotsize.width
     }
     /// Return the mathematical y coordinate for the given pixel y coordinate
-    pub fn y(&self, y_pix: u32) -> f64 {
+    pub fn y(&self, y_pix: i32) -> f64 {
         self.coo_base.y - y_pix as f64 * self.dotsize.height
+    }
+
+    /// Return whether the given point is within the stage's bounds
+    #[allow(dead_code)]
+    pub fn is_valid_pix(&self, p: &Point2D<i32, StageSpace>) -> bool {
+        p.x >= 0 && p.x < self.pixels.width as i32 && p.y >= 0 && p.y < self.pixels.height as i32
     }
 
     /// Return the mathematical coordiates of a pixel
     #[allow(dead_code)]
-    pub fn pix_to_math(&self, pix: Point2D<u32, StageSpace>) -> Point2D<f64, MathSpace> {
+    pub fn pix_to_math(&self, pix: Point2D<i32, StageSpace>) -> Point2D<f64, MathSpace> {
         Point2D::new(self.x(pix.x), self.y(pix.y))
+    }
+
+    /// Return the mathematical coordinates of a pixel if it is within the image's bounds
+    #[allow(dead_code)]
+    pub fn pix_to_math_if_valid(
+        &self,
+        pix: Point2D<i32, StageSpace>,
+    ) -> Option<Point2D<f64, MathSpace>> {
+        Some(pix)
+            .filter(|p| self.is_valid_pix(p))
+            .map(|p| self.pix_to_math(p))
+    }
+
+    /// Return the pixel of the given math coordinates
+    /// Returns out of bounds values if the given math coordinates are not within the image bounds
+    #[allow(dead_code)]
+    pub fn math_to_pix(&self, math: Point2D<f64, MathSpace>) -> Point2D<i32, StageSpace> {
+        let x = ((math.x - self.coo_base.x) / self.dotsize.width).floor() as i32;
+        let y = ((self.coo_base.y - math.y) / self.dotsize.height).floor() as i32;
+        Point2D::new(x, y)
     }
 
     /// Return the pixel coordinates of some mathematical coordinates, if they are in bounds
     #[allow(dead_code)]
-    pub fn math_to_pix(&self, math: Point2D<f64, MathSpace>) -> Option<Point2D<u32, StageSpace>> {
-        if math.x < self.coo_base.x || math.y > self.coo_base.y {
-            None
-        } else {
-            let x = ((math.x - self.coo_base.x) / self.dotsize.width).floor() as u32;
-            let y = ((self.coo_base.y - math.y) / self.dotsize.height).floor() as u32;
-            if x >= self.pixels.width || y >= self.pixels.height {
-                None
-            } else {
-                Some(Point2D::new(x, y))
-            }
-        }
+    pub fn math_to_pix_if_valid(
+        &self,
+        math: Point2D<f64, MathSpace>,
+    ) -> Option<Point2D<i32, StageSpace>> {
+        Some(self.math_to_pix(math)).filter(|p| self.is_valid_pix(p))
     }
 
     /// Return a rectified version of the stage, i.e. guarantee that the pixels of the image cover a square area.
@@ -106,7 +158,7 @@ pub struct ImageCompProperties {
 impl ImageCompProperties {
     /// # Returns
     /// a new instance of image computation properties
-    pub fn new(stage_properties: StageProperties, max_iteration: u32) -> ImageCompProperties {
+    pub fn new(stage_properties: StageProperties, max_iteration: u32) -> Self {
         ImageCompProperties {
             stage_properties,
             max_iteration,
@@ -114,9 +166,35 @@ impl ImageCompProperties {
     }
     /// # Returns
     /// some new ImageCompProperties which are rectified for pixels with a square area
-    pub fn rectified(&self, inner: bool) -> ImageCompProperties {
+    pub fn rectified(&self, inner: bool) -> Self {
         ImageCompProperties {
             stage_properties: self.stage_properties.rectified(inner),
+            max_iteration: self.max_iteration,
+        }
+    }
+
+    /// Shift the stage properties by the given amount of pixels while retaining size
+    /// and aspect ratio of everything.
+    pub fn shifted_clone_by_pixels(&self, offset: Vector2D<i32, StageSpace>) -> Self {
+        ImageCompProperties {
+            stage_properties: self.stage_properties.shifted_clone_by_pixels(offset),
+            max_iteration: self.max_iteration,
+        }
+    }
+
+    /// Convert a pixel offset into a math offset based on the local pixel sizes
+    pub fn pixel_to_math_offset(
+        &self,
+        offset: Vector2D<i32, StageSpace>,
+    ) -> Vector2D<f64, MathSpace> {
+        self.stage_properties.pixel_to_math_offset(offset)
+    }
+
+    /// Shift the stage properties by the given amount of pixels while retaining size
+    /// and aspect ratio of everything.
+    pub fn shifted_clone_by_math(&self, offset: Vector2D<f64, MathSpace>) -> Self {
+        ImageCompProperties {
+            stage_properties: self.stage_properties.shifted_clone_by_math(offset),
             max_iteration: self.max_iteration,
         }
     }
@@ -135,7 +213,7 @@ pub enum StageState {
     Evolving,
     /// The stage is not finished, but work is stalled, so no changes to the content are to be expected
     Stalled,
-    /// The stage 's content is complete, it matches the stage's properties, no more changes will happen
+    /// The stage's content is complete, it matches the stage's properties, no more changes will happen
     Completed,
 }
 

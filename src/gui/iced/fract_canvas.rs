@@ -11,14 +11,13 @@ use crate::{
         visualization::{coloring::base::GradientColors, viz_storage::VizStorage},
     },
 };
-use euclid::Point2D;
+use euclid::{Point2D, Vector2D};
 use iced::{
-    mouse,
+    Point, Rectangle, Size, mouse,
     widget::{
-        canvas::{self, event, Event},
+        canvas::{self, Event, event},
         image::Handle,
     },
-    Point, Rectangle, Size,
 };
 
 struct Pixels {
@@ -47,15 +46,6 @@ impl Pixels {
         if new_linestart == 0 && new_size.width == self.size.width {
             // Copy one chunk covering the given number of lines
             let firstpix = self.size.width * image_part.y as usize * 4;
-            println!(
-                "self size is {}*{}, new size is {}*{}, firstpix is {}, bytecount is {}",
-                self.size.width,
-                self.size.height,
-                new_size.width,
-                new_size.height,
-                firstpix,
-                bytecount
-            );
             new_pixels.extend_from_slice(&self.pixels[firstpix..firstpix + bytecount]);
         } else {
             // Copy part of each line over the whole height
@@ -66,7 +56,7 @@ impl Pixels {
         }
         Self::at_zero_origin(new_size, new_pixels)
     }
-    pub fn extract_part_it_needed(&self, image_part: iced::Rectangle) -> Option<Pixels> {
+    pub fn extract_part_if_needed(&self, image_part: iced::Rectangle) -> Option<Pixels> {
         if image_part.x.abs() as usize == self.origin.x
             && image_part.y.abs() as usize == self.origin.y
             && image_part.width.abs() as usize == self.size.width
@@ -75,6 +65,48 @@ impl Pixels {
             None
         } else {
             Some(self.extract_part(image_part))
+        }
+    }
+    /// Generate an independent pixels instance where the pixels are shifted by the given offset
+    /// The "new" pixels are painted black.
+    /// If the offset is 0, nothing is returned
+    pub fn shift(&self, offset: Size) -> Option<Pixels> {
+        if offset.width.abs() < 1e-2 && offset.height.abs() < 1e-2 {
+            None
+        } else {
+            let ox = offset.width as i32;
+            let oy = offset.height as i32;
+            let empty_line_start = (ox.max(0) as usize).min(self.size.width);
+            let empty_line_end = ((-ox).max(0) as usize).min(self.size.width);
+            let empty_start_lines = (oy.max(0) as usize).min(self.size.height);
+            let empty_end_lines = ((-oy).max(0) as usize).min(self.size.height);
+            let line_width = self.size.width - (empty_line_start.max(empty_line_end));
+            let first_line = empty_end_lines;
+            let last_line = self.size.height - empty_start_lines;
+            let mut new_pixels = Vec::with_capacity(self.size.width * self.size.height * 4);
+            let one_pixel: [u8; 4] = [0, 0, 0, 0];
+            for _ in 0..empty_start_lines {
+                for _ in 0..self.size.width {
+                    new_pixels.extend_from_slice(&one_pixel);
+                }
+            }
+            for line in first_line..last_line {
+                for _ in 0..empty_line_start {
+                    new_pixels.extend_from_slice(&one_pixel);
+                }
+                let first_idx = (line * self.size.width + empty_line_end) * 4;
+                let last_idx = first_idx + line_width as usize * 4;
+                new_pixels.extend_from_slice(&self.pixels[first_idx..last_idx]);
+                for _ in 0..empty_line_end {
+                    new_pixels.extend_from_slice(&one_pixel);
+                }
+            }
+            for _ in 0..empty_end_lines {
+                for _ in 0..self.size.width {
+                    new_pixels.extend_from_slice(&one_pixel);
+                }
+            }
+            Some(Pixels::at_zero_origin(self.size, new_pixels))
         }
     }
     pub fn change_alpha(&mut self, new_alpha: f32) {
@@ -102,7 +134,6 @@ struct UsedParts {
 
 /// Data for relating image and canvas so that coordinates can be transformed back and forth
 #[derive(Debug)]
-#[allow(dead_code)]
 struct ImageInCanvas {
     /// Original canvas bounds including the canvas base point (for mouse coordinate translation)
     pub canvas_bounds: iced::Rectangle,
@@ -135,6 +166,56 @@ impl ImageInCanvas {
                 }
             },
         }
+    }
+
+    // Create an image in canvas instance for a certain app state and some canvas bounds
+    pub fn for_app_state_and_bounds(
+        app_state: &AppState,
+        canvas_bounds: Rectangle,
+    ) -> Option<Self> {
+        if let Some(storage) = &app_state.storage {
+            Some(ImageInCanvas::init(
+                canvas_bounds,
+                Size::new(storage.stage.width() as f32, storage.stage.height() as f32),
+                app_state.viz.render_scheme,
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Convert a mouse coordinate into the point on the image it points on
+    /// Due to image positioning and scaling, these have to be converted.
+    pub fn mouse_to_image(&self, mouse_on_screen: Point) -> Point {
+        // Convert app-global coordinates to canvas-origin
+        let mouse_on_canvas = Point::new(
+            mouse_on_screen.x - self.canvas_bounds.x,
+            mouse_on_screen.y - self.canvas_bounds.y,
+        );
+        // Convert from canvas to actually used canvas
+        let mouse_on_used_canvas = Point::new(
+            mouse_on_canvas.x - self.used_parts.used_canvas_part.x,
+            mouse_on_canvas.y - self.used_parts.used_canvas_part.y,
+        );
+        // Convert from on-screen pixels to the pixels of the - potentially scaled - image
+        Point::new(
+            self.used_parts.used_image_part.x
+                + (mouse_on_used_canvas.x * self.used_parts.used_image_part.width
+                    / self.used_parts.used_canvas_part.width),
+            self.used_parts.used_image_part.y
+                + (mouse_on_used_canvas.y * self.used_parts.used_image_part.height
+                    / self.used_parts.used_canvas_part.height),
+        )
+    }
+
+    /// Convert the mouse coordinate into image point if the mouse pointer is inside the image
+    pub fn mouse_to_image_if_valid(&self, mouse_on_screen: Point) -> Option<Point> {
+        Some(self.mouse_to_image(mouse_on_screen)).filter(|p| {
+            p.x >= 0.0
+                && p.x <= self.image_size.width
+                && p.y >= 0.0
+                && p.y <= self.image_size.height
+        })
     }
 }
 
@@ -249,11 +330,15 @@ impl UsedParts {
 
 pub struct CanvasState {
     drag_start: Option<Point>,
+    drag_shift: Option<Size>,
 }
 
 impl Default for CanvasState {
     fn default() -> Self {
-        Self { drag_start: None }
+        Self {
+            drag_start: None,
+            drag_shift: None,
+        }
     }
 }
 
@@ -306,7 +391,7 @@ impl<'a> FractalCanvas<'a> {
             let color_scheme =
                 GradientColors::new(&self.app_state.viz.gradient_color_preset.scheme(), 256);
 
-            let mut pixels = Vec::new();
+            let mut pixels = Vec::with_capacity(width * height * 4);
             for y in 0..height {
                 for x in 0..width {
                     if let Some(point) = self.get_pixel(storage, x, y) {
@@ -351,7 +436,7 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
 
     fn draw(
         &self,
-        _state: &Self::State,
+        state: &Self::State,
         renderer: &iced::Renderer,
         _theme: &iced::Theme,
         canvas_bounds: iced::Rectangle,
@@ -363,17 +448,24 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
             .runtime
             .canvas_cache
             .draw(renderer, canvas_size, |frame| {
-                if let Some(pixels) = self.create_pixels() {
+                if let Some(rawpixels) = self.create_pixels() {
+                    let pixels = if let Some(drag_shift) = state.drag_shift {
+                        rawpixels.shift(drag_shift).unwrap_or(rawpixels)
+                    } else {
+                        rawpixels
+                    };
                     let render_scheme = self.app_state.viz.render_scheme;
                     let image_size = Size::new(pixels.size.width as f32, pixels.size.height as f32);
-                    if render_scheme.needs_background_cropped() {
+                    if render_scheme.needs_background_cropped()
+                        && let None = state.drag_start
+                    {
                         let background_mgr = ImageInCanvas::init(
                             canvas_bounds,
                             image_size,
                             ImageRenderScheme::Cropped,
                         );
                         if let Some(mut background_pixels) =
-                            pixels.extract_part_it_needed(background_mgr.used_parts.used_image_part)
+                            pixels.extract_part_if_needed(background_mgr.used_parts.used_image_part)
                         {
                             background_pixels.change_alpha(0.4);
                             let image = canvas::Image::new(Handle::from_rgba(
@@ -387,9 +479,8 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                     }
                     let foreground_mgr =
                         ImageInCanvas::init(canvas_bounds, image_size, render_scheme);
-                    println!("GGG - Foreground mgr: {:?}", foreground_mgr);
                     let foreground_pixels = pixels
-                        .extract_part_it_needed(foreground_mgr.used_parts.used_image_part)
+                        .extract_part_if_needed(foreground_mgr.used_parts.used_image_part)
                         .unwrap_or(pixels);
                     let image = canvas::Image::new(Handle::from_rgba(
                         foreground_pixels.size.width as u32,
@@ -414,35 +505,54 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
             Event::Mouse(mouse_event) => {
                 match mouse_event {
                     mouse::Event::ButtonPressed(mouse::Button::Left) => {
-                        state.drag_start = cursor.position();
-                        if state.drag_start.is_none() {
-                            (event::Status::Ignored, None)
-                        } else {
-                            println!("GGG - button pressed at {:?}", state.drag_start);
-                            // do something
+                        if let Some(position) = cursor.position()
+                            && let Some(point) =
+                                ImageInCanvas::for_app_state_and_bounds(&self.app_state, bounds)
+                                    .map(|iic| iic.mouse_to_image_if_valid(position))
+                        {
+                            state.drag_start = point;
+                            state.drag_shift = None;
                             (event::Status::Captured, None)
+                        } else {
+                            (event::Status::Ignored, None)
                         }
                     }
                     mouse::Event::CursorMoved { position } => {
-                        if let Some(_) = state.drag_start {
-                            println!(
-                                "GGG - handling a cursor moved at position {:?}, bounds are {:?}",
-                                position, bounds
-                            );
-                            // do something
+                        if let Some(drag_start) = state.drag_start
+                            && let Some(image_in_canvas) =
+                                ImageInCanvas::for_app_state_and_bounds(&self.app_state, bounds)
+                        {
+                            let point = image_in_canvas.mouse_to_image(position);
+                            state.drag_shift =
+                                Some(Size::new(point.x - drag_start.x, point.y - drag_start.y))
+                                    .filter(|p| p.width.abs() >= 1e-2 || p.height.abs() >= 1e-2);
+                            self.app_state.runtime.canvas_cache.clear();
                             (event::Status::Captured, None)
                         } else {
                             (event::Status::Ignored, None)
                         }
                     }
                     mouse::Event::ButtonReleased(mouse::Button::Left) => {
-                        if let Some(_) = state.drag_start {
-                            if let Some(drag_stop) = cursor.position() {
-                                println!("GGG - button released at {:?}", drag_stop);
-                                // do something
-                            }
+                        if let Some(drag_start) = state.drag_start {
                             state.drag_start = None; // In any case, dragging is ended.
-                            (event::Status::Captured, None)
+                            state.drag_shift = None;
+                            if let Some(position) = cursor.position()
+                                && let Some(image_in_canvas) =
+                                    ImageInCanvas::for_app_state_and_bounds(&self.app_state, bounds)
+                            {
+                                let drag_stop = image_in_canvas.mouse_to_image(position);
+                                let pixel_offset: Vector2D<i32, StageSpace> = Vector2D::new(
+                                    (drag_stop.x - drag_start.x) as i32,
+                                    (drag_stop.y - drag_start.y) as i32,
+                                );
+                                self.app_state.runtime.canvas_cache.clear();
+                                (
+                                    event::Status::Captured,
+                                    Some(Message::ShiftStage(pixel_offset)),
+                                )
+                            } else {
+                                (event::Status::Ignored, None)
+                            }
                         } else {
                             (event::Status::Ignored, None)
                         }

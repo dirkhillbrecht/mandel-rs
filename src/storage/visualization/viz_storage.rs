@@ -23,22 +23,21 @@ pub struct VizStorage {
 
 impl VizStorage {
     /// Create a new comp storage instance, initialize the stage internally.
-    pub fn new(arc_of_comp_storage: Arc<CompStorage>) -> VizStorage {
+    pub fn new(arc_of_comp_storage: &Arc<CompStorage>) -> VizStorage {
         // First step: Couple to events so that no changes are missed
         let event_receiver_result = arc_of_comp_storage
-            .as_ref()
             .get_event_receiver(1000, Duration::from_millis(50))
             .ok();
         // Second step: Copy stage
-        let seen_state = arc_of_comp_storage.as_ref().stage.get_state();
+        let seen_state = arc_of_comp_storage.stage.get_state();
         // Third step: Initialize the visualization stage - which reads the contents of the computation stage
         let stage = VizStage::new(&arc_of_comp_storage.as_ref().stage);
         // And here we go!
         VizStorage {
-            properties: arc_of_comp_storage.as_ref().properties,
+            properties: arc_of_comp_storage.properties,
             stage,
             seen_state,
-            comp_storage: arc_of_comp_storage,
+            comp_storage: arc_of_comp_storage.clone(),
             event_receiver: event_receiver_result,
         }
     }
