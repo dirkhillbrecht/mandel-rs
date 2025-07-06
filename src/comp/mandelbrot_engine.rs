@@ -22,7 +22,6 @@ pub enum EngineState {
 }
 
 pub struct MandelbrotEngine {
-    #[allow(dead_code)] // Could be needed for deriving images from the original coordinates
     pub state: Arc<Mutex<EngineState>>,
     storage: Arc<CompStorage>,
     thread_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
@@ -95,10 +94,6 @@ impl MandelbrotEngine {
         if let Some(handle) = thread_handle.take() {
             handle.join().unwrap();
         }
-    }
-
-    pub fn storage(&self) -> Arc<CompStorage> {
-        self.storage.clone()
     }
 }
 

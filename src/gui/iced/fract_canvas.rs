@@ -501,6 +501,7 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
         bounds: iced::Rectangle,
         cursor: iced::mouse::Cursor,
     ) -> (event::Status, Option<Message>) {
+        println!("GGG - FC.u - A, event: {:?}", event);
         match event {
             Event::Mouse(mouse_event) => {
                 match mouse_event {
@@ -557,6 +558,7 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                             (event::Status::Ignored, None)
                         }
                     }
+                    mouse::Event::WheelScrolled { delta } => (event::Status::Ignored, None),
                     _ => (event::Status::Ignored, None),
                 }
             }
