@@ -19,35 +19,48 @@ The application follows a three-layer design:
 3. **Visualization**: ✅ Interactive GUI with real-time fractal rendering
 
 ### Current Implementation Status
-Storage is a two-sided system: A CompStorage allows highly parallel access to the computed data
-with higher general access costs. It is for the computation algorithm. The VizStorage allows
-only sequential access to the data. It is used for the visualization part. An event system
-passes changes from CompStorage to VizStorage. This keeps VizStorage up to date while CompStorage
-is left alone for (almost) exclusive access by the computation algorithm.
+**Storage System**: Dual-storage architecture with CompStorage for parallel computation access and VizStorage for sequential visualization. An event system synchronizes changes between them, keeping VizStorage current while allowing CompStorage exclusive access for computation algorithms.
 
-Computation is kept rather simple at the moment: It computes points of the Mandelbrot set and the escape depth
-of the points surrounding it. Currently, it is a non-parallel simple and straight implementation
-using some randomisation of the computed points.
+**Computation Engine**: Simple, direct implementation computing Mandelbrot set points and escape depths with randomized point selection. Currently non-parallel but designed for future optimization.
 
-Visualization is an interface implemented using Iced 0.13. It allows to enter all data for computation
-and controls the computation engine. Currently it allows to drag the computed image and update the computation.
+**Visualization Interface**: Iced 0.13-based GUI providing computation controls and interactive fractal rendering. Features implemented:
+- ✅ **Panning**: Interactive dragging with deferred coordinate updates
+- 🚧 **Zooming**: Partial implementation with mouse wheel events and `2^(0.1*ticks)` scaling formula
+
+### Interactive Controls Architecture
+The canvas uses a state-based operation system:
+- `CanvasOperation::Idle` - Default state, ready for new interactions
+- `CanvasOperation::Drag` - Active panning with visual feedback
+- `CanvasOperation::Zoom` - Accumulating zoom operations (in progress)
+
+During operations, visual transformations are applied to VizStorage data without recomputation. Only when operations complete are new coordinates calculated for CompStorage, triggering fresh fractal computation.
 
 ## Technical Context
-- Language: Rust (educational focus)
-- Development: VS Code with Rust Extension Pack, auto-format on save with rustfmt
-- GUI Framework: iced 0.13.1 for cross-platform native applications with function-based API
-- Color Science: palette 0.7.6 for professional color space operations and gradient generation
-- Coordinate System: euclid for type-safe mathematical coordinate handling
-- Async Runtime: tokio for non-blocking operations and enhanced threading
-- Streaming: async-stream for creating finite event streams
-- Version Control: Git repository
-- Target Platform: Linux/Ubuntu (system-independent design)
-- Human Background: Experienced Java programmer learning Rust
+- **Language**: Rust (educational focus)
+- **Development**: VS Code with Rust Extension Pack, auto-format on save with rustfmt
+- **GUI Framework**: iced 0.13.1 for cross-platform native applications with function-based API
+- **Color Science**: palette 0.7.6 for professional color space operations and gradient generation
+- **Coordinate System**: euclid for type-safe mathematical coordinate handling
+- **Async Runtime**: tokio for non-blocking operations and enhanced threading
+- **Streaming**: async-stream for creating finite event streams
+- **Version Control**: Git repository
+- **Target Platform**: Linux/Ubuntu (system-independent design)
+- **Human Background**: Experienced Java programmer learning Rust
 
-## Project organisation
-Project development is organized through so-called "manifestos". They describe certain development
-targets. We are currently working in [manifesto 03](manifestos/manifesto-03-cleanup-and-mvp.md) on issue 7.
-While panning is already implemented, zooming is waiting for implementation.
+## Current Development Status
+Project development is organized through [manifestos](manifestos/). Currently working on **[Manifesto 03](manifestos/manifesto-03-cleanup-and-mvp.md): Issue 7 - Interactive Area Selection**.
+
+**Recent Progress**:
+- ✅ Panning implementation complete with deferred coordinate updates
+- 🚧 Zoom event handling implemented with wheel scroll detection
+- 🚧 Zoom factor calculation using `2^(0.1*wheel_ticks)` formula
+- ⏳ Zoom timeout detection for operation completion (architecture decision pending)
+
+**Next Steps**:
+- Resolve zoom timeout detection pattern (canvas vs app state management)
+- Implement zoom coordinate transformation and CompStorage updates
+- Add zoom visual feedback during operation
+- Preserve computed data during zoom operations where possible
 
 ## Communication Guidelines
 - Explain concepts in Java terms when helpful
