@@ -527,7 +527,7 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
         bounds: iced::Rectangle,
         cursor: iced::mouse::Cursor,
     ) -> (event::Status, Option<Message>) {
-        println!("GGG - FC.u - A, event: {:?}", event);
+        //println!("GGG - FC.u - A, event: {:?}", event);
         match event {
             Event::Mouse(mouse_event) => {
                 match mouse_event {
@@ -595,15 +595,22 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                             && let Some(position) = cursor.position()
                             && let Some(point) =
                                 ImageInCanvas::for_app_state_and_bounds(&self.app_state, bounds)
-                                    .map(|iic| iic.mouse_to_image_if_valid(position))
+                                    .and_then(|iic| iic.mouse_to_image_if_valid(position))
                         {
                             state.zoom_tick_sum = Self::mouse_wheel_to_zoom_tick(delta);
                             if state.zoom_tick_sum != 0 {
                                 state.operation = CanvasOperation::Zoom;
-                                state.start_pixel = point;
+                                state.start_pixel = Some(point);
                                 state.zoom_last_tick = Some(Instant::now());
-                                self.app_state.runtime.canvas_cache.clear();
-                                (event::Status::Captured, None)
+                                //self.app_state.runtime.canvas_cache.clear();
+                                println!(
+                                    "GGG - FC.u - T, sending ZoomStart({:?},{})",
+                                    point, state.zoom_tick_sum
+                                );
+                                (
+                                    event::Status::Captured,
+                                    Some(Message::ZoomStart((point, state.zoom_tick_sum))),
+                                )
                             } else {
                                 (event::Status::Ignored, None)
                             }
@@ -612,8 +619,15 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                             if this_tick != 0 {
                                 state.zoom_tick_sum += this_tick;
                                 state.zoom_last_tick = Some(Instant::now());
-                                self.app_state.runtime.canvas_cache.clear();
-                                (event::Status::Captured, None)
+                                //self.app_state.runtime.canvas_cache.clear();
+                                println!(
+                                    "GGG - FC.u - U, sending ZoomTick({})",
+                                    state.zoom_tick_sum
+                                );
+                                (
+                                    event::Status::Captured,
+                                    Some(Message::ZoomTick(state.zoom_tick_sum)),
+                                )
                             } else {
                                 (event::Status::Ignored, None)
                             }

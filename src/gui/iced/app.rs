@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Instant;
 
 use euclid::Rect;
 use iced::widget::canvas::Cache;
@@ -152,6 +153,7 @@ impl Default for VizState {
 pub struct RuntimeState {
     pub computing: bool,
     pub canvas_cache: Cache,
+    pub zoom_timer: Option<Instant>,
 }
 
 impl RuntimeState {
@@ -159,6 +161,7 @@ impl RuntimeState {
         RuntimeState {
             computing,
             canvas_cache: Cache::new(),
+            zoom_timer: None,
         }
     }
 }

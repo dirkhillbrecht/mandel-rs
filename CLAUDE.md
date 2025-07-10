@@ -25,13 +25,15 @@ The application follows a three-layer design:
 
 **Visualization Interface**: Iced 0.13-based GUI providing computation controls and interactive fractal rendering. Features implemented:
 - ✅ **Panning**: Interactive dragging with deferred coordinate updates
-- 🚧 **Zooming**: Partial implementation with mouse wheel events and `2^(0.1*ticks)` scaling formula
+- 🚧 **Zooming**: Event handling and timeout detection complete, coordinate transformation pending
 
 ### Interactive Controls Architecture
 The canvas uses a state-based operation system:
 - `CanvasOperation::Idle` - Default state, ready for new interactions
 - `CanvasOperation::Drag` - Active panning with visual feedback
-- `CanvasOperation::Zoom` - Accumulating zoom operations (in progress)
+- `CanvasOperation::Zoom` - Accumulating zoom operations with timeout detection
+
+**Zoom Implementation**: Canvas collects wheel scroll events and accumulates zoom ticks. The first scroll triggers `ZoomStart` message, subsequent scrolls send `ZoomTick` messages. App state manages a 500ms timeout timer using Iced's subscription system with periodic `ZoomTimerCheck` messages. When timeout expires, `ZoomEnd` message triggers coordinate transformation and computation restart.
 
 During operations, visual transformations are applied to VizStorage data without recomputation. Only when operations complete are new coordinates calculated for CompStorage, triggering fresh fractal computation.
 
@@ -52,12 +54,11 @@ Project development is organized through [manifestos](manifestos/). Currently wo
 
 **Recent Progress**:
 - ✅ Panning implementation complete with deferred coordinate updates
-- 🚧 Zoom event handling implemented with wheel scroll detection
-- 🚧 Zoom factor calculation using `2^(0.1*wheel_ticks)` formula
-- ⏳ Zoom timeout detection for operation completion (architecture decision pending)
+- ✅ Zoom event handling implemented with wheel scroll detection
+- ✅ Zoom factor calculation using `2^(0.1*wheel_ticks)` formula
+- ✅ Zoom timeout detection implemented with subscription-based timer system
 
 **Next Steps**:
-- Resolve zoom timeout detection pattern (canvas vs app state management)
 - Implement zoom coordinate transformation and CompStorage updates
 - Add zoom visual feedback during operation
 - Preserve computed data during zoom operations where possible

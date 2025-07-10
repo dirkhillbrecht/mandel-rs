@@ -1,4 +1,5 @@
-use euclid::Vector2D;
+use euclid::{Point2D, Vector2D};
+use iced::Point;
 
 use crate::{
     comp::math_data::MathPreset,
@@ -29,6 +30,10 @@ pub enum Message {
     IterationAssignmentChanged(IterationAssignment),
     RenderSchemeChanged(ImageRenderScheme),
     ShiftStage(Vector2D<i32, StageSpace>),
+    ZoomStart((Point, i32)),
+    ZoomTick(i32),
+    ZoomTimerCheck,
+    ZoomEnd,
     #[allow(dead_code)]
     MousePressed(iced::Point),
     #[allow(dead_code)]

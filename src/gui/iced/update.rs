@@ -8,7 +8,7 @@ use crate::storage::visualization::viz_storage::VizStorage;
 use euclid::{Point2D, Rect, Size2D};
 use iced::Task;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
     match message {
@@ -146,6 +146,28 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
 
             // Schedule first update
             return Task::perform(async {}, |_| Message::UpdateViz);
+        }
+        Message::ZoomStart(_) => {
+            println!("GGG - u - T, resetting zoom timer");
+            state.runtime.zoom_timer = Some(Instant::now());
+        }
+        Message::ZoomTick(_) => {
+            println!("GGG - u - U, resetting zoom timer");
+            state.runtime.zoom_timer = Some(Instant::now());
+        }
+        Message::ZoomTimerCheck => {
+            println!("GGG - u - V, zoom timer check");
+            if let Some(timer) = state.runtime.zoom_timer
+                && timer.elapsed() > Duration::from_millis(500)
+            {
+                println!("GGG - u - W, zoom timer timeout reached, dropping timer");
+                state.runtime.zoom_timer = None;
+                return Task::perform(async {}, |_| Message::ZoomEnd);
+            }
+        }
+        Message::ZoomEnd => {
+            println!("GGG - u - X, zoom has ended");
+            state.runtime.zoom_timer = None;
         }
         Message::MousePressed(_point) => {}
         Message::MouseDragged(_point) => {}
