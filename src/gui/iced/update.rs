@@ -1,4 +1,63 @@
-/// Update part of the mandel-rs-Iced-GUI
+//! State management and event handling for the Iced GUI application.
+//!
+//! This module implements the core state management logic of the fractal visualization
+//! application using Iced's message-driven architecture. It processes all user interactions,
+//! mathematical parameter changes, and system events to maintain application state and
+//! coordinate between GUI components and the computation engine.
+//!
+//! # Architecture
+//!
+//! ## Message-Driven Updates
+//! Follows Iced's functional update pattern:
+//! ```text
+//! User Action → Message → update() → State Change → UI Re-render
+//! ```
+//!
+//! ## State Categories
+//! The update system manages several categories of application state:
+//!
+//! ### Mathematical Parameters
+//! - **Coordinate Area**: Complex plane region for computation
+//! - **Resolution**: Image dimensions (width × height)
+//! - **Iteration Limits**: Maximum escape-time iterations
+//! - **Presets**: Pre-defined mathematical regions
+//!
+//! ### Computation Lifecycle
+//! - **Engine Management**: Start/stop/monitor computation threads
+//! - **Storage Coordination**: Sync between computation and visualization
+//! - **Progress Tracking**: Real-time computation progress updates
+//! - **Resource Cleanup**: Proper disposal of computation resources
+//!
+//! ### Visual Configuration
+//! - **Color Schemes**: Gradient and assignment function selection
+//! - **Render Settings**: Image scaling and presentation options
+//! - **UI State**: Sidebar visibility and layout preferences
+//!
+//! ### Interactive Navigation
+//! - **Panning**: Coordinate system translation via drag operations
+//! - **Zooming**: Scale transformation with timeout-based completion
+//! - **Visual Feedback**: Real-time preview during operations
+//!
+//! # Key Design Patterns
+//!
+//! ## Async Task Management
+//! Uses Iced's `Task` system for:
+//! - **Computation Triggers**: Auto-starting computation after parameter changes
+//! - **Progress Updates**: Scheduled visualization refresh cycles
+//! - **Interactive Delays**: Zoom timeout detection and completion
+//!
+//! ## Resource Lifecycle
+//! Careful management of computation resources:
+//! - **Engine Coordination**: Stop existing computation before starting new
+//! - **Storage Synchronization**: Maintain dual-storage consistency
+//! - **Cache Invalidation**: Clear visual caches when parameters change
+//!
+//! ## Error Handling
+//! Robust handling of user input and system state:
+//! - **Input Validation**: Parse and validate user-entered parameters
+//! - **State Consistency**: Ensure valid state transitions
+//! - **Fallback Behavior**: Graceful handling of invalid operations
+
 use crate::comp::mandelbrot_engine::{EngineState, MandelbrotEngine};
 use crate::gui::iced::app::{AppState, ZoomState};
 use crate::gui::iced::message::Message;
@@ -10,16 +69,88 @@ use iced::Task;
 use std::sync::Arc;
 use std::time::Duration;
 
+/// Core state update function implementing Iced's message-driven architecture.
+///
+/// Processes all application messages and updates the corresponding state components.
+/// This is the central coordination point for the entire application, handling everything
+/// from UI interactions to computation lifecycle management to interactive navigation.
+///
+/// # Arguments
+///
+/// * `state` - Mutable reference to the complete application state
+/// * `message` - Event message to process (from user actions, timers, or system events)
+///
+/// # Returns
+///
+/// - `Task<Message>` for async operations (computation triggers, timers, progress updates)
+/// - `Task::none()` for immediate state changes with no follow-up actions
+///
+/// # Message Categories
+///
+/// The function handles several categories of messages:
+///
+/// ## UI Control Messages
+/// - **ToggleSidebar**: Show/hide the parameter control sidebar
+/// - **Preset Management**: Mathematical region preset selection and application
+///
+/// ## Mathematical Parameter Messages
+/// - **Coordinate Changes**: Real-time updates to complex plane boundaries
+/// - **Resolution Changes**: Image width/height parameter updates
+/// - **Iteration Limits**: Maximum computation depth configuration
+///
+/// ## Computation Lifecycle Messages
+/// - **ComputeClicked**: Initialize and start new fractal computation
+/// - **UpdateViz**: Periodic visualization refresh during computation
+/// - **StopClicked**: Abort ongoing computation and cleanup resources
+///
+/// ## Visual Configuration Messages
+/// - **Color Scheme Changes**: Gradient and iteration assignment updates
+/// - **Render Settings**: Image scaling and presentation configuration
+///
+/// ## Interactive Navigation Messages
+/// - **ShiftStage**: Apply panning translation to coordinate system
+/// - **Zoom Operations**: Multi-stage zoom with timeout-based completion
+///
+/// # State Management Patterns
+///
+/// ## Resource Coordination
+/// - Stops existing computation before starting new operations
+/// - Maintains synchronization between computation and visualization storage
+/// - Clears visual caches when parameters change
+///
+/// ## Async Task Scheduling
+/// - Auto-triggers computation after parameter changes
+/// - Schedules periodic visualization updates (20ms intervals)
+/// - Implements zoom timeout detection (500ms delay)
+///
+/// ## Error Resilience
+/// - Validates user input before applying parameter changes
+/// - Gracefully handles invalid state transitions
+/// - Provides fallback behavior for edge cases
 pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
     match message {
+        // === UI Control Messages ===
+        // Toggle visibility of the parameter control sidebar
         Message::ToggleSidebar => state.viz.sidebar_visible = !state.viz.sidebar_visible,
+
+        // === Mathematical Preset Management ===
+        // Update selected mathematical preset without applying it
         Message::PresetChanged(value) => state.viz.math_preset = value,
+
+        // Apply the selected preset and trigger computation
+        // Loads preset coordinates and iteration count, then auto-starts computation
         Message::PresetClicked => {
             let data = &state.viz.math_preset.preset();
             state.math.area = data.coordinates();
             state.math.max_iteration = data.max_iteration().to_string();
+            // Auto-trigger computation with preset parameters
             return Task::perform(async {}, |_| Message::ComputeClicked);
         }
+
+        // === Mathematical Parameter Updates ===
+        // Real-time updates to complex plane coordinate boundaries
+        // Uses input validation to prevent invalid mathematical regions
+        // Update left boundary (minimum real coordinate)
         Message::LeftChanged(value) => {
             if let Ok(value) = value.parse::<f64>() {
                 state.math.area = Rect::from_points([
@@ -28,6 +159,8 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 ]);
             }
         }
+
+        // Update right boundary (maximum real coordinate)
         Message::RightChanged(value) => {
             if let Ok(value) = value.parse::<f64>() {
                 state.math.area = Rect::from_points([
@@ -36,6 +169,8 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 ]);
             }
         }
+
+        // Update top boundary (maximum imaginary coordinate)
         Message::TopChanged(value) => {
             if let Ok(value) = value.parse::<f64>() {
                 state.math.area = Rect::from_points([
@@ -44,6 +179,8 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 ]);
             }
         }
+
+        // Update bottom boundary (minimum imaginary coordinate)
         Message::BottomChanged(value) => {
             if let Ok(value) = value.parse::<f64>() {
                 state.math.area = Rect::from_points([
@@ -52,51 +189,79 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 ]);
             }
         }
+
+        // Update image width (stored as string for UI binding)
         Message::WidthChanged(value) => state.math.width = value,
+
+        // Update image height (stored as string for UI binding)
         Message::HeightChanged(value) => state.math.height = value,
+
+        // Update maximum iteration count (stored as string for UI binding)
         Message::MaxIterationChanged(value) => state.math.max_iteration = value,
+        // === Computation Lifecycle Management ===
+        // Initialize and start new fractal computation
+        // Complete resource setup: CompStorage -> Engine -> VizStorage
         Message::ComputeClicked => {
+            // Disable auto-computation to prevent loops
             state.viz.auto_start_computation = false;
+
+            // Validate all mathematical parameters before proceeding
             if let (Ok(width), Ok(height), Ok(max_iteration)) = (
                 state.math.width.parse::<u32>(),
                 state.math.height.parse::<u32>(),
                 state.math.max_iteration.parse::<u32>(),
             ) {
+                // Stop any existing computation to prevent resource conflicts
                 if let Some(engine) = &state.engine {
                     engine.stop();
                 }
                 state.runtime.computing = false;
-                //                    state.runtime.computing = true;
+
+                // Create new computation properties from validated parameters
                 let comp_props = ImageCompProperties::new(
                     StageProperties::new(state.math.area, Size2D::new(width, height)),
                     max_iteration,
                 );
+
+                // Initialize complete computation pipeline:
+                // 1. CompStorage: Parallel-access computation data
                 state.comp_storage = Some(Arc::new(CompStorage::new(comp_props)));
+                // 2. MandelbrotEngine: Computation thread management
                 state.engine = Some(MandelbrotEngine::new(&state.comp_storage.as_ref().unwrap()));
+                // 3. VizStorage: Sequential-access visualization data
                 state.storage = Some(VizStorage::new(&state.comp_storage.as_ref().unwrap()));
+
+                // Start computation and reset visual state
                 state.engine.as_ref().unwrap().start();
                 state.runtime.canvas_cache.clear();
 
-                // Schedule first update
+                // Schedule first visualization update
                 return Task::perform(async {}, |_| Message::UpdateViz);
             } else {
                 println!("Problem with input data");
             }
         }
+        // Periodic visualization update during computation
+        // Processes computation events and schedules next update cycle
         Message::UpdateViz => {
+            // Process any pending computation events and update visualization
             if let Some(ref mut vizstorage) = state.storage {
                 if vizstorage.process_events() {
+                    // Clear canvas cache when new data arrives
                     state.runtime.canvas_cache.clear();
                 }
             }
+
+            // Check computation engine state and manage update cycle
             if let Some(engine) = &state.engine {
                 let engine_state = engine.state();
                 if engine_state == EngineState::Aborted || engine_state == EngineState::Finished {
+                    // Computation completed - cleanup resources and stop updates
                     state.engine = None;
                     state.runtime.computing = false;
-                    return Task::none(); // Stop updates
+                    return Task::none(); // Stop update cycle
                 } else {
-                    // Schedule next update
+                    // Computation still running - schedule next update in 20ms
                     return Task::perform(
                         async {
                             tokio::time::sleep(Duration::from_millis(20)).await;
@@ -106,6 +271,7 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 }
             }
         }
+        // Stop ongoing computation and cleanup resources
         Message::StopClicked => {
             if let Some(_) = state.engine {
                 state.engine.as_ref().unwrap().stop();
@@ -113,45 +279,68 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 state.runtime.computing = false;
             }
         }
+        // === Visual Configuration Changes ===
+        // Updates that affect rendering but not computation data
+        // All require canvas cache clearing for immediate visual update
+        // Change color gradient scheme (affects pixel coloring)
         Message::ColorSchemeChanged(value) => {
             state.viz.gradient_color_preset = value;
             state.runtime.canvas_cache.clear();
         }
+
+        // Change iteration-to-color assignment function (affects visual mapping)
         Message::IterationAssignmentChanged(value) => {
             state.viz.iteration_assignment = value;
             state.runtime.canvas_cache.clear();
         }
+
+        // Change image rendering scheme (affects scaling/presentation)
         Message::RenderSchemeChanged(value) => {
             state.viz.render_scheme = value;
             state.runtime.canvas_cache.clear();
         }
+        // === Interactive Navigation Operations ===
+        // Apply coordinate system translation (panning)
+        // Creates new CompStorage with shifted coordinates and restarts computation
         Message::ShiftStage(offset) => {
+            // Stop existing computation before coordinate change
             if let Some(engine) = &state.engine {
                 engine.stop();
             }
             state.runtime.computing = false;
+
+            // Create new storage with translated coordinates
+            // This preserves any computed data that's still valid after translation
             let new_storage = state
                 .comp_storage
                 .as_ref()
                 .unwrap()
                 .as_ref()
                 .shifted_clone_by_pixels(offset);
+
+            // Update UI coordinate display to reflect new mathematical region
             state.math.area = new_storage.original_properties.stage_properties.coo;
+
+            // Rebuild complete computation pipeline with new coordinates
             state.comp_storage = Some(Arc::new(new_storage));
             state.engine = Some(MandelbrotEngine::new(&state.comp_storage.as_ref().unwrap()));
             state.storage = Some(VizStorage::new(state.comp_storage.as_ref().unwrap()));
+
+            // Start computation and schedule visualization updates
             state.engine.as_ref().unwrap().start();
             state.runtime.canvas_cache.clear();
-
-            // Schedule first update
             return Task::perform(async {}, |_| Message::UpdateViz);
         }
+        // Begin zoom operation with initial mouse wheel input
+        // Stores zoom origin and starts accumulating scroll ticks
         Message::ZoomStart((origin, ticks)) => {
             state.runtime.zoom = Some(ZoomState::start(origin, ticks));
             state.runtime.canvas_cache.clear();
         }
+
+        // Continue zoom operation with additional mouse wheel input
+        // Accumulates scroll ticks and provides immediate visual feedback
         Message::ZoomTick(ticks_offset) => {
-            //state.runtime.zoom.update_ticks(ticks_offset);
             if ticks_offset != 0
                 && let Some(zoom) = &mut state.runtime.zoom
             {
@@ -159,15 +348,22 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 state.runtime.canvas_cache.clear();
             }
         }
+        // Check for zoom timeout and apply accumulated zoom if needed
+        // Called periodically by timer subscription (every ~50ms)
         Message::ZoomEndCheck => {
             if let Some(zoom) = &state.runtime.zoom
                 && zoom.is_timeout(Duration::from_millis(500))
             {
+                // Zoom timeout reached - apply accumulated changes
                 if zoom.ticks != 0 {
+                    // Stop existing computation before coordinate transformation
                     if let Some(engine) = &state.engine {
                         engine.stop();
                     }
                     state.runtime.computing = false;
+
+                    // Create new storage with zoomed coordinates
+                    // Preserves computed data that remains valid after zoom
                     let new_storage = state
                         .comp_storage
                         .as_ref()
@@ -177,22 +373,35 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                             Point2D::new(zoom.origin.x as i32, zoom.origin.y as i32),
                             zoom.factor,
                         );
+
+                    // Update UI coordinate display for new mathematical region
                     state.math.area = new_storage.original_properties.stage_properties.coo;
+
+                    // Rebuild computation pipeline with new coordinates
                     state.comp_storage = Some(Arc::new(new_storage));
                     state.engine =
                         Some(MandelbrotEngine::new(&state.comp_storage.as_ref().unwrap()));
                     state.storage = Some(VizStorage::new(state.comp_storage.as_ref().unwrap()));
+
+                    // Start computation and schedule updates
                     state.engine.as_ref().unwrap().start();
                     state.runtime.canvas_cache.clear();
                     state.runtime.zoom = None;
-                    // Schedule first update
                     return Task::perform(async {}, |_| Message::UpdateViz);
                 }
+                // No zoom changes - just clear zoom state
                 state.runtime.zoom = None;
             }
         }
+        // === Mouse Event Messages (Currently Unused) ===
+        // These are implemented in the canvas event handling instead
+        // Mouse button pressed - handled by canvas interaction system
         Message::MousePressed(_point) => {}
+
+        // Mouse drag - handled by canvas interaction system
         Message::MouseDragged(_point) => {}
+
+        // Mouse button released - handled by canvas interaction system
         Message::MouseReleased(_point) => {}
     }
     Task::none()
