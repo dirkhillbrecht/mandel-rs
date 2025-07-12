@@ -62,24 +62,23 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 state.math.height.parse::<u32>(),
                 state.math.max_iteration.parse::<u32>(),
             ) {
-                if let Some(_) = state.engine {
-                    println!("Engine already initialized");
-                } else {
-                    state.runtime.computing = true;
-                    let comp_props = ImageCompProperties::new(
-                        StageProperties::new(state.math.area, Size2D::new(width, height)),
-                        max_iteration,
-                    );
-                    state.comp_storage = Some(Arc::new(CompStorage::new(comp_props)));
-                    state.engine =
-                        Some(MandelbrotEngine::new(&state.comp_storage.as_ref().unwrap()));
-                    state.storage = Some(VizStorage::new(&state.comp_storage.as_ref().unwrap()));
-                    state.engine.as_ref().unwrap().start();
-                    state.runtime.canvas_cache.clear();
-
-                    // Schedule first update
-                    return Task::perform(async {}, |_| Message::UpdateViz);
+                if let Some(engine) = &state.engine {
+                    engine.stop();
                 }
+                state.runtime.computing = false;
+                //                    state.runtime.computing = true;
+                let comp_props = ImageCompProperties::new(
+                    StageProperties::new(state.math.area, Size2D::new(width, height)),
+                    max_iteration,
+                );
+                state.comp_storage = Some(Arc::new(CompStorage::new(comp_props)));
+                state.engine = Some(MandelbrotEngine::new(&state.comp_storage.as_ref().unwrap()));
+                state.storage = Some(VizStorage::new(&state.comp_storage.as_ref().unwrap()));
+                state.engine.as_ref().unwrap().start();
+                state.runtime.canvas_cache.clear();
+
+                // Schedule first update
+                return Task::perform(async {}, |_| Message::UpdateViz);
             } else {
                 println!("Problem with input data");
             }
