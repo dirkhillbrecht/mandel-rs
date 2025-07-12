@@ -10,7 +10,7 @@
 //! ```text
 //! CompStage (Parallel) → DataPointChange Events → VizStorage (Sequential)
 //!     ↓                        ↓                       ↓
-//! Computation Threads →  Event Batching  →   UI Thread
+//! Computation Threads  →  Event Batching        →   UI Thread
 //! ```
 //!
 //! ## Event Types
