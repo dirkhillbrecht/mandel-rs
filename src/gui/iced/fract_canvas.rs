@@ -1,10 +1,8 @@
 // Code for the central canvas where the interaction with the fractal image happens
 
-use std::time::Instant;
-
 use crate::{
     gui::iced::{
-        app::{AppState, ImageRenderScheme},
+        app::{AppState, ImageRenderScheme, ZoomState},
         message::Message,
     },
     storage::{
@@ -13,7 +11,7 @@ use crate::{
         visualization::{coloring::base::GradientColors, viz_storage::VizStorage},
     },
 };
-use euclid::{Point2D, Vector2D};
+use euclid::Vector2D;
 use iced::{
     Point, Rectangle, Size,
     mouse::{self, ScrollDelta},
@@ -107,6 +105,42 @@ impl Pixels {
             for _ in 0..empty_end_lines {
                 for _ in 0..self.size.width {
                     new_pixels.extend_from_slice(&one_pixel);
+                }
+            }
+            Some(Pixels::at_zero_origin(self.size, new_pixels))
+        }
+    }
+    pub fn zoom(&self, zoom_state: &ZoomState) -> Option<Pixels> {
+        if zoom_state.ticks == 0 {
+            None
+        } else {
+            let one_pixel: [u8; 4] = [0, 0, 0, 0];
+            let zoom_part = 1.0 - 1.0 / zoom_state.factor;
+            let leftpix = zoom_state.origin.x * zoom_part;
+            let toppix = zoom_state.origin.y * zoom_part;
+            let mut new_pixels = Vec::with_capacity(self.size.width * self.size.height * 4);
+            let mut newx = Vec::with_capacity(self.size.width);
+            for x in 0..self.size.width {
+                newx.push(leftpix + x as f32 / zoom_state.factor);
+            }
+            for y in 0..self.size.height {
+                let newy = (toppix + y as f32 / zoom_state.factor) as i32;
+                for x in 0..self.size.width {
+                    let newx = (leftpix + x as f32 / zoom_state.factor) as i32;
+                    if newx < 0
+                        || newx >= self.size.width as i32
+                        || newy < 0
+                        || newy >= self.size.height as i32
+                    {
+                        new_pixels.extend_from_slice(&one_pixel);
+                    } else {
+                        let first_idx = (self.size.width as i32 * newy + newx)
+                            .max(0)
+                            .min((self.size.width * self.size.height) as i32 - 1)
+                            as usize
+                            * 4;
+                        new_pixels.extend_from_slice(&self.pixels[first_idx..first_idx + 4]);
+                    }
                 }
             }
             Some(Pixels::at_zero_origin(self.size, new_pixels))
@@ -335,15 +369,12 @@ impl UsedParts {
 pub enum CanvasOperation {
     Idle,
     Drag,
-    Zoom,
 }
 
 pub struct CanvasState {
     operation: CanvasOperation,
     start_pixel: Option<Point>, // Rename (operation_start?)
     drag_shift: Option<Size>,
-    zoom_tick_sum: i32,
-    zoom_last_tick: Option<std::time::Instant>,
 }
 
 impl Default for CanvasState {
@@ -352,8 +383,6 @@ impl Default for CanvasState {
             operation: CanvasOperation::Idle,
             start_pixel: None,
             drag_shift: None,
-            zoom_tick_sum: 0,
-            zoom_last_tick: None,
         }
     }
 }
@@ -477,6 +506,10 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                 if let Some(rawpixels) = self.create_pixels() {
                     let pixels = if let Some(drag_shift) = state.drag_shift {
                         rawpixels.shift(drag_shift).unwrap_or(rawpixels)
+                    } else if let Some(zoom) = &self.app_state.runtime.zoom
+                        && zoom.ticks != 0
+                    {
+                        rawpixels.zoom(zoom).unwrap_or(rawpixels)
                     } else {
                         rawpixels
                     };
@@ -484,6 +517,7 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                     let image_size = Size::new(pixels.size.width as f32, pixels.size.height as f32);
                     if render_scheme.needs_background_cropped()
                         && let None = state.start_pixel
+                        && let None = self.app_state.runtime.zoom
                     {
                         let background_mgr = ImageInCanvas::init(
                             canvas_bounds,
@@ -527,7 +561,6 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
         bounds: iced::Rectangle,
         cursor: iced::mouse::Cursor,
     ) -> (event::Status, Option<Message>) {
-        //println!("GGG - FC.u - A, event: {:?}", event);
         match event {
             Event::Mouse(mouse_event) => {
                 match mouse_event {
@@ -536,10 +569,10 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                             && let Some(position) = cursor.position()
                             && let Some(point) =
                                 ImageInCanvas::for_app_state_and_bounds(&self.app_state, bounds)
-                                    .map(|iic| iic.mouse_to_image_if_valid(position))
+                                    .and_then(|iic| iic.mouse_to_image_if_valid(position))
                         {
                             state.operation = CanvasOperation::Drag;
-                            state.start_pixel = point;
+                            state.start_pixel = Some(point);
                             state.drag_shift = None;
                             (event::Status::Captured, None)
                         } else {
@@ -591,48 +624,28 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                         }
                     }
                     mouse::Event::WheelScrolled { delta } => {
-                        if state.operation == CanvasOperation::Idle
+                        if self.app_state.runtime.zoom.is_none()
                             && let Some(position) = cursor.position()
                             && let Some(point) =
                                 ImageInCanvas::for_app_state_and_bounds(&self.app_state, bounds)
                                     .and_then(|iic| iic.mouse_to_image_if_valid(position))
                         {
-                            state.zoom_tick_sum = Self::mouse_wheel_to_zoom_tick(delta);
-                            if state.zoom_tick_sum != 0 {
-                                state.operation = CanvasOperation::Zoom;
-                                state.start_pixel = Some(point);
-                                state.zoom_last_tick = Some(Instant::now());
-                                //self.app_state.runtime.canvas_cache.clear();
-                                println!(
-                                    "GGG - FC.u - T, sending ZoomStart({:?},{})",
-                                    point, state.zoom_tick_sum
-                                );
+                            let zoom_tick_sum = Self::mouse_wheel_to_zoom_tick(delta);
+                            if zoom_tick_sum != 0 {
                                 (
                                     event::Status::Captured,
-                                    Some(Message::ZoomStart((point, state.zoom_tick_sum))),
-                                )
-                            } else {
-                                (event::Status::Ignored, None)
-                            }
-                        } else if state.operation == CanvasOperation::Zoom {
-                            let this_tick = Self::mouse_wheel_to_zoom_tick(delta);
-                            if this_tick != 0 {
-                                state.zoom_tick_sum += this_tick;
-                                state.zoom_last_tick = Some(Instant::now());
-                                //self.app_state.runtime.canvas_cache.clear();
-                                println!(
-                                    "GGG - FC.u - U, sending ZoomTick({})",
-                                    state.zoom_tick_sum
-                                );
-                                (
-                                    event::Status::Captured,
-                                    Some(Message::ZoomTick(state.zoom_tick_sum)),
+                                    Some(Message::ZoomStart((point, zoom_tick_sum))),
                                 )
                             } else {
                                 (event::Status::Ignored, None)
                             }
                         } else {
-                            (event::Status::Ignored, None)
+                            let this_tick = Self::mouse_wheel_to_zoom_tick(delta);
+                            if this_tick != 0 {
+                                (event::Status::Captured, Some(Message::ZoomTick(this_tick)))
+                            } else {
+                                (event::Status::Ignored, None)
+                            }
                         }
                     }
                     _ => (event::Status::Ignored, None),

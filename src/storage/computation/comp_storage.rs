@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use euclid::Vector2D;
+use euclid::{Point2D, Vector2D};
 use tokio::sync::mpsc;
 
 use super::comp_stage::CompStage;
@@ -105,6 +105,16 @@ impl CompStorage {
                 .shifted_clone_by_math(self.properties.pixel_to_math_offset(offset)),
             properties: self.properties.shifted_clone_by_pixels(offset),
             stage: self.stage.shifted_clone(offset),
+            event_system: std::sync::Mutex::new(EventSystem::new()),
+        }
+    }
+
+    pub fn zoomed_clone_by_pixels(&self, origin: Point2D<i32, StageSpace>, factor: f32) -> Self {
+        let new_properties = self.properties.zoomed_clone_by_pixels(origin, factor);
+        CompStorage {
+            original_properties: new_properties.clone(),
+            properties: new_properties,
+            stage: self.stage.zoomed_clone(origin, factor),
             event_system: std::sync::Mutex::new(EventSystem::new()),
         }
     }

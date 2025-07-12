@@ -1,6 +1,6 @@
 /// Update part of the mandel-rs-Iced-GUI
 use crate::comp::mandelbrot_engine::{EngineState, MandelbrotEngine};
-use crate::gui::iced::app::AppState;
+use crate::gui::iced::app::{AppState, ZoomState};
 use crate::gui::iced::message::Message;
 use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::image_comp_properties::{ImageCompProperties, StageProperties};
@@ -8,7 +8,7 @@ use crate::storage::visualization::viz_storage::VizStorage;
 use euclid::{Point2D, Rect, Size2D};
 use iced::Task;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
     match message {
@@ -147,27 +147,50 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             // Schedule first update
             return Task::perform(async {}, |_| Message::UpdateViz);
         }
-        Message::ZoomStart(_) => {
-            println!("GGG - u - T, resetting zoom timer");
-            state.runtime.zoom_timer = Some(Instant::now());
+        Message::ZoomStart((origin, ticks)) => {
+            state.runtime.zoom = Some(ZoomState::start(origin, ticks));
+            state.runtime.canvas_cache.clear();
         }
-        Message::ZoomTick(_) => {
-            println!("GGG - u - U, resetting zoom timer");
-            state.runtime.zoom_timer = Some(Instant::now());
-        }
-        Message::ZoomTimerCheck => {
-            println!("GGG - u - V, zoom timer check");
-            if let Some(timer) = state.runtime.zoom_timer
-                && timer.elapsed() > Duration::from_millis(500)
+        Message::ZoomTick(ticks_offset) => {
+            //state.runtime.zoom.update_ticks(ticks_offset);
+            if ticks_offset != 0
+                && let Some(zoom) = &mut state.runtime.zoom
             {
-                println!("GGG - u - W, zoom timer timeout reached, dropping timer");
-                state.runtime.zoom_timer = None;
-                return Task::perform(async {}, |_| Message::ZoomEnd);
+                zoom.update_ticks(ticks_offset);
+                state.runtime.canvas_cache.clear();
             }
         }
-        Message::ZoomEnd => {
-            println!("GGG - u - X, zoom has ended");
-            state.runtime.zoom_timer = None;
+        Message::ZoomEndCheck => {
+            if let Some(zoom) = &state.runtime.zoom
+                && zoom.is_timeout(Duration::from_millis(500))
+            {
+                if zoom.ticks != 0 {
+                    if let Some(engine) = &state.engine {
+                        engine.stop();
+                    }
+                    state.runtime.computing = false;
+                    let new_storage = state
+                        .comp_storage
+                        .as_ref()
+                        .unwrap()
+                        .as_ref()
+                        .zoomed_clone_by_pixels(
+                            Point2D::new(zoom.origin.x as i32, zoom.origin.y as i32),
+                            zoom.factor,
+                        );
+                    state.math.area = new_storage.original_properties.stage_properties.coo;
+                    state.comp_storage = Some(Arc::new(new_storage));
+                    state.engine =
+                        Some(MandelbrotEngine::new(&state.comp_storage.as_ref().unwrap()));
+                    state.storage = Some(VizStorage::new(state.comp_storage.as_ref().unwrap()));
+                    state.engine.as_ref().unwrap().start();
+                    state.runtime.canvas_cache.clear();
+                    state.runtime.zoom = None;
+                    // Schedule first update
+                    return Task::perform(async {}, |_| Message::UpdateViz);
+                }
+                state.runtime.zoom = None;
+            }
         }
         Message::MousePressed(_point) => {}
         Message::MouseDragged(_point) => {}

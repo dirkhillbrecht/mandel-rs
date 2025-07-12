@@ -1,6 +1,6 @@
 use std::sync::RwLock;
 
-use euclid::{Size2D, Vector2D};
+use euclid::{Point2D, Size2D, Vector2D};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::storage::{
@@ -183,6 +183,14 @@ impl CompStage {
                 change_sender: std::sync::Mutex::new(None),
             }
         }
+    }
+
+    /// Return a stage containing some zoomed information from this stage
+    /// The new stage might contain partial data or even nothing at all.
+    /// It should approximate the content as good as possible
+    pub fn zoomed_clone(&self, _origin: Point2D<i32, StageSpace>, _factor: f32) -> Self {
+        // This is a dummy implementation always returning an empty new stage
+        Self::new(Size2D::new(self.size.width as u32, self.size.height as u32))
     }
 }
 

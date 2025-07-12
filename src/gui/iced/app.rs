@@ -1,7 +1,8 @@
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use euclid::Rect;
+use iced::Point;
 use iced::widget::canvas::Cache;
 
 /// Application frame for the Iced-based mandel-rs GUI
@@ -149,11 +150,40 @@ impl Default for VizState {
     }
 }
 
+pub struct ZoomState {
+    pub origin: Point,
+    pub ticks: i32,
+    pub last_action: Instant,
+    pub factor: f32,
+}
+
+impl ZoomState {
+    fn ticks_to_factor(ticks: i32) -> f32 {
+        2.0_f32.powf(0.1 * ticks as f32)
+    }
+    pub fn start(origin: Point, ticks: i32) -> Self {
+        ZoomState {
+            origin,
+            ticks,
+            last_action: Instant::now(),
+            factor: Self::ticks_to_factor(ticks),
+        }
+    }
+    pub fn update_ticks(&mut self, ticks_offset: i32) {
+        self.ticks += ticks_offset;
+        self.last_action = Instant::now();
+        self.factor = Self::ticks_to_factor(self.ticks);
+    }
+    pub fn is_timeout(&self, max_delay: Duration) -> bool {
+        self.last_action.elapsed() >= max_delay
+    }
+}
+
 /// Runtime state of the app
 pub struct RuntimeState {
     pub computing: bool,
     pub canvas_cache: Cache,
-    pub zoom_timer: Option<Instant>,
+    pub zoom: Option<ZoomState>,
 }
 
 impl RuntimeState {
@@ -161,7 +191,7 @@ impl RuntimeState {
         RuntimeState {
             computing,
             canvas_cache: Cache::new(),
-            zoom_timer: None,
+            zoom: None,
         }
     }
 }

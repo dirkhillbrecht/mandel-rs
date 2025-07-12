@@ -1,4 +1,4 @@
-use euclid::{Point2D, Vector2D};
+use euclid::Vector2D;
 use iced::Point;
 
 use crate::{
@@ -32,8 +32,7 @@ pub enum Message {
     ShiftStage(Vector2D<i32, StageSpace>),
     ZoomStart((Point, i32)),
     ZoomTick(i32),
-    ZoomTimerCheck,
-    ZoomEnd,
+    ZoomEndCheck,
     #[allow(dead_code)]
     MousePressed(iced::Point),
     #[allow(dead_code)]

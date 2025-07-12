@@ -13,6 +13,7 @@ pub struct StageProperties {
 
     pub dotsize: Size2D<f64, MathSpace>,
     pub coo_base: Point2D<f64, MathSpace>,
+    pub coo_correction: Vector2D<f64, MathSpace>,
 }
 
 impl StageProperties {
@@ -22,15 +23,14 @@ impl StageProperties {
             coo.width() / pixels.width as f64,
             coo.height() / pixels.height as f64,
         );
-        let coo_base = Point2D::new(
-            coo.min_x() + (dotsize.width / 2.0),
-            coo.max_y() - (dotsize.height / 2.0),
-        );
+        let coo_correction = Vector2D::new(dotsize.width / 2.0, -dotsize.height / 2.0);
+        let coo_base = Point2D::new(coo.min_x(), coo.max_y()) + coo_correction;
         StageProperties {
             coo,
             pixels,
             dotsize,
             coo_base,
+            coo_correction,
         }
     }
 
@@ -58,6 +58,7 @@ impl StageProperties {
             pixels: self.pixels,
             dotsize: self.dotsize,
             coo_base,
+            coo_correction: self.coo_correction,
         }
     }
 
@@ -65,6 +66,30 @@ impl StageProperties {
     /// and aspect ratio of everything.
     pub fn shifted_clone_by_pixels(&self, offset: Vector2D<i32, StageSpace>) -> StageProperties {
         self.shifted_clone_by_math(self.pixel_to_math_offset(offset))
+    }
+
+    pub fn zoomed_clone_by_pixels(&self, origin: Point2D<i32, StageSpace>, factor: f64) -> Self {
+        let math_origin = self.pix_to_math(origin);
+        let new_dotsize = self.dotsize / factor;
+        let new_coo_correction = Vector2D::new(new_dotsize.width / 2.0, -new_dotsize.height / 2.0);
+        let new_coo_base = Point2D::new(
+            math_origin.x - (origin.x as f64 * new_dotsize.width),
+            math_origin.y + (origin.y as f64 * new_dotsize.height),
+        );
+        let new_top_left = new_coo_base - new_coo_correction;
+        let new_bottom_right = new_top_left
+            + Vector2D::new(
+                new_dotsize.width * self.pixels.width as f64,
+                -new_dotsize.height * self.pixels.height as f64,
+            );
+        let new_coo = Rect::from_points([new_top_left, new_bottom_right]);
+        StageProperties {
+            coo: new_coo,
+            pixels: self.pixels,
+            dotsize: new_dotsize,
+            coo_base: new_coo_base,
+            coo_correction: new_coo_correction,
+        }
     }
 
     /// Return the mathematical x coordinate for the given pixel x coordinate
@@ -178,6 +203,17 @@ impl ImageCompProperties {
     pub fn shifted_clone_by_pixels(&self, offset: Vector2D<i32, StageSpace>) -> Self {
         ImageCompProperties {
             stage_properties: self.stage_properties.shifted_clone_by_pixels(offset),
+            max_iteration: self.max_iteration,
+        }
+    }
+
+    /// Zoom the stage properties around the given origin pixel by the given factor
+    /// while retaining size of the stage and aspect ratio
+    pub fn zoomed_clone_by_pixels(&self, origin: Point2D<i32, StageSpace>, factor: f32) -> Self {
+        ImageCompProperties {
+            stage_properties: self
+                .stage_properties
+                .zoomed_clone_by_pixels(origin, factor as f64),
             max_iteration: self.max_iteration,
         }
     }
