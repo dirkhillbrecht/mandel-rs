@@ -72,121 +72,118 @@ use crate::{
 #[derive(Debug, Clone)]
 pub enum Message {
     // === UI Control Messages ===
-    
     /// Toggle visibility of the control sidebar
     /// Triggered by: Sidebar toggle button
     ToggleSidebar,
-    
+
     // === Mathematical Parameter Messages ===
-    
     /// Mathematical preset selection changed
     /// Triggered by: Preset dropdown selection
     /// Data: New preset (MandelbrotFull, JuliaSet, etc.)
     PresetChanged(MathPreset),
-    
+
     /// Apply current preset to coordinate fields
     /// Triggered by: "Apply Preset" button click
     PresetClicked,
-    
+
     /// Left coordinate boundary changed
     /// Triggered by: Left coordinate text input
     /// Data: New coordinate value as string
     LeftChanged(String),
-    
+
     /// Right coordinate boundary changed
     /// Triggered by: Right coordinate text input
     /// Data: New coordinate value as string
     RightChanged(String),
-    
+
     /// Top coordinate boundary changed
-    /// Triggered by: Top coordinate text input  
+    /// Triggered by: Top coordinate text input
     /// Data: New coordinate value as string
     TopChanged(String),
-    
+
     /// Bottom coordinate boundary changed
     /// Triggered by: Bottom coordinate text input
     /// Data: New coordinate value as string
     BottomChanged(String),
-    
+
     /// Image width in pixels changed
     /// Triggered by: Width text input
     /// Data: New width value as string
     WidthChanged(String),
-    
+
     /// Image height in pixels changed
     /// Triggered by: Height text input
     /// Data: New height value as string
     HeightChanged(String),
-    
+
     /// Maximum iteration count changed
     /// Triggered by: Max iteration text input
     /// Data: New iteration limit as string
     MaxIterationChanged(String),
-    
+
     // === Computation Control Messages ===
-    
+    /// Update maximum iteration of the image
+    MaxIterationUpdateClicked,
+
     /// Start fractal computation
     /// Triggered by: "Compute" button click
     ComputeClicked,
-    
+
     /// Stop ongoing computation
     /// Triggered by: "Stop" button click
     StopClicked,
-    
+
     /// Update visualization with new data
     /// Triggered by: Async computation progress events
     UpdateViz,
-    
+
     // === Visual Configuration Messages ===
-    
     /// Color gradient scheme changed
     /// Triggered by: Color scheme dropdown
     /// Data: New color preset (Sunrise, Ocean, etc.)
     ColorSchemeChanged(GradientColorPreset),
-    
+
     /// Iteration-to-color mapping function changed
     /// Triggered by: Iteration assignment dropdown
     /// Data: New assignment function (Linear, Logarithmic, etc.)
     IterationAssignmentChanged(IterationAssignment),
-    
+
     /// Image rendering scheme changed
     /// Triggered by: Render scheme dropdown
     /// Data: New rendering mode (Cropped, Fitted, Centered)
     RenderSchemeChanged(ImageRenderScheme),
-    
+
     // === Interactive Navigation Messages ===
-    
     /// Coordinate system shift completed
     /// Triggered by: Canvas drag operation completion
     /// Data: Pixel offset vector for coordinate translation
     ShiftStage(Vector2D<i32, StageSpace>),
-    
+
     /// Zoom operation initiated
     /// Triggered by: First mouse wheel scroll
     /// Data: (zoom origin pixel, initial scroll ticks)
     ZoomStart((Point, i32)),
-    
+
     /// Additional zoom input received
     /// Triggered by: Subsequent mouse wheel scrolls during zoom
     /// Data: Additional scroll ticks to accumulate
     ZoomTick(i32),
-    
+
     /// Check if zoom operation should complete
     /// Triggered by: Timer subscription (every ~50ms during zoom)
     ZoomEndCheck,
-    
+
     // === Mouse Event Messages (Currently Unused) ===
-    
     /// Mouse button pressed on canvas
     /// Status: Implemented in canvas event handling instead
     #[allow(dead_code)]
     MousePressed(iced::Point),
-    
+
     /// Mouse dragged across canvas
     /// Status: Implemented in canvas event handling instead
     #[allow(dead_code)]
     MouseDragged(iced::Point),
-    
+
     /// Mouse button released on canvas
     /// Status: Implemented in canvas event handling instead
     #[allow(dead_code)]

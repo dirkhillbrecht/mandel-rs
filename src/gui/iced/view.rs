@@ -181,9 +181,14 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
             }),
             // === Iteration Limit Configuration ===
             text("Max. iterations:"),
-            text_input("", &state.math.max_iteration.to_string())
-                .width(100)
-                .on_input(Message::MaxIterationChanged),
+            row![
+                text_input("", &state.math.max_iteration.to_string())
+                    .width(100)
+                    .on_input(Message::MaxIterationChanged),
+                button(">").on_press(Message::MaxIterationUpdateClicked)
+            ]
+            .spacing(6)
+            .align_y(iced::Alignment::Center),
             // === Complex Plane Coordinate Bounds ===
             text("Right/Top:"),
             row![

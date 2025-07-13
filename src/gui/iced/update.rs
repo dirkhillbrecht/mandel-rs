@@ -212,6 +212,35 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
         }
 
         // === Computation Lifecycle Management ===
+
+        // Make a changed maximum iteration effective
+        Message::MaxIterationUpdateClicked => {
+            if let Some(comp_storage) = state.comp_storage.as_ref() {
+                // Stop existing computation before coordinate change
+                if let Some(engine) = &state.engine {
+                    engine.stop();
+                }
+                state.runtime.computing = false;
+
+                // Create new storage with translated coordinates
+                // This preserves any computed data that's still valid after translation
+                let new_storage = comp_storage.as_ref().max_iteration_changed_clone(
+                    comp_storage.as_ref().properties.max_iteration,
+                    state.math.max_iteration,
+                );
+
+                // Rebuild complete computation pipeline with new coordinates
+                state.comp_storage = Some(Arc::new(new_storage));
+                state.engine = Some(MandelbrotEngine::new(&state.comp_storage.as_ref().unwrap()));
+                state.storage = Some(VizStorage::new(state.comp_storage.as_ref().unwrap()));
+
+                // Start computation and schedule visualization updates
+                state.engine.as_ref().unwrap().start();
+                state.runtime.canvas_cache.clear();
+                return Task::perform(async {}, |_| Message::UpdateViz);
+            }
+        }
+
         // Initialize and start new fractal computation
         // Complete resource setup: CompStorage -> Engine -> VizStorage
         Message::ComputeClicked => {

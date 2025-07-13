@@ -384,6 +384,25 @@ impl CompStorage {
             event_system: std::sync::Mutex::new(EventSystem::new()),
         }
     }
+
+    pub fn max_iteration_changed_clone(
+        &self,
+        old_max_iteration: u32,
+        new_max_iteration: u32,
+    ) -> Self {
+        CompStorage {
+            original_properties: self
+                .original_properties
+                .max_iteration_changed_clone(new_max_iteration),
+            properties: self
+                .properties
+                .max_iteration_changed_clone(new_max_iteration),
+            stage: self
+                .stage
+                .max_iteration_changed_clone(old_max_iteration, new_max_iteration),
+            event_system: std::sync::Mutex::new(EventSystem::new()),
+        }
+    }
 }
 
 // end of file

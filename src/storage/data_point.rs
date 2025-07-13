@@ -18,7 +18,7 @@
 //! ```rust
 //! // Create a computed data point from fractal algorithm
 //! let point = DataPoint::computed(42, final_z_value);
-//! 
+//!
 //! // Create an estimated point for progressive rendering
 //! let estimated = some_computed_point.as_guessed();
 //! ```
@@ -180,6 +180,32 @@ impl DataPoint {
             self.final_coordinate,
             DataQuality::Guessed,
         )
+    }
+    /// Creates a copy of this data point containing the data for a changed maximum iteration.
+    ///
+    /// If the current data max iteration is deeper than then requested new maximum iteration depth,
+    /// a point the the new max iteration depth (and unknown final coordinate) is returned.
+    /// If the current data max iteration is equal to the old max iteration (and the new max iteration
+    /// is deeper than the old max iteration) an empty data point is returned to invalidate this data.
+    /// In all other cases, a copy of this data point is returned.
+    pub fn for_new_max_iteration(
+        &self,
+        old_max_iteration: u32,
+        new_max_iteration: u32,
+    ) -> Option<Self> {
+        if self.iteration_count > new_max_iteration {
+            Some(Self::new(
+                new_max_iteration,
+                self.iteration_count_quality,
+                Point2D::zero(),
+                DataQuality::Unknown,
+            ))
+        } else if self.iteration_count == old_max_iteration && new_max_iteration > old_max_iteration
+        {
+            None
+        } else {
+            Some(*self)
+        }
     }
 }
 

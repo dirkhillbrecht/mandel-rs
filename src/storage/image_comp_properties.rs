@@ -566,6 +566,14 @@ impl ImageCompProperties {
         }
     }
 
+    /// Create a cloned properties storage where the max_iteration setting is takenfrom the app's model.
+    pub fn max_iteration_changed_clone(&self, new_max_iteration: u32) -> Self {
+        ImageCompProperties {
+            stage_properties: self.stage_properties.clone(),
+            max_iteration: new_max_iteration,
+        }
+    }
+
     /// Converts pixel displacement to mathematical displacement.
     ///
     /// Convenience method delegating to the underlying `StageProperties`.

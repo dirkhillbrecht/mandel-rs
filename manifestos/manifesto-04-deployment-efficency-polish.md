@@ -59,7 +59,7 @@ Snappy zoom mode can be turned on and off with a checkbox and that default value
 For the computational data storage, the dual stage approach is a very strong base.
 However, there is a number of enhancements possible and needed.
 
-### Issue 4.7: Move maximum iteration and stage size into mathematical model
+### ✅ (2025-07-13) Issue 4.7: Move maximum iteration and stage size into mathematical model
 
 The primary representation of the stage size and the maximum iteration depth are still the String-based
 input fields in the interface.
@@ -100,7 +100,7 @@ If the stage's size is changed by some integer exponents of 2, points can be kep
 need to be recomputed.
 Algorithmically, this is quite similar to the handling of 2^Z zooms mentioned above.
 
-#### Issue 4.10.3: Keep calculated data when maximum iteration changes
+#### ✅ (2025-07-14) Issue 4.10.3: Keep calculated data when maximum iteration changes
 
 If the maximum iteration changes exclusively in the image data, recomputation can be kept to _some_ points of the image:
 

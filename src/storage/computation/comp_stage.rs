@@ -145,12 +145,12 @@ impl CompStage {
     pub fn size(&self) -> Size2D<usize, StageSpace> {
         self.size
     }
-    
+
     /// Returns the stage width in pixels.
     pub fn width(&self) -> usize {
         self.size.width
     }
-    
+
     /// Returns the stage height in pixels.
     pub fn height(&self) -> usize {
         self.size.height
@@ -457,11 +457,11 @@ impl CompStage {
     ///
     /// ```text
     /// Original Stage    Offset (+1, +1)    Result Stage
-    /// ┌────────────┐                      ┌────────────┐
+    /// ┌───────┐                      ┌───────┐
     /// │ A B C │                      │ . . . │
     /// │ D E F │      →               │ . A B │
     /// │ G H I │                      │ . D E │
-    /// └────────────┘                      └────────────┘
+    /// └───────┘                      └───────┘
     /// ```
     pub fn shifted_clone(&self, offset: Vector2D<i32, StageSpace>) -> Self {
         if offset.x.abs() as usize >= self.size.width || offset.y.abs() as usize >= self.size.height
@@ -541,6 +541,25 @@ impl CompStage {
     pub fn zoomed_clone(&self, _origin: Point2D<i32, StageSpace>, _factor: f32) -> Self {
         // This is a dummy implementation always returning an empty new stage
         Self::new(Size2D::new(self.size.width as u32, self.size.height as u32))
+    }
+
+    pub fn max_iteration_changed_clone(
+        &self,
+        old_max_iteration: u32,
+        new_max_iteration: u32,
+    ) -> Self {
+        let mut data = Vec::with_capacity(self.size.area());
+        for idx in 0..self.size.area() {
+            data.push(RwLock::new(self.internal_get(idx).and_then(|p| {
+                p.for_new_max_iteration(old_max_iteration, new_max_iteration)
+            })));
+        }
+        CompStage {
+            size: self.size,
+            data,
+            state: RwLock::new(StageState::Stalled),
+            change_sender: std::sync::Mutex::new(None),
+        }
     }
 }
 
