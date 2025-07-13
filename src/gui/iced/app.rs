@@ -14,14 +14,14 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use euclid::Rect;
+use euclid::{Rect, Size2D};
 use iced::Point;
 use iced::widget::canvas::Cache;
 
 use crate::comp::mandelbrot_engine::MandelbrotEngine;
 use crate::comp::math_data::{MathData, MathPreset};
 use crate::storage::computation::comp_storage::CompStorage;
-use crate::storage::coord_spaces::MathSpace;
+use crate::storage::coord_spaces::{MathSpace, StageSpace};
 use crate::storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment};
 use crate::storage::visualization::viz_storage::VizStorage;
 
@@ -35,21 +35,18 @@ use crate::storage::visualization::viz_storage::VizStorage;
 ///
 /// ```rust
 /// let math_state = MathState::new(
-///     "800".to_string(),
-///     "600".to_string(),
+///     Size2D::new(800,600),
 ///     some_coordinate_rect,
 ///     "1000".to_string(),
 /// );
 /// ```
 pub struct MathState {
-    /// Image width in pixels (stored as string for UI binding)
-    pub width: String,
-    /// Image height in pixels (stored as string for UI binding)
-    pub height: String,
+    /// Size of the stage
+    pub stage_size: Size2D<u32, StageSpace>,
     /// Mathematical coordinate rectangle defining the viewed area
     pub area: Rect<f64, MathSpace>,
     /// Maximum iteration count for fractal computation (stored as string for UI binding)
-    pub max_iteration: String,
+    pub max_iteration: u32,
 }
 
 impl MathState {
@@ -57,19 +54,16 @@ impl MathState {
     ///
     /// # Arguments
     ///
-    /// * `width` - Image width in pixels as string
-    /// * `height` - Image height in pixels as string
+    /// * `stage_size` - Size of the computation stage
     /// * `area` - Mathematical coordinate rectangle
     /// * `max_iteration` - Maximum iteration count as string
     pub fn new(
-        width: String,
-        height: String,
+        stage_size: Size2D<u32, StageSpace>,
         area: Rect<f64, MathSpace>,
-        max_iteration: String,
+        max_iteration: u32,
     ) -> Self {
         MathState {
-            width,
-            height,
+            stage_size,
             area,
             max_iteration,
         }
@@ -81,16 +75,10 @@ impl MathState {
     ///
     /// # Arguments
     ///
-    /// * `width` - Image width in pixels as string
-    /// * `height` - Image height in pixels as string
+    /// * `stage_size` - Size of the computation stage
     /// * `data` - Source MathData containing coordinates and iteration limit
-    pub fn from_math_data(width: String, height: String, data: MathData) -> Self {
-        Self::new(
-            width,
-            height,
-            data.coordinates(),
-            data.max_iteration().to_string(),
-        )
+    pub fn from_math_data(stage_size: Size2D<u32, StageSpace>, data: MathData) -> Self {
+        Self::new(stage_size, data.coordinates(), data.max_iteration())
     }
 }
 
@@ -99,8 +87,7 @@ impl Default for MathState {
     /// and full Mandelbrot set view.
     fn default() -> Self {
         Self::from_math_data(
-            "800".to_string(),
-            "600".to_string(),
+            Size2D::new(800, 600),
             MathPreset::preset(&MathPreset::MandelbrotFull),
         )
     }

@@ -142,7 +142,7 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
         Message::PresetClicked => {
             let data = &state.viz.math_preset.preset();
             state.math.area = data.coordinates();
-            state.math.max_iteration = data.max_iteration().to_string();
+            state.math.max_iteration = data.max_iteration();
             // Auto-trigger computation with preset parameters
             return Task::perform(async {}, |_| Message::ComputeClicked);
         }
@@ -191,13 +191,26 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
         }
 
         // Update image width (stored as string for UI binding)
-        Message::WidthChanged(value) => state.math.width = value,
+        Message::WidthChanged(value) => {
+            if let Ok(value) = value.parse::<u32>() {
+                state.math.stage_size = Size2D::new(value, state.math.stage_size.height);
+            }
+        }
 
         // Update image height (stored as string for UI binding)
-        Message::HeightChanged(value) => state.math.height = value,
+        Message::HeightChanged(value) => {
+            if let Ok(value) = value.parse::<u32>() {
+                state.math.stage_size = Size2D::new(state.math.stage_size.width, value);
+            }
+        }
 
         // Update maximum iteration count (stored as string for UI binding)
-        Message::MaxIterationChanged(value) => state.math.max_iteration = value,
+        Message::MaxIterationChanged(value) => {
+            if let Ok(value) = value.parse::<u32>() {
+                state.math.max_iteration = value;
+            }
+        }
+
         // === Computation Lifecycle Management ===
         // Initialize and start new fractal computation
         // Complete resource setup: CompStorage -> Engine -> VizStorage
@@ -205,41 +218,32 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             // Disable auto-computation to prevent loops
             state.viz.auto_start_computation = false;
 
-            // Validate all mathematical parameters before proceeding
-            if let (Ok(width), Ok(height), Ok(max_iteration)) = (
-                state.math.width.parse::<u32>(),
-                state.math.height.parse::<u32>(),
-                state.math.max_iteration.parse::<u32>(),
-            ) {
-                // Stop any existing computation to prevent resource conflicts
-                if let Some(engine) = &state.engine {
-                    engine.stop();
-                }
-                state.runtime.computing = false;
-
-                // Create new computation properties from validated parameters
-                let comp_props = ImageCompProperties::new(
-                    StageProperties::new(state.math.area, Size2D::new(width, height)),
-                    max_iteration,
-                );
-
-                // Initialize complete computation pipeline:
-                // 1. CompStorage: Parallel-access computation data
-                state.comp_storage = Some(Arc::new(CompStorage::new(comp_props)));
-                // 2. MandelbrotEngine: Computation thread management
-                state.engine = Some(MandelbrotEngine::new(&state.comp_storage.as_ref().unwrap()));
-                // 3. VizStorage: Sequential-access visualization data
-                state.storage = Some(VizStorage::new(&state.comp_storage.as_ref().unwrap()));
-
-                // Start computation and reset visual state
-                state.engine.as_ref().unwrap().start();
-                state.runtime.canvas_cache.clear();
-
-                // Schedule first visualization update
-                return Task::perform(async {}, |_| Message::UpdateViz);
-            } else {
-                println!("Problem with input data");
+            // Stop any existing computation to prevent resource conflicts
+            if let Some(engine) = &state.engine {
+                engine.stop();
             }
+            state.runtime.computing = false;
+
+            // Create new computation properties from validated parameters
+            let comp_props = ImageCompProperties::new(
+                StageProperties::new(state.math.area, state.math.stage_size),
+                state.math.max_iteration,
+            );
+
+            // Initialize complete computation pipeline:
+            // 1. CompStorage: Parallel-access computation data
+            state.comp_storage = Some(Arc::new(CompStorage::new(comp_props)));
+            // 2. MandelbrotEngine: Computation thread management
+            state.engine = Some(MandelbrotEngine::new(&state.comp_storage.as_ref().unwrap()));
+            // 3. VizStorage: Sequential-access visualization data
+            state.storage = Some(VizStorage::new(&state.comp_storage.as_ref().unwrap()));
+
+            // Start computation and reset visual state
+            state.engine.as_ref().unwrap().start();
+            state.runtime.canvas_cache.clear();
+
+            // Schedule first visualization update
+            return Task::perform(async {}, |_| Message::UpdateViz);
         }
         // Periodic visualization update during computation
         // Processes computation events and schedules next update cycle

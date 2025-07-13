@@ -154,11 +154,11 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
             .align_y(iced::Alignment::Center),
             // === Image Resolution Controls ===
             row![
-                text_input("", &state.math.width)
+                text_input("", &state.math.stage_size.width.to_string())
                     .width(50)
                     .on_input(Message::WidthChanged),
                 text("*"),
-                text_input("", &state.math.height)
+                text_input("", &state.math.stage_size.height.to_string())
                     .width(50)
                     .on_input(Message::HeightChanged),
                 text("px")
@@ -181,7 +181,7 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
             }),
             // === Iteration Limit Configuration ===
             text("Max. iterations:"),
-            text_input("", &state.math.max_iteration)
+            text_input("", &state.math.max_iteration.to_string())
                 .width(100)
                 .on_input(Message::MaxIterationChanged),
             // === Complex Plane Coordinate Bounds ===
