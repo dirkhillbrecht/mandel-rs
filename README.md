@@ -1,5 +1,7 @@
 # Mandel.rs - A fractal graphics visualizer as learning the Rust programming language with the help of AI
 
+![Mandel-rs GUI](etc/readme-graphics/screenshot.jpg)
+
 This project implements a fractal graphics program from scratch in Rust. I use this to
 
 1. Write a fractal graphics program I always wanted to have but could not find so far
