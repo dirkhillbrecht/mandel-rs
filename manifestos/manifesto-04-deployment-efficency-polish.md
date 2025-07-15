@@ -163,7 +163,7 @@ That algorithm is reimplemented in Rust.
 Finally, there are some tasks targetting the program as a whole.
 Note that some of these tasks might be decided to be not yet ready and moved forward into a later manifesto.
 
-### Issue 4.17: Update tokio to 1.46
+### ✅ (2025-07-15) Issue 4.17: Update tokio to 1.46
 
 We currently use version 1.0 of the tokio library.
 This version seems to be vastly behind the current version which is 1.46.
