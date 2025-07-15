@@ -192,6 +192,10 @@ some automatic process regenerates the online documentation of the classes.
 Every time a release commit is pushed to Github,
 some automatic process produces an actual released version of the program
 
+### Issue 4.22: Compile the version number into the executable
+
+Mandel.rs should know about its own version number and present it somewhere, e.g. in the window title.
+
 
 ## Summary
 

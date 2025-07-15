@@ -121,6 +121,9 @@ pub enum Message {
     /// Data: New iteration limit as string
     MaxIterationChanged(String),
 
+    /// Name of the file to save the image data into has changed
+    SaveNameChanged(String),
+
     // === Computation Control Messages ===
     /// Update maximum iteration of the image
     MaxIterationUpdateClicked,
@@ -132,6 +135,9 @@ pub enum Message {
     /// Stop ongoing computation
     /// Triggered by: "Stop" button click
     StopClicked,
+
+    /// Save the content of the current image to the save file
+    SaveImageClicked,
 
     /// Update visualization with new data
     /// Triggered by: Async computation progress events
