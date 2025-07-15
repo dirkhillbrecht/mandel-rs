@@ -1,4 +1,6 @@
-# Mandel.rs - A fractal graphics visualizer as learning the Rust programming language with the help of AI
+# Mandel.rs - A fractal graphics visualizer
+
+_A project to learn the Rust programming language with the help of AI_
 
 ![Mandel-rs GUI](etc/readme-graphics/screenshot.jpg)
 
@@ -7,6 +9,8 @@ This project implements a fractal graphics program from scratch in Rust. I use t
 1. Write a fractal graphics program I always wanted to have but could not find so far
 2. Learn Rust
 3. Use AI help for this endeavour.
+
+See [installation instructions](INSTALL.md) on how to install this program locally; spoiler: You have to compile it…
 
 ## Features of this program
 
@@ -18,11 +22,15 @@ This program is in its infancy. It can
 * Select maximum iteration depth and output image size
 * Zoom and pan the computed area
 
-However, I have a clear vision about what this program should do once it is finished:
+It implements these features on a foundation I hope to be quite powerful:
 
-* Compute fractal graphics with efficient algorithms
-* Visualize them _independently_ of computation, i.e. colors and color assignments to iteration depths can be changed _without_ recomputation
+* Visualization is _independent_ from computation, i.e. colors and color assignments to iteration depths can be changed _without_ recomputation
 * Continuous update of visualization during computation
+* Sophisticated data storage engine with two storage areas: One highly parallel accessible for the computation algorithm, one very speedy for the vizualisation, both connected with an event messaging queue
+* Resolution of computation stage completely independent of screen resolution or window size.
+
+Additionally, I have a clear vision about crucial features:
+
 * Local GUI in the beginning, probably abandoned for remote control.
 * Remote control through a client-server structure with a browser-based interface
 * Batch computation of (very) high resolution images
