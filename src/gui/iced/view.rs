@@ -260,6 +260,18 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
                 Message::RenderSchemeChanged,
             )
             .width(150),
+            row![
+                text("Stripes:"),
+                text_input("", &state.viz.gradient_color_stripes.to_string())
+                    .width(50)
+                    .on_input(Message::RenderStripesChanged),
+                text("Offset:"),
+                text_input("", &state.viz.gradient_color_offset.to_string())
+                    .width(50)
+                    .on_input(Message::RenderOffsetChanged)
+            ]
+            .spacing(6)
+            .align_y(iced::Alignment::Center),
             button("Save PNG").on_press_maybe(if state.runtime.computing {
                 None
             } else {

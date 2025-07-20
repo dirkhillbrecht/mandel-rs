@@ -237,6 +237,8 @@ pub struct GradientColors {
     body_color: Srgb<u8>,
     /// Pre-computed color lookup table for escaped points
     stripes: Vec<Srgb<u8>>,
+    /// Offset when applying color
+    offset: usize,
 }
 
 impl GradientColors {
@@ -265,10 +267,11 @@ impl GradientColors {
     ///
     /// Initialization: O(stripe_count) for interpolation calculation
     /// Runtime: O(1) for each color lookup
-    pub fn new(scheme: &GradientColorScheme, stripe_count: usize) -> Self {
+    pub fn new(scheme: &GradientColorScheme, stripe_count: usize, offset: usize) -> Self {
         GradientColors {
             body_color: scheme.body_color.into(),
             stripes: scheme.create_interpolation(stripe_count),
+            offset,
         }
     }
 
@@ -343,8 +346,9 @@ impl GradientColors {
             Self::rgb_to_u84(&self.body_color)
         } else {
             Self::rgb_to_u84(
-                &self.stripes
-                    [assigner(it, self.stripes.len() as u32) as usize % self.stripes.len()],
+                &self.stripes[(assigner(it, self.stripes.len() as u32) as usize)
+                    .wrapping_add(self.offset)
+                    % self.stripes.len()],
             )
         }
     }

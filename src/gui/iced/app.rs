@@ -180,6 +180,10 @@ pub struct VizState {
     pub sidebar_visible: bool,
     /// Color gradient scheme for fractal visualization
     pub gradient_color_preset: GradientColorPreset,
+    /// Stripe count of the gradient colors
+    pub gradient_color_stripes: u32,
+    /// Offset to start when cyclint the gradient colors
+    pub gradient_color_offset: u32,
     /// Function mapping iteration count to color position
     pub iteration_assignment: IterationAssignment,
     /// How the computed image fits within the display canvas
@@ -202,6 +206,8 @@ impl VizState {
         auto_start_computation: bool,
         sidebar_visible: bool,
         gradient_color_preset: GradientColorPreset,
+        gradient_color_stripes: u32,
+        gradient_color_offset: u32,
         iteration_assignment: IterationAssignment,
         render_scheme: ImageRenderScheme,
     ) -> Self {
@@ -210,6 +216,8 @@ impl VizState {
             auto_start_computation,
             sidebar_visible,
             gradient_color_preset,
+            gradient_color_stripes,
+            gradient_color_offset,
             iteration_assignment,
             render_scheme,
         }
@@ -227,6 +235,8 @@ impl Default for VizState {
             true,
             true,
             GradientColorPreset::Sunrise,
+            256,
+            0,
             IterationAssignment::Linear,
             ImageRenderScheme::FilledWithBackground,
         )

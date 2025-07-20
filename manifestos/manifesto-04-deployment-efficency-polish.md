@@ -10,7 +10,7 @@ For this, the following developments steps are addressed.
 While not mentioning it here directly, the interface needs some more polish.
 This will happen within the other issues named here
 
-### 🚧 Issue 4.1: More parameters for colorisation algorithm
+### ✅ (2025-07-20) Issue 4.1: More parameters for colorisation algorithm
 
 Colorisation misses two more parameters:
 

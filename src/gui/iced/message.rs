@@ -156,6 +156,12 @@ pub enum Message {
     /// Data: New rendering mode (Cropped, Fitted, Centered)
     RenderSchemeChanged(ImageRenderScheme),
 
+    /// Number of stripes to use for rendering changed
+    RenderStripesChanged(String),
+
+    /// Offset for stripe selection changed
+    RenderOffsetChanged(String),
+
     // === Interactive Navigation Messages ===
     /// Coordinate system shift completed
     /// Triggered by: Canvas drag operation completion

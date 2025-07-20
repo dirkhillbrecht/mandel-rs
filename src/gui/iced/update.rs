@@ -296,6 +296,18 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             state.viz.render_scheme = value;
             state.runtime.canvas_cache.clear();
         }
+        Message::RenderStripesChanged(value) => {
+            if let Ok(value) = value.parse::<u32>() {
+                state.viz.gradient_color_stripes = value;
+                state.runtime.canvas_cache.clear();
+            }
+        }
+        Message::RenderOffsetChanged(value) => {
+            if let Ok(value) = value.parse::<u32>() {
+                state.viz.gradient_color_offset = value;
+                state.runtime.canvas_cache.clear();
+            }
+        }
         Message::ShiftStage(offset) => {
             // Stop existing computation before coordinate change
             if let Some(engine) = &state.engine {

@@ -364,7 +364,11 @@ pub fn create_pixels_from_app_state(app_state: &AppState) -> Option<Pixels> {
         let height = storage.stage.height();
 
         // TODO: Move color_scheme to the app_state to prevent permanent recomputation
-        let color_scheme = GradientColors::new(&app_state.viz.gradient_color_preset.scheme(), 256);
+        let color_scheme = GradientColors::new(
+            &app_state.viz.gradient_color_preset.scheme(),
+            app_state.viz.gradient_color_stripes as usize,
+            app_state.viz.gradient_color_offset as usize,
+        );
 
         let mut pixels = Vec::with_capacity(width * height * 4);
         for y in 0..height {
