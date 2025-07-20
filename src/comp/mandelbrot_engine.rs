@@ -340,6 +340,10 @@ fn stoppable_compute_mandelbrot_linear(storage: &CompStorage, stop_flag: &Atomic
 
 /// Computes Mandelbrot iteration data for a single complex point.
 ///
+/// This implementation uses an optimized straight algorithm, see
+///
+/// https://en.wikipedia.org/wiki/Plotting_algorithms_for_the_Mandelbrot_set
+///
 /// This is the core mathematical algorithm implementing the classic Mandelbrot
 /// iteration: `z(n+1) = z(n)² + c`. The function tracks both escape iteration
 /// and final z-value for enhanced visualization possibilities.
@@ -369,33 +373,22 @@ fn stoppable_compute_mandelbrot_linear(storage: &CompStorage, stop_flag: &Atomic
 /// `z(n+1) = z(n)² + c` remains bounded. Points that escape to infinity
 /// (|z| > 2) are not in the set, and the iteration count indicates how
 /// quickly they diverge.
-pub fn data_point_at(c_real: f64, c_imag: f64, max_iteration: u32) -> DataPoint {
-    let mut z_real = 0.0;
-    let mut z_imag = 0.0;
-    // Main iteration loop: z(n+1) = z(n)² + c
-    for i in 0..max_iteration {
-        let z_real_square = z_real * z_real;
-        let z_imag_square = z_imag * z_imag;
-        let z_real_new = z_real_square - z_imag_square + c_real;
-        let z_imag_new = 2.0 * z_real * z_imag + c_imag;
-
-        // Check escape condition: |z|² > 4.0 (equivalent to |z| > 2.0)
-        if z_real_square + z_imag_square > 4.0 {
-            // Point escapes - return iteration count and final z-value
-            return DataPoint::computed(i, Point2D::new(z_real_new, z_imag_new));
-        }
-        z_real = z_real_new;
-        z_imag = z_imag_new;
+fn data_point_at(c_real: f64, c_imag: f64, max_iteration: u32) -> DataPoint {
+    let mut x = 0.0;
+    let mut y = 0.0;
+    let mut x2 = 0.0;
+    let mut y2 = 0.0;
+    let mut w = 0.0;
+    let mut iteration = 0;
+    while x2 + y2 < 4.0 && iteration < max_iteration {
+        x = x2 - y2 + c_real;
+        y = w - x2 - y2 + c_imag;
+        x2 = x * x;
+        y2 = y * y;
+        w = (x + y) * (x + y);
+        iteration += 1;
     }
-    // Point did not escape within max_iteration - compute final z-value
-    // This extra iteration provides smoother coloring for points near the boundary
-    let z_real_square = z_real * z_real;
-    let z_imag_square = z_imag * z_imag;
-    let z_real_new = z_real_square - z_imag_square + c_real;
-    let z_imag_new = 2.0 * z_real * z_imag + c_imag;
-
-    // Return max_iteration with final z-value (point is likely in the set)
-    return DataPoint::computed(max_iteration, Point2D::new(z_real_new, z_imag_new));
+    DataPoint::computed(iteration, Point2D::new(x, y))
 }
 
 // end of file

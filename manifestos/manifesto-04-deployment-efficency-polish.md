@@ -144,7 +144,7 @@ Apart from the storage section of the computation schemes, there are several opt
 Zooming in often needs an increased maximum iteration depth for nice images.
 Such iteration depth adjustments happen automatically depending on the current iteration depth and the zoom factor.
 
-### 🚧 Issue 4.14: More efficient single dot computation
+### ✅ (2025-07-20) Issue 4.14: More efficient single dot computation
 
 The basic iteration formula for computing the escape speed of a single point in the complex plane can be optimized
 to use less operations.
