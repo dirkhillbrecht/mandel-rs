@@ -240,6 +240,13 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 return Task::perform(async {}, |_| Message::UpdateViz);
             }
         }
+        Message::SaveImageClicked => {
+            if let Some(savename) = super::file_save::show_save_file_dialog()
+                && let Some(rawpixels) = super::pixels::create_pixels_from_app_state(&state)
+            {
+                super::file_save::write_image_png(savename, rawpixels);
+            }
+        }
 
         // Initialize and start new fractal computation
         // Complete resource setup: CompStorage -> Engine -> VizStorage

@@ -260,6 +260,11 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
                 Message::RenderSchemeChanged,
             )
             .width(150),
+            button("Save PNG").on_press_maybe(if state.runtime.computing {
+                None
+            } else {
+                Some(Message::SaveImageClicked)
+            }),
         ]
         .spacing(6)
         .align_x(iced::Alignment::Start),

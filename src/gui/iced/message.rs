@@ -133,6 +133,9 @@ pub enum Message {
     /// Triggered by: "Stop" button click
     StopClicked,
 
+    /// Save the content of the current image to the save file
+    SaveImageClicked,
+
     /// Update visualization with new data
     /// Triggered by: Async computation progress events
     UpdateViz,

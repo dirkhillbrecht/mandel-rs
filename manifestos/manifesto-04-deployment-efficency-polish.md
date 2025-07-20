@@ -31,7 +31,7 @@ The stage can be set either to
 In each case, the stage is scaled to fill the canvas completely.
 This renders the multiple presentation modes with different scaling strategies unnecessary.
 
-### Issue 4.3: Export stage as PNG file
+### ✅ (2025-07-20) Issue 4.3: Export stage as PNG file
 
 The image in the stage should be exportable as PDF so that it can be shown independently.
 The mathematical parameters, especially the mathematical coordinates, should be stored in some data fields in the file.
