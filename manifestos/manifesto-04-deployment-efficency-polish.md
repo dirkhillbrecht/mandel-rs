@@ -10,7 +10,7 @@ For this, the following developments steps are addressed.
 While not mentioning it here directly, the interface needs some more polish.
 This will happen within the other issues named here
 
-### Issue 4.1: More parameters for colorisation algorithm
+### 🚧 Issue 4.1: More parameters for colorisation algorithm
 
 Colorisation misses two more parameters:
 
@@ -19,7 +19,7 @@ Colorisation misses two more parameters:
 
 The new parameters must be integrated into the interface.
 
-### Issue 4.2: Size stage to canvas
+### 🚧 Issue 4.2: Size stage to canvas
 
 The stage size is not set explicitly but derived from the canvas representing the stage.
 The stage can be set either to
@@ -36,22 +36,26 @@ This renders the multiple presentation modes with different scaling strategies u
 The image in the stage should be exportable as PDF so that it can be shown independently.
 The mathematical parameters, especially the mathematical coordinates, should be stored in some data fields in the file.
 
-### Issue 4.4: Export and collect data of interesting areas in description files
+### 🚧 Issue 4.4: Export and collect data of interesting areas in description files
 
 Mathematical coordinates and the other parameters needed for reproducing an image are stored in a data structure
 which can be stored to a local file or some online storage.
 
-### Issue 4.5: Full screen mode
+### 🚧 Issue 4.5: Full screen mode
 
 The canvas showing the fractal image is shown frameless and fullscreen
 so that the natural resolution of the graphics hardware is used.
 
-### Issue 4.6: Snap zoom at 2^Z values
+### 🚧 Issue 4.6: Snap zoom at 2^Z values
 
 Currently, each mouse wheel event changes the zoom factor. A "snappy" mode is implemented which only allows
 zoom factors with integer exponent. For visual feedback, this needs some animation of the preview.
 Snappy zoom mode can be turned on and off with a checkbox and that default value can be overridden by pressing
 "shift" during the zoom operation.
+
+### 🚧 Issue 4.6a: Assignment lines while dragging
+
+During dragging, composition lines (thirds, center, circles around center) are shown to help placement of the image contents with respect to asthetic basics.
 
 
 ## Computation - data storage
@@ -66,7 +70,7 @@ input fields in the interface.
 These settings should be moved into the already existing properties storages so that their on-screen representation
 is derived from the internal storage, not the other way around.
 
-### Issue 4.8: Move shift control from canvas model to app model
+### 🚧 Issue 4.8: Move shift control from canvas model to app model
 
 Dragging the canvas' content around with the mouse is the interface to shifting the presented area.
 The program-internal control of this process is courtesy of the canvas' model.
@@ -76,25 +80,25 @@ The reason for this shift was that the timer-based stop of the zoom operation co
 It is sensible to move the drag control also into the app's model.
 This allows tighter integration with the computation engine, especially when it comes to earlier start of recomputation.
 
-### Issue 4.9: Keep calculated data at 2^Z zooms
+### 🚧 Issue 4.9: Keep calculated data at 2^Z zooms
 
 This is a leftover from manifesto 03:
 If the computed area changes by an integer power of 2, some of the already computed points can be kept.
 The whole zoom algorithm is already designed in a way that this works without correctness errors.
 However, keeping the data is not yet implemented.
 
-### Issue 4.10: Stage size and presentation parameter changes
+### 🚧 Issue 4.10: Stage size and presentation parameter changes
 
 While changing the size of the computed area is already quite flexible, changing the stage size isn't.
 Also, changing other computation parameters is not handled as efficiently as possible.
 
-#### Issue 4.10.1: Fill stage with guessed values when zooming
+#### 🚧 Issue 4.10.1: Fill stage with guessed values when zooming
 
 Currently, computation of a zoomes image starts with an empty stage.
 Even in "2^R with R not in Z" cases, (parts of) the stage could be preset with guessed values from the former image.
 These guessed values are then overwritten by the actual computation but they make the whole presentation smoother.
 
-#### Issue 4.10.2: Keep calculated data at 2^Z size changes
+#### 🚧 Issue 4.10.2: Keep calculated data at 2^Z size changes
 
 If the stage's size is changed by some integer exponents of 2, points can be kept and only points in the gaps
 need to be recomputed.
@@ -107,7 +111,12 @@ If the maximum iteration changes exclusively in the image data, recomputation ca
 * If the maximum iteration depth _decreases_, points with higher computed maximum iteration simply have to be changed to the new maximum iteration. No recomputation at all is needed.
 * If the maximum iteration depth _increases_, data for all points with the former maximum interation depth have to removed. Only those points have to be recomputed then.
 
-### Issue 4.11: Change mathematical representation into data triple of center point, angle, radius, and aspect ratio
+#### 🚧 Issue 4.10.4: Dropdown box with some "usual" stage sizes with "oversampling" option
+
+A number of typical stage sizes is selectable from a list/dropdown box. These are typical screen solutions (800·600, 1024·768, HD, FullHD, 2K, 4K, 8K), photo dimensions (10·15 cm, 20·30 cm, 150 or 300 dpi), or sheet sizes (DIN A5/A4/A3) with typical resolutions.
+An additional checkbox allows to select "oversampling", i.e. each output pixel is rendered from four computed values, effecitively doubling the resolution and quadrupling the amount of data.
+
+### 🚧 Issue 4.11: Change mathematical representation into data triple of center point, angle, radius, and aspect ratio
 
 Currently, the mathematical representation of an area to be shown is represented by two adjacent points of its enclosing rectangle.
 It makes sense to switch to a more "polar" primary representation of the area:
@@ -119,7 +128,7 @@ It makes sense to switch to a more "polar" primary representation of the area:
 This representation is convertible to and from the current edge-point-based representation if the angle is 0°.
 It makes the representation more flexible and allows the introduction of the angle value.
 
-### Issue 4.12: Check that the event mechanism is properly shut down when changing the stage
+### 🚧 Issue 4.12: Check that the event mechanism is properly shut down when changing the stage
 
 Shifting, zooming, rescaling and other operations replace the comp/viz stage pair with a new one.
 This can happen during still ongoing computation.
@@ -130,12 +139,12 @@ It must be guaranteed that the event mechanism between computation and visualiza
 
 Apart from the storage section of the computation schemes, there are several optimisations on the algorithmic realm.
 
-### Issue 4.13: Automatic adjustment of maximum iteration depth
+### 🚧 Issue 4.13: Automatic adjustment of maximum iteration depth
 
 Zooming in often needs an increased maximum iteration depth for nice images.
 Such iteration depth adjustments happen automatically depending on the current iteration depth and the zoom factor.
 
-### Issue 4.14: More efficient single dot computation
+### 🚧 Issue 4.14: More efficient single dot computation
 
 The basic iteration formula for computing the escape speed of a single point in the complex plane can be optimized
 to use less operations.
@@ -143,14 +152,14 @@ This is a trivial change just using basic mathematics.
 As we do not use actual complex number types for the computation but "real" numbers with explicit transformation rules,
 this should be no big deal.
 
-### Issue 4.15: Parallel dot computation
+### 🚧 Issue 4.15: Parallel dot computation
 
 The whole storage system is laid out for parallel computation of dots.
 However, currently the computation is strictly single-threaded.
 The implementation is changed in a way that multiple points are computed in parallel.
 Interestingly, this should be not that big of a deal as the architecture should be completely prepared for this change.
 
-### Issue 4.16: Boundary trace algorithm for dot computation
+### 🚧 Issue 4.16: Boundary trace algorithm for dot computation
 
 Computation efficiency can be increased - and vastly increased for certain images - by using boundary trace around areas
 with the same escape speed - and therefore the same raw value for color selection in the output.
@@ -169,7 +178,7 @@ We currently use version 1.0 of the tokio library.
 This version seems to be vastly behind the current version which is 1.46.
 The tokio library dependency is updated and brought to the most current version available.
 
-### Issue 4.18: Move storage and engine into an independent library
+### 🚧 Issue 4.18: Move storage and engine into an independent library
 
 The whole project is split into the actual _program_ with the GUI
 and a _library_ with all parts independent of the user interface and presentation.
@@ -177,20 +186,24 @@ These independent parts are mainly computation and stage representation.
 The library part could then be released as a "real" Rust library crate
 with semantic version and all bells and whistles possible.
 
-### Issue 4.19: I18N'd user interface
+### 🚧 Issue 4.19: I18N'd user interface
 
 The user interface - which is quite sparsely populated with written text in natural language anyway - gets some internationalization capabilties.
 There should be a library for doing this in Rust.
 
-### Issue 4.20: Generate documentation on push
+### 🚧 Issue 4.20: Generate documentation on push
 
 Every time the master branch of the project is pushed to Github,
 some automatic process regenerates the online documentation of the classes.
 
-### Issue 4.21: Generate executables on push
+### 🚧 Issue 4.21: Generate executables on push
 
 Every time a release commit is pushed to Github,
 some automatic process produces an actual released version of the program
+
+### 🚧 Issue 4.22: Compile the version number into the executable
+
+Mandel.rs should know about its own version number and present it somewhere, e.g. in the window title.
 
 
 ## Summary
