@@ -17,5 +17,6 @@ palette = "0.7"
 euclid = "0.22.11"
 png = "0.17.16"
 rfd = "0.15.4"
+rayon = "1.8"
 
 # end of file

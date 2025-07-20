@@ -152,7 +152,7 @@ This is a trivial change just using basic mathematics.
 As we do not use actual complex number types for the computation but "real" numbers with explicit transformation rules,
 this should be no big deal.
 
-### 🚧 Issue 4.15: Parallel dot computation
+### ✅ (2025-07-20) Issue 4.15: Parallel dot computation
 
 The whole storage system is laid out for parallel computation of dots.
 However, currently the computation is strictly single-threaded.

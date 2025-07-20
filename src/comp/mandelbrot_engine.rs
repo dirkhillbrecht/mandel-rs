@@ -25,6 +25,7 @@ use std::thread::{self, JoinHandle};
 use euclid::Point2D;
 use rand::rng;
 use rand::seq::SliceRandom;
+use rayon::prelude::*;
 
 use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::coord_spaces::MathSpace;
@@ -264,32 +265,25 @@ fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &Atom
     }
     coords.shuffle(&mut rng());
     coords.sort_by(order_coords); // Needs appropriate presentation code, otherwise looks a bit strange
-    let mut count = 0;
-    let mut do_comp = true;
     storage.stage.set_state(StageState::Evolving);
-    coords.into_iter().for_each(|point| {
-        if do_comp {
-            count += 1;
-            if count % 1000 == 0 {
-                if stop_flag.load(Ordering::Relaxed) {
-                    storage.stage.set_state(StageState::Stalled);
-                    do_comp = false; // Computation was aborted
-                }
-            }
-            if !storage.stage.is_computed(point.x, point.y) {
-                storage.stage.set(
-                    point.x,
-                    point.y,
-                    data_point_at(
-                        *(xcoo.get(point.x as usize).unwrap()),
-                        *(ycoo.get(point.y as usize).unwrap()),
-                        max_iteration,
-                    ),
-                );
-            }
+    coords.into_par_iter().for_each(|point| {
+        if !stop_flag.load(Ordering::Relaxed) && !storage.stage.is_computed(point.x, point.y) {
+            storage.stage.set(
+                point.x,
+                point.y,
+                data_point_at(
+                    *(xcoo.get(point.x as usize).unwrap()),
+                    *(ycoo.get(point.y as usize).unwrap()),
+                    max_iteration,
+                ),
+            );
         }
     });
-    storage.stage.set_state(StageState::Completed);
+    if stop_flag.load(Ordering::Relaxed) {
+        storage.stage.set_state(StageState::Stalled);
+    } else {
+        storage.stage.set_state(StageState::Completed);
+    }
     true // Computation ended successfully
 }
 

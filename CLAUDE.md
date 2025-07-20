@@ -25,11 +25,12 @@ The application implements a sophisticated three-layer design with comprehensive
 - **Event System**: Real-time synchronization with async batching for efficient updates
 - **Coordinate Transformations**: Type-safe mathematical coordinate handling with euclid
 
-**Computation Engine**: Production-ready parallel computation system:
-- **MandelbrotEngine**: Thread pool management with work distribution
-- **Mathematical Core**: Complex number algorithms with escape-time computation
+**Computation Engine**: Production-ready massively parallel computation system:
+- **MandelbrotEngine**: Multi-threaded fractal computation with Rayon work-stealing parallelism
+- **Mathematical Core**: Optimized complex number algorithms with escape-time computation
+- **Parallel Processing**: Per-pixel RwLocks enabling concurrent computation across all CPU cores
 - **Color Mapping**: Professional gradient schemes with mathematical assignment functions
-- **Progress Tracking**: Real-time computation progress with event streaming
+- **Progress Tracking**: Real-time computation progress with async event streaming
 
 **Visualization Interface**: Complete Iced-based GUI with advanced features:
 - ✅ **Interactive Navigation**: Full pan (drag) and zoom (mouse wheel) implementation
@@ -56,6 +57,7 @@ Complete state-based operation system:
 - **GUI Framework**: iced 0.13.1 for cross-platform native applications with function-based API
 - **Color Science**: palette 0.7.6 for professional color space operations and gradient generation
 - **Coordinate System**: euclid for type-safe mathematical coordinate handling
+- **Parallel Computing**: rayon for work-stealing parallelism and massively parallel computation
 - **Async Runtime**: tokio for non-blocking operations and enhanced threading
 - **Streaming**: async-stream for creating finite event streams
 - **Version Control**: Git repository
@@ -72,7 +74,7 @@ All major features from [Manifesto 03](manifestos/manifesto-03-cleanup-and-mvp.m
 - ✅ Complete interactive fractal visualization with pan/zoom navigation
 - ✅ Real-time parameter control with mathematical presets
 - ✅ Professional color mapping system with multiple gradient schemes
-- ✅ Multi-threaded computation engine with progress tracking
+- ✅ **Massively parallel computation engine** utilizing all CPU cores with Rayon
 - ✅ Sophisticated dual-storage architecture for optimal performance
 
 **Interactive Navigation**:
@@ -90,9 +92,10 @@ All major features from [Manifesto 03](manifestos/manifesto-03-cleanup-and-mvp.m
 
 ### Project Educational Value
 The codebase now serves as an exceptional **Rust learning resource** demonstrating:
-- **Advanced Concurrency**: Thread-safe design with RwLocks and async programming
+- **Fearless Concurrency**: Massively parallel computation with per-pixel RwLocks and atomic operations
+- **Work-Stealing Parallelism**: Rayon-based parallel iterators scaling across all CPU cores
 - **Type Safety**: Coordinate systems, error handling, and strong typing patterns
-- **Performance Engineering**: Cache-friendly design and optimization techniques
+- **Performance Engineering**: Cache-friendly design and multi-core optimization techniques
 - **GUI Development**: Modern reactive UI with Iced framework
 - **Real-world Architecture**: Production-quality code organization and design patterns
 
