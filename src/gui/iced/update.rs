@@ -129,16 +129,8 @@ use std::time::Duration;
 /// - Provides fallback behavior for edge cases
 pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
     match message {
-        // === UI Control Messages ===
-        // Toggle visibility of the parameter control sidebar
         Message::ToggleSidebar => state.viz.sidebar_visible = !state.viz.sidebar_visible,
-
-        // === Mathematical Preset Management ===
-        // Update selected mathematical preset without applying it
         Message::PresetChanged(value) => state.viz.math_preset = value,
-
-        // Apply the selected preset and trigger computation
-        // Loads preset coordinates and iteration count, then auto-starts computation
         Message::PresetClicked => {
             let data = &state.viz.math_preset.preset();
             state.math.area = data.coordinates();
@@ -146,11 +138,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             // Auto-trigger computation with preset parameters
             return Task::perform(async {}, |_| Message::ComputeClicked);
         }
-
-        // === Mathematical Parameter Updates ===
-        // Real-time updates to complex plane coordinate boundaries
-        // Uses input validation to prevent invalid mathematical regions
-        // Update left boundary (minimum real coordinate)
         Message::LeftChanged(value) => {
             if let Ok(value) = value.parse::<f64>() {
                 state.math.area = Rect::from_points([
@@ -159,8 +146,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 ]);
             }
         }
-
-        // Update right boundary (maximum real coordinate)
         Message::RightChanged(value) => {
             if let Ok(value) = value.parse::<f64>() {
                 state.math.area = Rect::from_points([
@@ -169,8 +154,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 ]);
             }
         }
-
-        // Update top boundary (maximum imaginary coordinate)
         Message::TopChanged(value) => {
             if let Ok(value) = value.parse::<f64>() {
                 state.math.area = Rect::from_points([
@@ -179,8 +162,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 ]);
             }
         }
-
-        // Update bottom boundary (minimum imaginary coordinate)
         Message::BottomChanged(value) => {
             if let Ok(value) = value.parse::<f64>() {
                 state.math.area = Rect::from_points([
@@ -189,31 +170,21 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 ]);
             }
         }
-
-        // Update image width (stored as string for UI binding)
         Message::WidthChanged(value) => {
             if let Ok(value) = value.parse::<u32>() {
                 state.math.stage_size = Size2D::new(value, state.math.stage_size.height);
             }
         }
-
-        // Update image height (stored as string for UI binding)
         Message::HeightChanged(value) => {
             if let Ok(value) = value.parse::<u32>() {
                 state.math.stage_size = Size2D::new(state.math.stage_size.width, value);
             }
         }
-
-        // Update maximum iteration count (stored as string for UI binding)
         Message::MaxIterationChanged(value) => {
             if let Ok(value) = value.parse::<u32>() {
                 state.math.max_iteration = value;
             }
         }
-
-        // === Computation Lifecycle Management ===
-
-        // Make a changed maximum iteration effective
         Message::MaxIterationUpdateClicked => {
             if let Some(comp_storage) = state.comp_storage.as_ref() {
                 // Stop existing computation before coordinate change
@@ -247,9 +218,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 super::file_save::write_image_png(savename, rawpixels);
             }
         }
-
-        // Initialize and start new fractal computation
-        // Complete resource setup: CompStorage -> Engine -> VizStorage
         Message::ComputeClicked => {
             // Disable auto-computation to prevent loops
             state.viz.auto_start_computation = false;
@@ -281,8 +249,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             // Schedule first visualization update
             return Task::perform(async {}, |_| Message::UpdateViz);
         }
-        // Periodic visualization update during computation
-        // Processes computation events and schedules next update cycle
         Message::UpdateViz => {
             // Process any pending computation events and update visualization
             if let Some(ref mut vizstorage) = state.storage {
@@ -311,7 +277,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 }
             }
         }
-        // Stop ongoing computation and cleanup resources
         Message::StopClicked => {
             if let Some(_) = state.engine {
                 state.engine.as_ref().unwrap().stop();
@@ -319,29 +284,18 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 state.runtime.computing = false;
             }
         }
-        // === Visual Configuration Changes ===
-        // Updates that affect rendering but not computation data
-        // All require canvas cache clearing for immediate visual update
-        // Change color gradient scheme (affects pixel coloring)
         Message::ColorSchemeChanged(value) => {
             state.viz.gradient_color_preset = value;
             state.runtime.canvas_cache.clear();
         }
-
-        // Change iteration-to-color assignment function (affects visual mapping)
         Message::IterationAssignmentChanged(value) => {
             state.viz.iteration_assignment = value;
             state.runtime.canvas_cache.clear();
         }
-
-        // Change image rendering scheme (affects scaling/presentation)
         Message::RenderSchemeChanged(value) => {
             state.viz.render_scheme = value;
             state.runtime.canvas_cache.clear();
         }
-        // === Interactive Navigation Operations ===
-        // Apply coordinate system translation (panning)
-        // Creates new CompStorage with shifted coordinates and restarts computation
         Message::ShiftStage(offset) => {
             // Stop existing computation before coordinate change
             if let Some(engine) = &state.engine {
@@ -371,15 +325,10 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             state.runtime.canvas_cache.clear();
             return Task::perform(async {}, |_| Message::UpdateViz);
         }
-        // Begin zoom operation with initial mouse wheel input
-        // Stores zoom origin and starts accumulating scroll ticks
         Message::ZoomStart((origin, ticks)) => {
             state.runtime.zoom = Some(ZoomState::start(origin, ticks));
             state.runtime.canvas_cache.clear();
         }
-
-        // Continue zoom operation with additional mouse wheel input
-        // Accumulates scroll ticks and provides immediate visual feedback
         Message::ZoomTick(ticks_offset) => {
             if ticks_offset != 0
                 && let Some(zoom) = &mut state.runtime.zoom
@@ -388,8 +337,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 state.runtime.canvas_cache.clear();
             }
         }
-        // Check for zoom timeout and apply accumulated zoom if needed
-        // Called periodically by timer subscription (every ~50ms)
         Message::ZoomEndCheck => {
             if let Some(zoom) = &state.runtime.zoom
                 && zoom.is_timeout(Duration::from_millis(500))
@@ -433,15 +380,8 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 state.runtime.zoom = None;
             }
         }
-        // === Mouse Event Messages (Currently Unused) ===
-        // These are implemented in the canvas event handling instead
-        // Mouse button pressed - handled by canvas interaction system
         Message::MousePressed(_point) => {}
-
-        // Mouse drag - handled by canvas interaction system
         Message::MouseDragged(_point) => {}
-
-        // Mouse button released - handled by canvas interaction system
         Message::MouseReleased(_point) => {}
     }
     Task::none()
