@@ -354,6 +354,8 @@ pub enum MathPreset {
     MandelbrotSpirals,
     /// "Seahorse Valley" with detailed seahorse-like spiral patterns
     MandelbrotSeahorseValley,
+    // Squared spirals at a minibrot
+    MandelbrotSquaredSpirals,
 }
 
 impl MathPreset {
@@ -388,6 +390,7 @@ impl MathPreset {
             Self::MandelbrotElephantValley,
             Self::MandelbrotSpirals,
             Self::MandelbrotSeahorseValley,
+            Self::MandelbrotSquaredSpirals,
         ]
     }
     /// Returns the human-readable name of the mathematical preset.
@@ -418,6 +421,7 @@ impl MathPreset {
             Self::MandelbrotElephantValley => "Mandelbrot Elephant Valley",
             Self::MandelbrotSpirals => "Mandelbrot Spirals",
             Self::MandelbrotSeahorseValley => "Mandelbrot Seahorse Valley",
+            Self::MandelbrotSquaredSpirals => "Mandelbrot Squared Spirals",
         }
     }
     /// Converts the preset into concrete mathematical data for computation.
@@ -483,6 +487,16 @@ impl MathPreset {
                 -0.7463, 0.1092,  // Coordinates targeting seahorse structures
                 -0.7453, 0.1103,  // Small region for detailed feature view
                 2000,              // High iteration count for fine spiral detail
+            ),
+
+            // Squared spirals at a minibrot
+            Self::MandelbrotSquaredSpirals => MathData::from_coordinates(
+                self.name().to_string(),
+                -1.7662270190246352,
+                0.011823254035038925,
+                -1.7662270190251017,
+                0.011823254034689012,
+                20000, // High iteration count for fine spiral detail
             ),
         }
     }
