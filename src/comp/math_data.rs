@@ -48,7 +48,7 @@
 
 use euclid::{Point2D, Rect};
 
-use crate::storage::coord_spaces::MathSpace;
+use crate::{comp::math_area::MathArea, storage::coord_spaces::MathSpace};
 
 /// Enumeration of supported fractal types for future extensibility.
 ///
@@ -118,12 +118,20 @@ pub struct MathData {
     /// Future extensibility: fractal algorithm type selection
     // fractal_type: FractalType, // Introduce this once we can compute other fractal types
     /// Rectangular region in the complex plane to compute
-    coordinates: Rect<f64, MathSpace>,
+    area: MathArea,
     /// Maximum iteration count for escape-time algorithm
     max_iteration: u32,
 }
 
 impl MathData {
+    pub fn new(name: String, area: MathArea, max_iteration: u32) -> Self {
+        MathData {
+            name,
+            area,
+            max_iteration,
+        }
+    }
+
     /// Creates new mathematical data from complete parameters.
     ///
     /// # Arguments
@@ -142,12 +150,12 @@ impl MathData {
     /// - **Origin**: Bottom-left corner of rectangle
     /// - **Size**: Width and height in complex plane units
     /// - **Type Safety**: MathSpace prevents coordinate system confusion
-    pub fn new(name: String, coordinates: Rect<f64, MathSpace>, max_iteration: u32) -> Self {
-        MathData {
+    pub fn new_c(name: String, coordinates: Rect<f64, MathSpace>, max_iteration: u32) -> Self {
+        Self::new(
             name,
-            coordinates,
+            MathArea::from_rect_f64(coordinates).unwrap(),
             max_iteration,
-        }
+        )
     }
     /// Creates mathematical data from two corner points in the complex plane.
     ///
@@ -188,7 +196,7 @@ impl MathData {
         p2: Point2D<f64, MathSpace>,
         max_iteration: u32,
     ) -> Self {
-        Self::new(name, Rect::from_points([p1, p2]), max_iteration)
+        Self::new_c(name, Rect::from_points([p1, p2]), max_iteration)
     }
     /// Creates mathematical data from raw coordinate values.
     ///
@@ -280,7 +288,7 @@ impl MathData {
     /// Used by computation engine to determine pixel-to-complex-number
     /// coordinate transformations.
     pub fn coordinates(&self) -> Rect<f64, MathSpace> {
-        self.coordinates
+        self.area.rect_f64().unwrap()
     }
     /// Returns the maximum iteration count for escape-time computation.
     ///
@@ -459,34 +467,42 @@ impl MathPreset {
             Self::MandelbrotFull => {
                 MathData::from_coordinates(
                     self.name().to_string(),
-                    -2.1, -1.25,  // Bottom-left: captures main cardioid and bulb
-                    0.75, 1.25,   // Top-right: includes major features
-                    200            // Sufficient iterations for overall structure
+                    -2.1,
+                    -1.25, // Bottom-left: captures main cardioid and bulb
+                    0.75,
+                    1.25, // Top-right: includes major features
+                    200,  // Sufficient iterations for overall structure
                 )
             }
-            
+
             // Elephant Valley: famous feature with trunk-like appendages
             Self::MandelbrotElephantValley => MathData::from_coordinates(
                 self.name().to_string(),
-                -0.7512, 0.1103,  // High-precision coordinates for tiny feature
-                -0.7502, 0.1093,  // Very small region requiring deep zoom
-                2000,              // High iteration count for boundary detail
+                -0.7512,
+                0.1103, // High-precision coordinates for tiny feature
+                -0.7502,
+                0.1093, // Very small region requiring deep zoom
+                2000,   // High iteration count for boundary detail
             ),
-            
+
             // Spiral formations: complex boundary spiral structures
             Self::MandelbrotSpirals => MathData::from_coordinates(
                 self.name().to_string(),
-                -0.7269, 0.1879,  // Precise location of spiral formations
-                -0.7259, 0.1879,  // Narrow region showing spiral detail
-                2000,              // High iterations for spiral boundary resolution
+                -0.7269,
+                0.1879, // Precise location of spiral formations
+                -0.7259,
+                0.1879, // Narrow region showing spiral detail
+                2000,   // High iterations for spiral boundary resolution
             ),
-            
+
             // Seahorse Valley: seahorse-like spiral patterns
             Self::MandelbrotSeahorseValley => MathData::from_coordinates(
                 self.name().to_string(),
-                -0.7463, 0.1092,  // Coordinates targeting seahorse structures
-                -0.7453, 0.1103,  // Small region for detailed feature view
-                2000,              // High iteration count for fine spiral detail
+                -0.7463,
+                0.1092, // Coordinates targeting seahorse structures
+                -0.7453,
+                0.1103, // Small region for detailed feature view
+                2000,   // High iteration count for fine spiral detail
             ),
 
             // Squared spirals at a minibrot
