@@ -317,7 +317,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             if let Some(engine) = &state.engine {
                 engine.stop();
             }
-            println!("GGG - u.MSS - A, offset: ({},{})", offset.x, offset.y);
             state.runtime.computing = false;
 
             // Create new storage with translated coordinates
