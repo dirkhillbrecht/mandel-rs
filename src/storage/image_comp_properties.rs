@@ -67,7 +67,7 @@ use crate::storage::coord_spaces::{MathSpace, StageSpace};
 /// - `dotsize`: Size of each pixel in mathematical units
 /// - `coo_base`: Mathematical coordinate of pixel (0,0) center
 /// - `coo_correction`: Offset to center pixels on their mathematical coordinates
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct StageProperties {
     /// Mathematical rectangle defining the viewed area in the complex plane
     pub coo: Rect<f64, MathSpace>,
@@ -481,7 +481,7 @@ impl StageProperties {
 ///
 /// This is the primary configuration object passed to the computation engine
 /// and used throughout the visualization pipeline.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct ImageCompProperties {
     /// Coordinate transformation system for pixel ↔ mathematical conversion
     pub stage_properties: StageProperties,

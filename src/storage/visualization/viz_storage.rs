@@ -128,15 +128,15 @@ impl VizStorage {
         let event_receiver_result = arc_of_comp_storage
             .get_event_receiver(1000, Duration::from_millis(50))
             .ok();
-        
+
         // Step 2: Capture current computation state for progress tracking
         let seen_state = arc_of_comp_storage.stage.get_state();
-        
+
         // Step 3: Create visualization stage with initial data snapshot
         // This reads all current computation data into visualization-optimized format
         let stage = VizStage::new(&arc_of_comp_storage.as_ref().stage);
         VizStorage {
-            properties: arc_of_comp_storage.properties,
+            properties: arc_of_comp_storage.properties.clone(),
             stage,
             seen_state,
             comp_storage: arc_of_comp_storage.clone(),

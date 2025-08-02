@@ -183,8 +183,8 @@ impl CompStorage {
         let properties = original_properties.rectified(false);
         CompStorage {
             original_properties,
-            properties,
-            stage: CompStage::new(properties.stage_properties.pixels),
+            properties: properties.clone(),
+            stage: CompStage::new(properties.stage_properties.pixels.clone()),
             event_system: std::sync::Mutex::new(EventSystem::new()),
         }
     }
