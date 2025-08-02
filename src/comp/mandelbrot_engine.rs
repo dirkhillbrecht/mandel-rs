@@ -249,16 +249,16 @@ fn order_coords<T>(p: &Point2D<u32, T>, q: &Point2D<u32, T>) -> std::cmp::Orderi
 /// - Uses cache-friendly access patterns after shuffling
 fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
     let max_iteration = storage.properties.max_iteration;
-    let height = storage.properties.stage_properties.pixels.height as i32;
-    let width = storage.properties.stage_properties.pixels.width as i32;
+    let height = storage.properties.stage_properties.area.size().height as i32;
+    let width = storage.properties.stage_properties.area.size().width as i32;
     let mut coords: Vec<Point2D<u32, MathSpace>> = Vec::with_capacity((height * width) as usize);
     let mut ycoo = Vec::with_capacity(height as usize);
     let mut xcoo = Vec::with_capacity(width as usize);
     for x in 0..width {
-        xcoo.push(storage.properties.stage_properties.x(x));
+        xcoo.push(storage.properties.stage_properties.x_f64(x));
     }
     for y in 0..height {
-        ycoo.push(storage.properties.stage_properties.y(y));
+        ycoo.push(storage.properties.stage_properties.y_f64(y));
         for x in 0..width {
             coords.push(Point2D::new(x as u32, y as u32));
         }
@@ -312,15 +312,15 @@ fn stoppable_compute_mandelbrot_shuffled(storage: &CompStorage, stop_flag: &Atom
 fn stoppable_compute_mandelbrot_linear(storage: &CompStorage, stop_flag: &AtomicBool) -> bool {
     let max_iteration = storage.properties.max_iteration;
     storage.stage.set_state(StageState::Evolving);
-    for y in 0..storage.properties.stage_properties.pixels.height {
+    for y in 0..storage.properties.stage_properties.area.size().height {
         // Check for cancellation every row, this is only interim as way too inflexible!
         if stop_flag.load(Ordering::Relaxed) {
             storage.stage.set_state(StageState::Stalled);
             return false; // Computation was aborted
         }
-        let y_coo = storage.properties.stage_properties.y(y as i32);
-        for x in 0..storage.properties.stage_properties.pixels.width {
-            let x_coo = storage.properties.stage_properties.x(x as i32);
+        let y_coo = storage.properties.stage_properties.y_f64(y as i32);
+        for x in 0..storage.properties.stage_properties.area.size().width {
+            let x_coo = storage.properties.stage_properties.x_f64(x as i32);
             if !storage.stage.is_computed(x, y) {
                 storage
                     .stage

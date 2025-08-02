@@ -59,6 +59,7 @@
 //! - **Fallback Behavior**: Graceful handling of invalid operations
 
 use crate::comp::mandelbrot_engine::{EngineState, MandelbrotEngine};
+use crate::comp::math_area::{MathArea, RasteredMathArea};
 use crate::gui::iced::app::{AppState, ZoomState};
 use crate::gui::iced::message::Message;
 use crate::storage::computation::comp_storage::CompStorage;
@@ -230,7 +231,10 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
 
             // Create new computation properties from validated parameters
             let comp_props = ImageCompProperties::new(
-                StageProperties::new(state.math.area, state.math.stage_size),
+                StageProperties::new(RasteredMathArea::new(
+                    MathArea::from_rect_f64(state.math.area).unwrap(),
+                    state.math.stage_size,
+                )),
                 state.math.max_iteration,
             );
 
@@ -313,6 +317,7 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             if let Some(engine) = &state.engine {
                 engine.stop();
             }
+            println!("GGG - u.MSS - A, offset: ({},{})", offset.x, offset.y);
             state.runtime.computing = false;
 
             // Create new storage with translated coordinates
@@ -325,7 +330,13 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 .shifted_clone_by_pixels(offset);
 
             // Update UI coordinate display to reflect new mathematical region
-            state.math.area = new_storage.original_properties.stage_properties.coo;
+            state.math.area = new_storage
+                .original_properties
+                .stage_properties
+                .area
+                .math_area()
+                .rect_f64()
+                .unwrap();
 
             // Rebuild complete computation pipeline with new coordinates
             state.comp_storage = Some(Arc::new(new_storage));
@@ -374,7 +385,13 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                         );
 
                     // Update UI coordinate display for new mathematical region
-                    state.math.area = new_storage.original_properties.stage_properties.coo;
+                    state.math.area = new_storage
+                        .original_properties
+                        .stage_properties
+                        .area
+                        .math_area()
+                        .rect_f64()
+                        .unwrap();
 
                     // Rebuild computation pipeline with new coordinates
                     state.comp_storage = Some(Arc::new(new_storage));

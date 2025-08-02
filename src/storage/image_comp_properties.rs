@@ -31,9 +31,13 @@
 //! This system enables interactive navigation (pan/zoom) while maintaining
 //! mathematical precision and supporting incremental computation.
 
-use euclid::{Point2D, Rect, Size2D, Vector2D};
+use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
+use euclid::{Point2D, Vector2D};
 
-use crate::storage::coord_spaces::{MathSpace, StageSpace};
+use crate::{
+    comp::math_area::RasteredMathArea,
+    storage::coord_spaces::{MathSpace, StageSpace},
+};
 
 /// Core coordinate transformation engine for fractal computation.
 ///
@@ -69,16 +73,10 @@ use crate::storage::coord_spaces::{MathSpace, StageSpace};
 /// - `coo_correction`: Offset to center pixels on their mathematical coordinates
 #[derive(Debug, Clone)]
 pub struct StageProperties {
-    /// Mathematical rectangle defining the viewed area in the complex plane
-    pub coo: Rect<f64, MathSpace>,
-    /// Pixel dimensions of the computation stage (width × height)
-    pub pixels: Size2D<u32, StageSpace>,
-    /// Size of each pixel in mathematical units (real × imaginary)
-    pub dotsize: Size2D<f64, MathSpace>,
-    /// Mathematical coordinate corresponding to the center of pixel (0,0)
-    pub coo_base: Point2D<f64, MathSpace>,
-    /// Offset vector for centering pixels on their mathematical coordinates
-    pub coo_correction: Vector2D<f64, MathSpace>,
+    /// The original math area with unshifted coordinates
+    pub orig_area: RasteredMathArea,
+    /// The computational used math area with coordinates shifted into the pixel centers
+    pub area: RasteredMathArea,
 }
 
 impl StageProperties {
@@ -104,20 +102,9 @@ impl StageProperties {
     /// # Returns
     ///
     /// A new `StageProperties` instance ready for coordinate transformations
-    pub fn new(coo: Rect<f64, MathSpace>, pixels: Size2D<u32, StageSpace>) -> StageProperties {
-        let dotsize = Size2D::new(
-            coo.width() / pixels.width as f64,
-            coo.height() / pixels.height as f64,
-        );
-        let coo_correction = Vector2D::new(dotsize.width / 2.0, -dotsize.height / 2.0);
-        let coo_base = Point2D::new(coo.min_x(), coo.max_y()) + coo_correction;
-        StageProperties {
-            coo,
-            pixels,
-            dotsize,
-            coo_base,
-            coo_correction,
-        }
+    pub fn new(orig_area: RasteredMathArea) -> StageProperties {
+        let area = orig_area.shift_to_raster_point_center();
+        StageProperties { orig_area, area }
     }
 
     /// Converts pixel displacement to mathematical displacement.
@@ -146,11 +133,11 @@ impl StageProperties {
     pub fn pixel_to_math_offset(
         &self,
         offset: Vector2D<i32, StageSpace>,
-    ) -> Vector2D<f64, MathSpace> {
-        Vector2D::new(
-            offset.x as f64 * -self.dotsize.width,
-            offset.y as f64 * self.dotsize.height,
-        )
+    ) -> Vector2D<BigDecimal, MathSpace> {
+        self.area.pixel_to_math_shift(Vector2D::new(
+            BigDecimal::from_i32(offset.x).unwrap(),
+            BigDecimal::from_i32(offset.y).unwrap(),
+        ))
     }
 
     /// Creates a copy with the viewed area shifted by a mathematical offset.
@@ -179,19 +166,11 @@ impl StageProperties {
     /// - Interactive panning
     /// - Programmatic view adjustment
     /// - Animation sequences
-    pub fn shifted_clone_by_math(&self, offset: Vector2D<f64, MathSpace>) -> StageProperties {
-        let new_coo = self.coo.translate(offset);
-        let coo_base = Point2D::new(
-            new_coo.min_x() + (self.dotsize.width / 2.0),
-            new_coo.max_y() - (self.dotsize.height / 2.0),
-        );
-        StageProperties {
-            coo: new_coo,
-            pixels: self.pixels,
-            dotsize: self.dotsize,
-            coo_base,
-            coo_correction: self.coo_correction,
-        }
+    pub fn shifted_clone_by_math(
+        &self,
+        offset: Vector2D<BigDecimal, MathSpace>,
+    ) -> StageProperties {
+        Self::new(self.area.shift_by_math(offset))
     }
 
     /// Creates a copy with the viewed area shifted by a pixel offset.
@@ -252,28 +231,21 @@ impl StageProperties {
     /// - Mouse wheel zooming (origin = cursor position)
     /// - Pinch-to-zoom gestures
     /// - Programmatic zoom animations
-    pub fn zoomed_clone_by_pixels(&self, origin: Point2D<i32, StageSpace>, factor: f64) -> Self {
-        let math_origin = self.pix_to_math(origin);
-        let new_dotsize = self.dotsize / factor;
-        let new_coo_correction = Vector2D::new(new_dotsize.width / 2.0, -new_dotsize.height / 2.0);
-        let new_coo_base = Point2D::new(
-            math_origin.x - (origin.x as f64 * new_dotsize.width),
-            math_origin.y + (origin.y as f64 * new_dotsize.height),
-        );
-        let new_top_left = new_coo_base - new_coo_correction;
-        let new_bottom_right = new_top_left
-            + Vector2D::new(
-                new_dotsize.width * self.pixels.width as f64,
-                -new_dotsize.height * self.pixels.height as f64,
-            );
-        let new_coo = Rect::from_points([new_top_left, new_bottom_right]);
-        StageProperties {
-            coo: new_coo,
-            pixels: self.pixels,
-            dotsize: new_dotsize,
-            coo_base: new_coo_base,
-            coo_correction: new_coo_correction,
-        }
+    pub fn zoomed_clone_by_pixels(
+        &self,
+        origin: Point2D<i32, StageSpace>,
+        factor: BigDecimal,
+    ) -> Self {
+        Self::new(self.area.zoom_at_pixel(origin, factor))
+    }
+
+    /// Create zoomed version with f64 parameter, needed during BigDecimal transition
+    pub fn zoomed_clone_by_pixels_f64(
+        &self,
+        origin: Point2D<i32, StageSpace>,
+        factor: f64,
+    ) -> Self {
+        self.zoomed_clone_by_pixels(origin, BigDecimal::from_f64(factor).unwrap())
     }
 
     /// Converts pixel X coordinate to mathematical X coordinate.
@@ -285,8 +257,13 @@ impl StageProperties {
     /// # Returns
     ///
     /// Mathematical X coordinate (real part of complex number)
-    pub fn x(&self, x_pix: i32) -> f64 {
-        self.coo_base.x + x_pix as f64 * self.dotsize.width
+    pub fn x(&self, x_pix: i32) -> BigDecimal {
+        self.area.coo_pix_x(x_pix)
+    }
+
+    /// Return coordinate x value as f64, needed during BigDecimal transition
+    pub fn x_f64(&self, x_pix: i32) -> f64 {
+        self.x(x_pix).to_f64().unwrap()
     }
 
     /// Converts pixel Y coordinate to mathematical Y coordinate.
@@ -301,8 +278,13 @@ impl StageProperties {
     /// # Returns
     ///
     /// Mathematical Y coordinate (imaginary part of complex number)
-    pub fn y(&self, y_pix: i32) -> f64 {
-        self.coo_base.y - y_pix as f64 * self.dotsize.height
+    pub fn y(&self, y_pix: i32) -> BigDecimal {
+        self.area.coo_pix_y(y_pix)
+    }
+
+    /// Return coordinate y value as f64, needed during BigDecimal transition
+    pub fn y_f64(&self, y_pix: i32) -> f64 {
+        self.y(y_pix).to_f64().unwrap()
     }
 
     /// Checks if a pixel coordinate is within the stage bounds.
@@ -316,7 +298,7 @@ impl StageProperties {
     /// `true` if the coordinate is within [0, width) × [0, height)
     #[allow(dead_code)]
     pub fn is_valid_pix(&self, p: &Point2D<i32, StageSpace>) -> bool {
-        p.x >= 0 && p.x < self.pixels.width as i32 && p.y >= 0 && p.y < self.pixels.height as i32
+        self.area.is_valid_pix(p)
     }
 
     /// Converts pixel coordinates to mathematical coordinates.
@@ -337,7 +319,7 @@ impl StageProperties {
     /// Essential for fractal computation - determines which complex
     /// number to iterate for each pixel.
     #[allow(dead_code)]
-    pub fn pix_to_math(&self, pix: Point2D<i32, StageSpace>) -> Point2D<f64, MathSpace> {
+    pub fn pix_to_math(&self, pix: Point2D<i32, StageSpace>) -> Point2D<BigDecimal, MathSpace> {
         Point2D::new(self.x(pix.x), self.y(pix.y))
     }
 
@@ -357,7 +339,7 @@ impl StageProperties {
     pub fn pix_to_math_if_valid(
         &self,
         pix: Point2D<i32, StageSpace>,
-    ) -> Option<Point2D<f64, MathSpace>> {
+    ) -> Option<Point2D<BigDecimal, MathSpace>> {
         Some(pix)
             .filter(|p| self.is_valid_pix(p))
             .map(|p| self.pix_to_math(p))
@@ -382,10 +364,8 @@ impl StageProperties {
     /// Useful for mapping mathematical features back to screen positions,
     /// such as highlighting specific mathematical points.
     #[allow(dead_code)]
-    pub fn math_to_pix(&self, math: Point2D<f64, MathSpace>) -> Point2D<i32, StageSpace> {
-        let x = ((math.x - self.coo_base.x) / self.dotsize.width).floor() as i32;
-        let y = ((self.coo_base.y - math.y) / self.dotsize.height).floor() as i32;
-        Point2D::new(x, y)
+    pub fn math_to_pix(&self, math: Point2D<BigDecimal, MathSpace>) -> Point2D<i32, StageSpace> {
+        self.area.math_to_pix(math)
     }
 
     /// Converts mathematical to pixel coordinates with bounds checking.
@@ -403,7 +383,7 @@ impl StageProperties {
     #[allow(dead_code)]
     pub fn math_to_pix_if_valid(
         &self,
-        math: Point2D<f64, MathSpace>,
+        math: Point2D<BigDecimal, MathSpace>,
     ) -> Option<Point2D<i32, StageSpace>> {
         Some(self.math_to_pix(math)).filter(|p| self.is_valid_pix(p))
     }
@@ -440,26 +420,8 @@ impl StageProperties {
     /// - Preparing images for accurate mathematical visualization
     /// - Correcting aspect ratio distortions
     /// - Ensuring geometric features appear correctly
-    pub fn rectified(&self, inner: bool) -> StageProperties {
-        let dotsize_min = self.dotsize.width.min(self.dotsize.height);
-        let dotsize_max = self.dotsize.width.max(self.dotsize.height);
-        if (1.0 - (dotsize_min / dotsize_max)) < 1e-5 {
-            self.clone()
-        } else {
-            let dotsize = if inner { dotsize_min } else { dotsize_max };
-            let center = Point2D::new(
-                self.coo.min_x() + (self.coo.width() / 2.0),
-                self.coo.min_y() + (self.coo.height() / 2.0),
-            );
-            let dist = Size2D::new(
-                dotsize * ((self.pixels.width as f64) / 2.0),
-                dotsize * ((self.pixels.height as f64) / 2.0),
-            );
-            StageProperties::new(
-                Rect::from_points([center - dist, center + dist]),
-                self.pixels,
-            )
-        }
+    pub fn rectified(&self) -> Self {
+        Self::new(self.orig_area.rectified())
     }
 }
 
@@ -518,9 +480,9 @@ impl ImageCompProperties {
     /// # Returns
     ///
     /// New `ImageCompProperties` with square pixels
-    pub fn rectified(&self, inner: bool) -> Self {
+    pub fn rectified(&self) -> Self {
         ImageCompProperties {
-            stage_properties: self.stage_properties.rectified(inner),
+            stage_properties: self.stage_properties.rectified(),
             max_iteration: self.max_iteration,
         }
     }
@@ -561,7 +523,7 @@ impl ImageCompProperties {
         ImageCompProperties {
             stage_properties: self
                 .stage_properties
-                .zoomed_clone_by_pixels(origin, factor as f64),
+                .zoomed_clone_by_pixels_f64(origin, factor as f64),
             max_iteration: self.max_iteration,
         }
     }
@@ -585,10 +547,11 @@ impl ImageCompProperties {
     /// # Returns
     ///
     /// Equivalent mathematical displacement vector
+    #[allow(dead_code)]
     pub fn pixel_to_math_offset(
         &self,
         offset: Vector2D<i32, StageSpace>,
-    ) -> Vector2D<f64, MathSpace> {
+    ) -> Vector2D<BigDecimal, MathSpace> {
         self.stage_properties.pixel_to_math_offset(offset)
     }
 
@@ -604,7 +567,7 @@ impl ImageCompProperties {
     /// # Returns
     ///
     /// New `ImageCompProperties` with translated coordinate system
-    pub fn shifted_clone_by_math(&self, offset: Vector2D<f64, MathSpace>) -> Self {
+    pub fn shifted_clone_by_math(&self, offset: Vector2D<BigDecimal, MathSpace>) -> Self {
         ImageCompProperties {
             stage_properties: self.stage_properties.shifted_clone_by_math(offset),
             max_iteration: self.max_iteration,

@@ -51,6 +51,7 @@
 
 use std::time::Duration;
 
+use bigdecimal::{BigDecimal, FromPrimitive};
 use euclid::{Point2D, Vector2D};
 use tokio::sync::mpsc;
 
@@ -180,11 +181,11 @@ impl CompStorage {
     /// The returned storage is immediately safe for concurrent access
     /// by multiple computation threads.
     pub fn new(original_properties: ImageCompProperties) -> CompStorage {
-        let properties = original_properties.rectified(false);
+        let properties = original_properties.rectified();
         CompStorage {
             original_properties,
             properties: properties.clone(),
-            stage: CompStage::new(properties.stage_properties.pixels.clone()),
+            stage: CompStage::new(properties.stage_properties.area.size().clone()),
             event_system: std::sync::Mutex::new(EventSystem::new()),
         }
     }
@@ -330,10 +331,16 @@ impl CompStorage {
     /// - **Standard**: Large offsets require mostly fresh computation
     /// - **Memory**: Allocates complete new storage structures
     pub fn shifted_clone_by_pixels(&self, offset: Vector2D<i32, StageSpace>) -> Self {
+        let math_shift = self
+            .properties
+            .stage_properties
+            .area
+            .pixel_to_math_shift(Vector2D::new(
+                BigDecimal::from_i32(offset.x).unwrap(),
+                BigDecimal::from_i32(offset.y).unwrap(),
+            ));
         CompStorage {
-            original_properties: self
-                .original_properties
-                .shifted_clone_by_math(self.properties.pixel_to_math_offset(offset)),
+            original_properties: self.original_properties.shifted_clone_by_math(math_shift),
             properties: self.properties.shifted_clone_by_pixels(offset),
             stage: self.stage.shifted_clone(offset),
             event_system: std::sync::Mutex::new(EventSystem::new()),
