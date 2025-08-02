@@ -267,6 +267,13 @@ impl MathData {
     pub fn name(&self) -> String {
         self.name.to_string()
     }
+
+    // Return the math area of the data
+    #[allow(dead_code)]
+    pub fn math_area(&self) -> &MathArea {
+        &self.area
+    }
+
     /// Returns the rectangular region in the complex plane.
     ///
     /// Provides access to the mathematical coordinate bounds that define
