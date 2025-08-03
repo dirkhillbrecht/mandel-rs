@@ -170,7 +170,7 @@ impl StageProperties {
         &self,
         offset: Vector2D<BigDecimal, MathSpace>,
     ) -> StageProperties {
-        Self::new(self.area.shift_by_math(offset))
+        Self::new(self.orig_area.shift_by_math(offset))
     }
 
     /// Creates a copy with the viewed area shifted by a pixel offset.
@@ -236,7 +236,7 @@ impl StageProperties {
         origin: Point2D<i32, StageSpace>,
         factor: BigDecimal,
     ) -> Self {
-        Self::new(self.area.zoom_at_pixel(origin, factor))
+        Self::new(self.orig_area.zoom_at_pixel(origin, factor))
     }
 
     /// Create zoomed version with f64 parameter, needed during BigDecimal transition
@@ -298,7 +298,7 @@ impl StageProperties {
     /// `true` if the coordinate is within [0, width) × [0, height)
     #[allow(dead_code)]
     pub fn is_valid_pix(&self, p: &Point2D<i32, StageSpace>) -> bool {
-        self.area.is_valid_pix(p)
+        self.orig_area.is_valid_pix(p)
     }
 
     /// Converts pixel coordinates to mathematical coordinates.
@@ -365,7 +365,7 @@ impl StageProperties {
     /// such as highlighting specific mathematical points.
     #[allow(dead_code)]
     pub fn math_to_pix(&self, math: Point2D<BigDecimal, MathSpace>) -> Point2D<i32, StageSpace> {
-        self.area.math_to_pix(math)
+        self.orig_area.math_to_pix(math)  // Use orig area so that surrounding is correct
     }
 
     /// Converts mathematical to pixel coordinates with bounds checking.
