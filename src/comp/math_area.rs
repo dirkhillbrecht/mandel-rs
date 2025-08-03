@@ -3,7 +3,13 @@ use std::str::FromStr;
 use bigdecimal::{BigDecimal, FromPrimitive, One, ToPrimitive};
 use euclid::{Point2D, Rect, Size2D, Vector2D};
 
-use crate::storage::coord_spaces::{MathSpace, StageSpace};
+use crate::{
+    comp::bd_math,
+    storage::coord_spaces::{MathSpace, StageSpace},
+};
+
+const RELEVANT_PRECISION: u64 = 8;
+const RATIO_PRECISION: u64 = 20;
 
 /// Area of computation, giving as center of the image, radius to conpute and ratio as width/height
 #[derive(Debug, Clone)]
@@ -11,19 +17,40 @@ pub struct MathArea {
     center: Point2D<BigDecimal, MathSpace>,
     radius: BigDecimal,
     ratio: BigDecimal,
+    radius_magnitude: i64,
+    precision: u64,
 }
 
 impl MathArea {
     /// Create a new a math area with a center point, the core radius, and the edge ratio
     pub fn new(
-        center: Point2D<BigDecimal, MathSpace>,
-        radius: BigDecimal,
-        ratio: BigDecimal,
+        i_center: Point2D<BigDecimal, MathSpace>,
+        i_radius: BigDecimal,
+        i_ratio: BigDecimal,
     ) -> Self {
+        let radius = i_radius.with_prec(RELEVANT_PRECISION).normalized();
+        let radius_magnitude = bd_math::magnitude(&radius);
+        let precision =
+            (-(radius_magnitude - RELEVANT_PRECISION as i64)).max(RELEVANT_PRECISION as i64) as u64;
+        let x_magnitude = bd_math::magnitude(&i_center.x);
+        let y_magnitude = bd_math::magnitude(&i_center.y);
+        let center = Point2D::new(
+            i_center
+                .x
+                .with_prec((x_magnitude + precision as i64).max(RELEVANT_PRECISION as i64) as u64)
+                .normalized(),
+            i_center
+                .y
+                .with_prec((y_magnitude + precision as i64).max(RELEVANT_PRECISION as i64) as u64)
+                .normalized(),
+        );
+        let ratio = i_ratio.with_prec(RATIO_PRECISION).normalized();
         MathArea {
             center,
             radius,
             ratio,
+            radius_magnitude,
+            precision,
         }
     }
 
@@ -56,9 +83,21 @@ impl MathArea {
     pub fn rect(&self) -> Rect<BigDecimal, MathSpace> {
         let bradwidth = self.bradwidth();
         let bradheight = self.bradheight();
+        let bw2: BigDecimal = 2 * &bradwidth;
+        let bh2: BigDecimal = 2 * &bradheight;
         Rect::new(
-            Point2D::new(&self.center.x - &bradwidth, &self.center.y - &bradheight),
-            Size2D::new(2 * bradwidth, 2 * bradheight),
+            Point2D::new(
+                (&self.center.x - &bradwidth)
+                    .with_prec(self.precision)
+                    .normalized(),
+                (&self.center.y - &bradheight)
+                    .with_prec(self.precision)
+                    .normalized(),
+            ),
+            Size2D::new(
+                bw2.with_prec(self.precision).normalized(),
+                bh2.with_prec(self.precision).normalized(),
+            ),
         )
     }
 
@@ -110,17 +149,37 @@ impl MathArea {
         )
     }
 
+    /// Return the center coordinates of the math area
     #[allow(dead_code)]
     pub fn center(&self) -> &Point2D<BigDecimal, MathSpace> {
         &self.center
     }
+    /// Return the radius of the math area
     #[allow(dead_code)]
     pub fn radius(&self) -> &BigDecimal {
         &self.radius
     }
+    /// Return the ratio of width by height of the math area
     #[allow(dead_code)]
     pub fn ratio(&self) -> &BigDecimal {
         &self.ratio
+    }
+    /// Return the magnitude of the radius
+    ///
+    /// This is important to select the correct number representation for computing images on this area.
+    #[allow(dead_code)]
+    pub fn radius_magnitude(&self) -> i64 {
+        self.radius_magnitude
+    }
+    /// Return the relevant precision of the coordinate values of the math area
+    ///
+    /// The relevant precision is derived from the negative of the radius' magnitude and a constant relevance difference higher.
+    /// The relevance difference is currently 8.
+    /// If the magnitude of the radius is -4, i.e. 0.000625 then the needed precision of the coordinates is (-(-4))+8=12.
+    /// The precision is never smaller than the relevance difference
+    #[allow(dead_code)]
+    pub fn precision(&self) -> u64 {
+        self.precision
     }
 }
 
@@ -360,6 +419,45 @@ mod tests {
     }
 
     #[test]
+    fn area_precision() {
+        let x = BigDecimal::from_str("0.12345678901234567890").unwrap();
+        let y = BigDecimal::from_str("-0.012345678901234567890").unwrap();
+        let ratio = BigDecimal::from_str("1.0").unwrap();
+        {
+            let radius = BigDecimal::from_str("0.6").unwrap();
+            let area1 = MathArea::new(
+                Point2D::new(x.clone(), y.clone()),
+                radius.clone(),
+                ratio.clone(),
+            );
+            assert_eq!(
+                BigDecimal::from_str("0.12345679").unwrap(),
+                area1.center().x
+            );
+            assert_eq!(
+                BigDecimal::from_str("-0.012345678").unwrap(),
+                area1.center().y
+            );
+        }
+        {
+            let radius = BigDecimal::from_str("0.000006").unwrap();
+            let area1 = MathArea::new(
+                Point2D::new(x.clone(), y.clone()),
+                radius.clone(),
+                ratio.clone(),
+            );
+            assert_eq!(
+                BigDecimal::from_str("0.1234567890123").unwrap(),
+                area1.center().x
+            );
+            assert_eq!(
+                BigDecimal::from_str("-0.0123456789012").unwrap(),
+                area1.center().y
+            );
+        }
+    }
+
+    #[test]
     fn area_rect() {
         {
             let x = BigDecimal::from_str("5.2").unwrap();
@@ -401,6 +499,11 @@ mod tests {
             );
             let rect = area.rect();
             assert_eq!(rect.origin.x, x - &radius);
+            println!(
+                "GGG - left: {}, right: {}",
+                rect.origin.y.to_string(),
+                (&y - &radius / &ratio).normalized().to_string()
+            );
             assert_eq!(rect.origin.y, y - &radius / &ratio);
             assert_eq!(rect.size.width, 2 * &radius);
             assert_eq!(rect.size.height, 2 * (&radius / &ratio));
@@ -477,7 +580,8 @@ mod tests {
             assert_eq!(area.radius, BigDecimal::from_str("2").unwrap());
             assert_eq!(
                 area.ratio,
-                BigDecimal::from_str("2").unwrap() / BigDecimal::from_str("3").unwrap()
+                (BigDecimal::from_str("2").unwrap() / BigDecimal::from_str("3").unwrap())
+                    .with_prec(RATIO_PRECISION)
             );
         }
     }
@@ -578,11 +682,11 @@ mod tests {
         assert_eq!(BigDecimal::from_str("4.01").unwrap(), raster_area.coo_y(1));
         assert_eq!(BigDecimal::from_str("3.99").unwrap(), raster_area.coo_y(-1));
         assert_eq!(
-            BigDecimal::from_str("4.01").unwrap(),
+            BigDecimal::from_str("5.99").unwrap(),
             raster_area.coo_y(height as i32 - 1)
         );
         assert_eq!(
-            BigDecimal::from_str("3.99").unwrap(),
+            BigDecimal::from_str("6.01").unwrap(),
             raster_area.coo_y(height as i32 + 1)
         );
         assert_eq!(
@@ -718,6 +822,36 @@ mod tests {
                 BigDecimal::from_str("6").unwrap()
             ))
         );
+    }
+
+    fn do_stuff_with_big_decimal(bds: &str) {
+        let bd = BigDecimal::from_str(bds).unwrap();
+        println!("******* bd: {} ********", bd.to_string());
+        println!("norm: {}", bd.normalized().to_string());
+        {
+            let (bi, ex) = bd.as_bigint_and_exponent();
+            println!("bgi: {}, ex: {}", bi, ex);
+        }
+        {
+            let (bi, sc) = bd.as_bigint_and_scale();
+            println!("bgi: {}, sc: {}", bi, sc);
+        }
+        println!("with prec 8 norm: {}", bd.with_prec(8).normalized());
+        println!("with scinot: {}", bd.to_scientific_notation());
+        println!(
+            "with prec 8 norm scinot: {}",
+            bd.with_prec(8).normalized().to_scientific_notation()
+        );
+    }
+
+    #[test]
+    fn bigdecfeat() {
+        do_stuff_with_big_decimal("0.05");
+        do_stuff_with_big_decimal("500");
+        do_stuff_with_big_decimal("1.02");
+        do_stuff_with_big_decimal("1e-50");
+        do_stuff_with_big_decimal("7");
+        do_stuff_with_big_decimal("0.0003675849265748");
     }
 }
 
