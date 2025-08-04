@@ -46,6 +46,9 @@
 //! - **Artistic**: Visually striking areas for demonstration
 //! - **Reference**: Well-known coordinates from fractal literature
 
+use std::str::FromStr;
+
+use bigdecimal::{BigDecimal, One};
 use euclid::{Point2D, Rect};
 
 use crate::{comp::math_area::MathArea, storage::coord_spaces::MathSpace};
@@ -132,124 +135,31 @@ impl MathData {
         }
     }
 
-    /// Creates new mathematical data from complete parameters.
+    /// Create new math data from fixed presets, convenience method for static data
     ///
-    /// # Arguments
-    ///
-    /// * `name` - Human-readable description of the mathematical region
-    /// * `coordinates` - Rectangular region in complex plane (euclid::Rect)
-    /// * `max_iteration` - Maximum escape-time iterations
-    ///
-    /// # Returns
-    ///
-    /// Complete mathematical specification ready for fractal computation
-    ///
-    /// # Coordinate System
-    ///
-    /// The `coordinates` parameter uses euclid's type-safe `Rect<f64, MathSpace>`:
-    /// - **Origin**: Bottom-left corner of rectangle
-    /// - **Size**: Width and height in complex plane units
-    /// - **Type Safety**: MathSpace prevents coordinate system confusion
-    pub fn new_c(name: String, coordinates: Rect<f64, MathSpace>, max_iteration: u32) -> Self {
-        Self::new(
+    /// Mathematical values are given as strings so that they can have arbitrary precision.
+    /// Internally, they are converted into BigDecimals.
+    pub fn from_presets(
+        name: String,
+        center_x: &str,
+        center_y: &str,
+        radius: &str,
+        max_iteration: u32,
+    ) -> Self {
+        MathData::new(
             name,
-            MathArea::from_rect_f64(coordinates).unwrap(),
+            MathArea::new(
+                Point2D::new(
+                    BigDecimal::from_str(center_x).unwrap(),
+                    BigDecimal::from_str(center_y).unwrap(),
+                ),
+                BigDecimal::from_str(radius).unwrap(),
+                BigDecimal::one(),
+            ),
             max_iteration,
         )
     }
-    /// Creates mathematical data from two corner points in the complex plane.
-    ///
-    /// Convenience constructor that builds a rectangular region from two
-    /// points, automatically determining the bounding box. The points can
-    /// be specified in any order (top-left + bottom-right or vice versa).
-    ///
-    /// # Arguments
-    ///
-    /// * `name` - Human-readable description of the region
-    /// * `p1` - First corner point in complex plane
-    /// * `p2` - Opposite corner point in complex plane
-    /// * `max_iteration` - Maximum escape-time iterations
-    ///
-    /// # Returns
-    ///
-    /// Mathematical specification with rectangular region from point bounds
-    ///
-    /// # Point Ordering
-    ///
-    /// Points can be specified in any order - the rectangle will be computed
-    /// to encompass both points regardless of which is "top-left" vs "bottom-right".
-    ///
-    /// # Example Usage
-    ///
-    /// ```rust
-    /// // Define classic Mandelbrot viewing window
-    /// let math_data = MathData::from_points(
-    ///     "Full Mandelbrot".to_string(),
-    ///     Point2D::new(-2.5, -1.25),  // Bottom-left
-    ///     Point2D::new(1.0, 1.25),    // Top-right
-    ///     100
-    /// );
-    /// ```
-    pub fn from_points(
-        name: String,
-        p1: Point2D<f64, MathSpace>,
-        p2: Point2D<f64, MathSpace>,
-        max_iteration: u32,
-    ) -> Self {
-        Self::new_c(name, Rect::from_points([p1, p2]), max_iteration)
-    }
-    /// Creates mathematical data from raw coordinate values.
-    ///
-    /// Most convenient constructor for specifying rectangular regions using
-    /// individual coordinate components. Automatically constructs the complex
-    /// plane points and bounding rectangle.
-    ///
-    /// # Arguments
-    ///
-    /// * `name` - Human-readable description of the region
-    /// * `x1` - Real component of first corner point
-    /// * `y1` - Imaginary component of first corner point
-    /// * `x2` - Real component of opposite corner point
-    /// * `y2` - Imaginary component of opposite corner point
-    /// * `max_iteration` - Maximum escape-time iterations
-    ///
-    /// # Returns
-    ///
-    /// Complete mathematical specification ready for computation
-    ///
-    /// # Coordinate Interpretation
-    ///
-    /// In the complex plane coordinate system:
-    /// - **x1, x2**: Real axis coordinates (horizontal)
-    /// - **y1, y2**: Imaginary axis coordinates (vertical)
-    /// - **Order**: Points can be in any order (min/max computed automatically)
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// // Classic Mandelbrot set view
-    /// let math_data = MathData::from_coordinates(
-    ///     "Full Set".to_string(),
-    ///     -2.5, -1.25,  // Bottom-left: -2.5 + -1.25i
-    ///     1.0, 1.25,    // Top-right: 1.0 + 1.25i
-    ///     100
-    /// );
-    /// ```
-    pub fn from_coordinates(
-        name: String,
-        x1: f64,
-        y1: f64,
-        x2: f64,
-        y2: f64,
-        max_iteration: u32,
-    ) -> Self {
-        Self::from_points(
-            name,
-            Point2D::new(x1, y1),
-            Point2D::new(x2, y2),
-            max_iteration,
-        )
-    }
+
     /// Returns a copy of the human-readable name.
     ///
     /// Provides access to the descriptive name for UI display,
@@ -472,53 +382,42 @@ impl MathPreset {
         match self {
             // Full Mandelbrot set view: classic overview coordinates
             Self::MandelbrotFull => {
-                MathData::from_coordinates(
-                    self.name().to_string(),
-                    -2.1,
-                    -1.25, // Bottom-left: captures main cardioid and bulb
-                    0.75,
-                    1.25, // Top-right: includes major features
-                    200,  // Sufficient iterations for overall structure
-                )
+                MathData::from_presets(self.name().to_string(), "-0.675", "0", "1.25", 200)
             }
 
             // Elephant Valley: famous feature with trunk-like appendages
-            Self::MandelbrotElephantValley => MathData::from_coordinates(
+            Self::MandelbrotElephantValley => MathData::from_presets(
                 self.name().to_string(),
-                -0.7512,
-                0.1103, // High-precision coordinates for tiny feature
-                -0.7502,
-                0.1093, // Very small region requiring deep zoom
-                2000,   // High iteration count for boundary detail
+                "-0.74728352972",
+                "0.10757720113",
+                "0.00020306307",
+                2000,
             ),
 
             // Spiral formations: complex boundary spiral structures
-            Self::MandelbrotSpirals => MathData::from_coordinates(
+            Self::MandelbrotSpirals => MathData::from_presets(
                 self.name().to_string(),
-                -0.7269,
-                0.1879, // Precise location of spiral formations
-                -0.7259,
-                0.1879, // Narrow region showing spiral detail
-                2000,   // High iterations for spiral boundary resolution
+                "-0.726516262498",
+                "0.18783225",
+                "0.00003",
+                2000, // High iterations for spiral boundary resolution
             ),
 
             // Seahorse Valley: seahorse-like spiral patterns
-            Self::MandelbrotSeahorseValley => MathData::from_coordinates(
+            Self::MandelbrotSeahorseValley => MathData::from_presets(
                 self.name().to_string(),
-                -0.7463,
-                0.1092, // Coordinates targeting seahorse structures
-                -0.7453,
-                0.1103, // Small region for detailed feature view
-                2000,   // High iteration count for fine spiral detail
+                "-0.74579999998",
+                "0.10975",
+                "0.0005",
+                2000,
             ),
 
             // Squared spirals at a minibrot
-            Self::MandelbrotSquaredSpirals => MathData::from_coordinates(
+            Self::MandelbrotSquaredSpirals => MathData::from_presets(
                 self.name().to_string(),
-                -1.7662270190246352,
-                0.011823254035038925,
-                -1.7662270190251017,
-                0.011823254034689012,
+                "-1.76622701902486844983",
+                "0.01182325403486396853",
+                "1.749564E-13",
                 20000, // High iteration count for fine spiral detail
             ),
         }
