@@ -86,26 +86,6 @@ pub enum Message {
     /// Triggered by: "Apply Preset" button click
     PresetClicked,
 
-    /// Left coordinate boundary changed
-    /// Triggered by: Left coordinate text input
-    /// Data: New coordinate value as string
-    LeftChanged(String),
-
-    /// Right coordinate boundary changed
-    /// Triggered by: Right coordinate text input
-    /// Data: New coordinate value as string
-    RightChanged(String),
-
-    /// Top coordinate boundary changed
-    /// Triggered by: Top coordinate text input
-    /// Data: New coordinate value as string
-    TopChanged(String),
-
-    /// Bottom coordinate boundary changed
-    /// Triggered by: Bottom coordinate text input
-    /// Data: New coordinate value as string
-    BottomChanged(String),
-
     /// Image width in pixels changed
     /// Triggered by: Width text input
     /// Data: New width value as string
@@ -163,6 +143,10 @@ pub enum Message {
     RenderOffsetChanged(String),
 
     // === Interactive Navigation Messages ===
+    /// Drag operation in the FractalCanvas started
+    /// Needed so that the app state can update itself correctly
+    ShiftStageStart,
+
     /// Coordinate system shift completed
     /// Triggered by: Canvas drag operation completion
     /// Data: Pixel offset vector for coordinate translation

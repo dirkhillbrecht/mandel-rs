@@ -59,13 +59,13 @@
 //! - **Fallback Behavior**: Graceful handling of invalid operations
 
 use crate::comp::mandelbrot_engine::{EngineState, MandelbrotEngine};
-use crate::comp::math_area::{MathArea, RasteredMathArea};
+use crate::comp::math_area::MathArea;
 use crate::gui::iced::app::{AppState, ZoomState};
 use crate::gui::iced::message::Message;
 use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::image_comp_properties::{ImageCompProperties, StageProperties};
 use crate::storage::visualization::viz_storage::VizStorage;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::Point2D;
 use iced::Task;
 use std::sync::Arc;
 use std::time::Duration;
@@ -133,52 +133,20 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
         Message::ToggleSidebar => state.viz.sidebar_visible = !state.viz.sidebar_visible,
         Message::PresetChanged(value) => state.viz.math_preset = value,
         Message::PresetClicked => {
-            let data = &state.viz.math_preset.preset();
-            state.math.area = data.coordinates();
-            state.math.max_iteration = data.max_iteration();
+            state.math.area = state.math.area.with_math_area(
+                MathArea::from_rect_f64(state.viz.math_preset.preset().coordinates()).unwrap(),
+            );
             // Auto-trigger computation with preset parameters
             return Task::perform(async {}, |_| Message::ComputeClicked);
         }
-        Message::LeftChanged(value) => {
-            if let Ok(value) = value.parse::<f64>() {
-                state.math.area = Rect::from_points([
-                    Point2D::new(value, state.math.area.min_y()),
-                    state.math.area.max(),
-                ]);
-            }
-        }
-        Message::RightChanged(value) => {
-            if let Ok(value) = value.parse::<f64>() {
-                state.math.area = Rect::from_points([
-                    state.math.area.min(),
-                    Point2D::new(value, state.math.area.max_y()),
-                ]);
-            }
-        }
-        Message::TopChanged(value) => {
-            if let Ok(value) = value.parse::<f64>() {
-                state.math.area = Rect::from_points([
-                    state.math.area.min(),
-                    Point2D::new(state.math.area.max_x(), value),
-                ]);
-            }
-        }
-        Message::BottomChanged(value) => {
-            if let Ok(value) = value.parse::<f64>() {
-                state.math.area = Rect::from_points([
-                    Point2D::new(state.math.area.min_x(), value),
-                    state.math.area.max(),
-                ]);
-            }
-        }
         Message::WidthChanged(value) => {
             if let Ok(value) = value.parse::<u32>() {
-                state.math.stage_size = Size2D::new(value, state.math.stage_size.height);
+                state.math.area = state.math.area.with_width(value)
             }
         }
         Message::HeightChanged(value) => {
             if let Ok(value) = value.parse::<u32>() {
-                state.math.stage_size = Size2D::new(state.math.stage_size.width, value);
+                state.math.area = state.math.area.with_height(value)
             }
         }
         Message::MaxIterationChanged(value) => {
@@ -231,10 +199,7 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
 
             // Create new computation properties from validated parameters
             let comp_props = ImageCompProperties::new(
-                StageProperties::new(RasteredMathArea::new(
-                    MathArea::from_rect_f64(state.math.area).unwrap(),
-                    state.math.stage_size,
-                )),
+                StageProperties::new(state.math.area.clone()),
                 state.math.max_iteration,
             );
 
@@ -312,6 +277,9 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 state.runtime.canvas_cache.clear();
             }
         }
+        Message::ShiftStageStart => {
+            state.runtime.canvas_is_dragging = true;
+        }
         Message::ShiftStage(offset) => {
             // Stop existing computation before coordinate change
             if let Some(engine) = &state.engine {
@@ -333,14 +301,13 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 .original_properties
                 .stage_properties
                 .area
-                .math_area()
-                .rect_f64()
-                .unwrap();
+                .clone();
 
             // Rebuild complete computation pipeline with new coordinates
             state.comp_storage = Some(Arc::new(new_storage));
             state.engine = Some(MandelbrotEngine::new(&state.comp_storage.as_ref().unwrap()));
             state.storage = Some(VizStorage::new(state.comp_storage.as_ref().unwrap()));
+            state.runtime.canvas_is_dragging = false;
 
             // Start computation and schedule visualization updates
             state.engine.as_ref().unwrap().start();
@@ -388,9 +355,7 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                         .original_properties
                         .stage_properties
                         .area
-                        .math_area()
-                        .rect_f64()
-                        .unwrap();
+                        .clone();
 
                     // Rebuild computation pipeline with new coordinates
                     state.comp_storage = Some(Arc::new(new_storage));

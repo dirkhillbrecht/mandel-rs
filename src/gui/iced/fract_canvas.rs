@@ -671,7 +671,7 @@ impl<'a> canvas::Program<Message> for FractalCanvas<'a> {
                             state.operation = CanvasOperation::Drag;
                             state.start_pixel = Some(point);
                             state.drag_shift = None;
-                            (event::Status::Captured, None)
+                            (event::Status::Captured, Some(Message::ShiftStageStart))
                         } else {
                             (event::Status::Ignored, None)
                         }

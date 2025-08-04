@@ -104,6 +104,31 @@ fn render_fractal(app_state: &AppState) -> Element<Message> {
         .into()
 }
 
+fn open_coordinates_area(state: &AppState) -> Element<Message> {
+    container(
+        if state.runtime.canvas_is_dragging || state.runtime.zoom.is_some() {
+            text("…")
+        } else {
+            text(format!(
+                "center: ({},{}), radius: {}",
+                &state.math.area.math_area().center().x.to_string(),
+                &state.math.area.math_area().center().y.to_string(),
+                &state.math.area.math_area().radius().to_string()
+            ))
+        }
+        .align_y(iced::Alignment::Center)
+        .align_x(iced::Alignment::Center)
+        .width(Length::Fill),
+    )
+    .width(Length::Fill)
+    .height(Length::Shrink)
+    .into()
+}
+
+fn collapsed_coordinates_area(_state: &AppState) -> Element<Message> {
+    container(text("")).width(Length::Shrink).height(0).into()
+}
+
 /// Creates the expanded parameter control sidebar with all configuration options.
 ///
 /// Builds a comprehensive control interface containing mathematical parameters,
@@ -154,11 +179,11 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
             .align_y(iced::Alignment::Center),
             // === Image Resolution Controls ===
             row![
-                text_input("", &state.math.stage_size.width.to_string())
+                text_input("", &state.math.area.size().width.to_string())
                     .width(50)
                     .on_input(Message::WidthChanged),
                 text("*"),
-                text_input("", &state.math.stage_size.height.to_string())
+                text_input("", &state.math.area.size().height.to_string())
                     .width(50)
                     .on_input(Message::HeightChanged),
                 text("px")
@@ -186,31 +211,6 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
                     .width(100)
                     .on_input(Message::MaxIterationChanged),
                 button(">").on_press(Message::MaxIterationUpdateClicked)
-            ]
-            .spacing(6)
-            .align_y(iced::Alignment::Center),
-            // === Complex Plane Coordinate Bounds ===
-            text("Right/Top:"),
-            row![
-                text_input("", &state.math.area.max_x().to_string())
-                    .width(100)
-                    .on_input(Message::RightChanged),
-                text("/"),
-                text_input("", &state.math.area.max_y().to_string())
-                    .width(100)
-                    .on_input(Message::TopChanged),
-            ]
-            .spacing(6)
-            .align_y(iced::Alignment::Center),
-            text("Left/Bottom:"),
-            row![
-                text_input("", &state.math.area.min_x().to_string())
-                    .width(100)
-                    .on_input(Message::LeftChanged),
-                text("/"),
-                text_input("", &state.math.area.min_y().to_string())
-                    .width(100)
-                    .on_input(Message::BottomChanged),
             ]
             .spacing(6)
             .align_y(iced::Alignment::Center),
@@ -383,6 +383,7 @@ fn fractal(state: &AppState) -> Element<Message> {
 /// - **Progressive Disclosure**: Controls can be hidden when not needed
 /// - **Touch-Friendly**: Appropriate spacing for various interaction methods
 pub fn view(state: &AppState) -> Element<Message> {
+    let spcol = if state.viz.sidebar_visible { 10 } else { 0 };
     row![
         // Conditional sidebar: expanded controls or minimal toggle
         if state.viz.sidebar_visible {
@@ -391,7 +392,16 @@ pub fn view(state: &AppState) -> Element<Message> {
             collapsed_sidebar(state)
         },
         // Main fractal visualization area
-        fractal(state)
+        column![
+            fractal(state),
+            if state.viz.sidebar_visible {
+                open_coordinates_area(state)
+            } else {
+                collapsed_coordinates_area(state)
+            },
+        ]
+        .spacing(spcol)
+        .padding(spcol)
     ]
     .spacing(10)
     .padding(10)

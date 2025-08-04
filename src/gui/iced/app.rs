@@ -14,14 +14,15 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use euclid::{Rect, Size2D};
+use euclid::Size2D;
 use iced::Point;
 use iced::widget::canvas::Cache;
 
 use crate::comp::mandelbrot_engine::MandelbrotEngine;
+use crate::comp::math_area::{MathArea, RasteredMathArea};
 use crate::comp::math_data::{MathData, MathPreset};
 use crate::storage::computation::comp_storage::CompStorage;
-use crate::storage::coord_spaces::{MathSpace, StageSpace};
+use crate::storage::coord_spaces::StageSpace;
 use crate::storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment};
 use crate::storage::visualization::viz_storage::VizStorage;
 
@@ -41,10 +42,8 @@ use crate::storage::visualization::viz_storage::VizStorage;
 /// );
 /// ```
 pub struct MathState {
-    /// Size of the stage
-    pub stage_size: Size2D<u32, StageSpace>,
-    /// Mathematical coordinate rectangle defining the viewed area
-    pub area: Rect<f64, MathSpace>,
+    /// The computational used math area with coordinates shifted into the pixel centers
+    pub area: RasteredMathArea,
     /// Maximum iteration count for fractal computation (stored as string for UI binding)
     pub max_iteration: u32,
 }
@@ -57,13 +56,8 @@ impl MathState {
     /// * `stage_size` - Size of the computation stage
     /// * `area` - Mathematical coordinate rectangle
     /// * `max_iteration` - Maximum iteration count as string
-    pub fn new(
-        stage_size: Size2D<u32, StageSpace>,
-        area: Rect<f64, MathSpace>,
-        max_iteration: u32,
-    ) -> Self {
+    pub fn new(area: RasteredMathArea, max_iteration: u32) -> Self {
         MathState {
-            stage_size,
             area,
             max_iteration,
         }
@@ -78,7 +72,13 @@ impl MathState {
     /// * `stage_size` - Size of the computation stage
     /// * `data` - Source MathData containing coordinates and iteration limit
     pub fn from_math_data(stage_size: Size2D<u32, StageSpace>, data: MathData) -> Self {
-        Self::new(stage_size, data.coordinates(), data.max_iteration())
+        Self::new(
+            RasteredMathArea::new(
+                MathArea::from_rect_f64(data.coordinates()).unwrap(),
+                stage_size,
+            ),
+            data.max_iteration(),
+        )
     }
 }
 
@@ -327,6 +327,8 @@ pub struct RuntimeState {
     pub canvas_cache: Cache,
     /// Current zoom operation state, None when not zooming
     pub zoom: Option<ZoomState>,
+    /// Flag whether the FractalCanvas is currently dragging (controlled by canvas), this should be unified with the zoom stuff
+    pub canvas_is_dragging: bool,
 }
 
 impl RuntimeState {
@@ -340,6 +342,7 @@ impl RuntimeState {
             computing,
             canvas_cache: Cache::new(),
             zoom: None,
+            canvas_is_dragging: false,
         }
     }
 }

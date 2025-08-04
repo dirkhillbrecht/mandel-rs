@@ -213,6 +213,18 @@ impl RasteredMathArea {
             pix_size: Size2D::new(rect.size.width / size.width, rect.size.height / size.height),
         }
     }
+    /// Create a cloned rastered math area from the current one with a new math area
+    pub fn with_math_area(&self, math_area: MathArea) -> Self {
+        Self::new(math_area, self.size.clone())
+    }
+    /// Create a cloned rastered math area from the current one with a new width
+    pub fn with_width(&self, width: u32) -> Self {
+        Self::new(self.math_area.clone(), Size2D::new(width, self.size.height))
+    }
+    /// Create a cloned rastered math area from the current one with a new height
+    pub fn with_height(&self, height: u32) -> Self {
+        Self::new(self.math_area.clone(), Size2D::new(self.size.width, height))
+    }
     /// Return a reference to the internally stored math area
     pub fn math_area(&self) -> &MathArea {
         &self.math_area
@@ -499,11 +511,6 @@ mod tests {
             );
             let rect = area.rect();
             assert_eq!(rect.origin.x, x - &radius);
-            println!(
-                "GGG - left: {}, right: {}",
-                rect.origin.y.to_string(),
-                (&y - &radius / &ratio).normalized().to_string()
-            );
             assert_eq!(rect.origin.y, y - &radius / &ratio);
             assert_eq!(rect.size.width, 2 * &radius);
             assert_eq!(rect.size.height, 2 * (&radius / &ratio));
@@ -822,36 +829,6 @@ mod tests {
                 BigDecimal::from_str("6").unwrap()
             ))
         );
-    }
-
-    fn do_stuff_with_big_decimal(bds: &str) {
-        let bd = BigDecimal::from_str(bds).unwrap();
-        println!("******* bd: {} ********", bd.to_string());
-        println!("norm: {}", bd.normalized().to_string());
-        {
-            let (bi, ex) = bd.as_bigint_and_exponent();
-            println!("bgi: {}, ex: {}", bi, ex);
-        }
-        {
-            let (bi, sc) = bd.as_bigint_and_scale();
-            println!("bgi: {}, sc: {}", bi, sc);
-        }
-        println!("with prec 8 norm: {}", bd.with_prec(8).normalized());
-        println!("with scinot: {}", bd.to_scientific_notation());
-        println!(
-            "with prec 8 norm scinot: {}",
-            bd.with_prec(8).normalized().to_scientific_notation()
-        );
-    }
-
-    #[test]
-    fn bigdecfeat() {
-        do_stuff_with_big_decimal("0.05");
-        do_stuff_with_big_decimal("500");
-        do_stuff_with_big_decimal("1.02");
-        do_stuff_with_big_decimal("1e-50");
-        do_stuff_with_big_decimal("7");
-        do_stuff_with_big_decimal("0.0003675849265748");
     }
 }
 
