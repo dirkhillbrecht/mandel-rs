@@ -40,10 +40,6 @@ The application implements a sophisticated three-layer design with comprehensive
 - ✅ **Preset System**: Curated mathematical regions for exploration
 
 ### Interactive Controls Architecture
-Complete state-based operation system:
-- `CanvasOperation::Idle` - Default state, ready for new interactions
-- `CanvasOperation::Drag` - Active panning with real-time visual feedback
-- `CanvasOperation::Zoom` - Accumulating zoom operations with timeout-based completion
 
 **Navigation Implementation**: Sophisticated interaction system with:
 - **Panning**: Drag-based coordinate translation with deferred computation restart

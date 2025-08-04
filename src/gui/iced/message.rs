@@ -142,6 +142,9 @@ pub enum Message {
     /// Offset for stripe selection changed
     RenderOffsetChanged(String),
 
+    /// Button clicked to copy coordinates to clipboard
+    CopyCoordinatesToClipboard,
+
     // === Interactive Navigation Messages ===
     /// Drag operation in the FractalCanvas started
     /// Needed so that the app state can update itself correctly

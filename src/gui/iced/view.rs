@@ -106,16 +106,29 @@ fn render_fractal(app_state: &AppState) -> Element<Message> {
 
 fn open_coordinates_area(state: &AppState) -> Element<Message> {
     container(
-        if state.runtime.canvas_is_dragging || state.runtime.zoom.is_some() {
-            text("…")
-        } else {
-            text(format!(
-                "center: ({},{}), radius: {}",
-                &state.math.area.math_area().center().x.to_string(),
-                &state.math.area.math_area().center().y.to_string(),
-                &state.math.area.math_area().radius().to_string()
-            ))
-        }
+        container(
+            if state.runtime.canvas_is_dragging || state.runtime.zoom.is_some() {
+                row![
+                    text("…").align_y(iced::Alignment::Center),
+                    button("Copy").on_press_maybe(None)
+                ]
+                .align_y(iced::Alignment::Center)
+                .spacing(10)
+            } else {
+                row![
+                    text(format!(
+                        "center: ({},{}), radius: {}",
+                        &state.math.area.math_area().center().x.to_string(),
+                        &state.math.area.math_area().center().y.to_string(),
+                        &state.math.area.math_area().radius().to_string()
+                    ))
+                    .align_y(iced::Alignment::Center),
+                    button("Copy").on_press(Message::CopyCoordinatesToClipboard)
+                ]
+                .align_y(iced::Alignment::Center)
+                .spacing(10)
+            },
+        )
         .align_y(iced::Alignment::Center)
         .align_x(iced::Alignment::Center)
         .width(Length::Fill),

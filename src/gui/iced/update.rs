@@ -66,7 +66,7 @@ use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::image_comp_properties::{ImageCompProperties, StageProperties};
 use crate::storage::visualization::viz_storage::VizStorage;
 use euclid::Point2D;
-use iced::Task;
+use iced::{Task, clipboard};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -136,6 +136,7 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             state.math.area = state.math.area.with_math_area(
                 MathArea::from_rect_f64(state.viz.math_preset.preset().coordinates()).unwrap(),
             );
+            state.math.max_iteration = state.viz.math_preset.preset().max_iteration();
             // Auto-trigger computation with preset parameters
             return Task::perform(async {}, |_| Message::ComputeClicked);
         }
@@ -276,6 +277,15 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 state.viz.gradient_color_offset = value;
                 state.runtime.canvas_cache.clear();
             }
+        }
+        Message::CopyCoordinatesToClipboard => {
+            let rep = format!(
+                "center: ({},{}), radius: {}",
+                &state.math.area.math_area().center().x.to_string(),
+                &state.math.area.math_area().center().y.to_string(),
+                &state.math.area.math_area().radius().to_string()
+            );
+            return clipboard::write(rep);
         }
         Message::ShiftStageStart => {
             state.runtime.canvas_is_dragging = true;
