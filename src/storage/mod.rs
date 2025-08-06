@@ -17,5 +17,6 @@ pub mod visualization;
 pub mod coord_spaces;
 pub mod data_point;
 pub mod image_comp_properties;
+pub mod param_description;
 
 // end of file

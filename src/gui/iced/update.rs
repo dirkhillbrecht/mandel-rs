@@ -59,13 +59,13 @@
 //! - **Fallback Behavior**: Graceful handling of invalid operations
 
 use crate::comp::mandelbrot_engine::{EngineState, MandelbrotEngine};
-use crate::comp::math_area::MathArea;
+use crate::comp::math_area::RasteredMathArea;
 use crate::gui::iced::app::{AppState, ZoomState};
 use crate::gui::iced::message::Message;
 use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::image_comp_properties::{ImageCompProperties, StageProperties};
 use crate::storage::visualization::viz_storage::VizStorage;
-use euclid::Point2D;
+use euclid::{Point2D, Size2D};
 use iced::{Task, clipboard};
 use std::sync::Arc;
 use std::time::Duration;
@@ -133,21 +133,18 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
         Message::ToggleSidebar => state.viz.sidebar_visible = !state.viz.sidebar_visible,
         Message::PresetChanged(value) => state.viz.math_preset = value,
         Message::PresetClicked => {
-            state.math.area = state.math.area.with_math_area(
-                MathArea::from_rect_f64(state.viz.math_preset.preset().coordinates()).unwrap(),
-            );
-            state.math.max_iteration = state.viz.math_preset.preset().max_iteration();
+            state.update_from_param_description(state.viz.math_preset.preset());
             // Auto-trigger computation with preset parameters
             return Task::perform(async {}, |_| Message::ComputeClicked);
         }
-        Message::WidthChanged(value) => {
-            if let Ok(value) = value.parse::<u32>() {
-                state.math.area = state.math.area.with_width(value)
+        Message::WidthChanged(width) => {
+            if let Ok(width) = width.parse::<u32>() {
+                state.math.pixel_size = Size2D::new(width, state.math.pixel_size.height);
             }
         }
-        Message::HeightChanged(value) => {
-            if let Ok(value) = value.parse::<u32>() {
-                state.math.area = state.math.area.with_height(value)
+        Message::HeightChanged(height) => {
+            if let Ok(height) = height.parse::<u32>() {
+                state.math.pixel_size = Size2D::new(state.math.pixel_size.width, height);
             }
         }
         Message::MaxIterationChanged(value) => {
@@ -199,8 +196,12 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             state.runtime.computing = false;
 
             // Create new computation properties from validated parameters
+            // GGG rastered math area really needed?
             let comp_props = ImageCompProperties::new(
-                StageProperties::new(state.math.area.clone()),
+                StageProperties::new(RasteredMathArea::new(
+                    state.math.area.clone(),
+                    state.math.pixel_size.clone(),
+                )),
                 state.math.max_iteration,
             );
 
@@ -281,9 +282,9 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
         Message::CopyCoordinatesToClipboard => {
             let rep = format!(
                 "center: ({},{}), radius: {}",
-                &state.math.area.math_area().center().x.to_string(),
-                &state.math.area.math_area().center().y.to_string(),
-                &state.math.area.math_area().radius().to_string()
+                &state.math.area.center().x.to_string(),
+                &state.math.area.center().y.to_string(),
+                &state.math.area.radius().to_string()
             );
             return clipboard::write(rep);
         }
@@ -311,6 +312,7 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 .original_properties
                 .stage_properties
                 .area
+                .math_area()
                 .clone();
 
             // Rebuild complete computation pipeline with new coordinates
@@ -365,6 +367,7 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                         .original_properties
                         .stage_properties
                         .area
+                        .math_area()
                         .clone();
 
                     // Rebuild computation pipeline with new coordinates

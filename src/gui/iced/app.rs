@@ -19,10 +19,11 @@ use iced::Point;
 use iced::widget::canvas::Cache;
 
 use crate::comp::mandelbrot_engine::MandelbrotEngine;
-use crate::comp::math_area::{MathArea, RasteredMathArea};
-use crate::comp::math_data::{MathData, MathPreset};
+use crate::comp::math_area::MathArea;
+use crate::comp::math_data::MathPreset;
 use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::coord_spaces::StageSpace;
+use crate::storage::param_description::ParamDescription;
 use crate::storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment};
 use crate::storage::visualization::viz_storage::VizStorage;
 
@@ -42,54 +43,24 @@ use crate::storage::visualization::viz_storage::VizStorage;
 /// );
 /// ```
 pub struct MathState {
-    /// The computational used math area with coordinates shifted into the pixel centers
-    pub area: RasteredMathArea,
-    /// Maximum iteration count for fractal computation (stored as string for UI binding)
+    /// Size of the stage in pixels
+    pub pixel_size: Size2D<u32, StageSpace>,
+    /// The actual math area describing which area to show
+    pub area: MathArea,
+    /// Maximum iteration count for fractal computation
     pub max_iteration: u32,
-}
-
-impl MathState {
-    /// Creates a new mathematical state with specified parameters.
-    ///
-    /// # Arguments
-    ///
-    /// * `stage_size` - Size of the computation stage
-    /// * `area` - Mathematical coordinate rectangle
-    /// * `max_iteration` - Maximum iteration count as string
-    pub fn new(area: RasteredMathArea, max_iteration: u32) -> Self {
-        MathState {
-            area,
-            max_iteration,
-        }
-    }
-    /// Creates mathematical state from existing MathData and dimensions.
-    ///
-    /// Convenience constructor that extracts coordinate area and iteration
-    /// count from a MathData instance while setting custom dimensions.
-    ///
-    /// # Arguments
-    ///
-    /// * `stage_size` - Size of the computation stage
-    /// * `data` - Source MathData containing coordinates and iteration limit
-    pub fn from_math_data(stage_size: Size2D<u32, StageSpace>, data: MathData) -> Self {
-        Self::new(
-            RasteredMathArea::new(
-                MathArea::from_rect_f64(data.coordinates()).unwrap(),
-                stage_size,
-            ),
-            data.max_iteration(),
-        )
-    }
 }
 
 impl Default for MathState {
     /// Creates default mathematical state with 800x600 dimensions
     /// and full Mandelbrot set view.
     fn default() -> Self {
-        Self::from_math_data(
-            Size2D::new(800, 600),
-            MathPreset::preset(&MathPreset::MandelbrotFull),
-        )
+        let default_preset = MathPreset::preset(&MathPreset::MandelbrotFull);
+        MathState {
+            pixel_size: Size2D::new(800, 600),
+            area: default_preset.math_area(),
+            max_iteration: default_preset.max_iteration,
+        }
     }
 }
 
@@ -380,6 +351,14 @@ pub struct AppState {
     pub viz: VizState,
     /// Dynamic runtime state
     pub runtime: RuntimeState,
+}
+
+impl AppState {
+    /// Update the App state from some param description
+    pub fn update_from_param_description(&mut self, descr: ParamDescription) {
+        self.math.area = descr.math_area();
+        self.math.max_iteration = descr.max_iteration;
+    }
 }
 
 impl Default for AppState {

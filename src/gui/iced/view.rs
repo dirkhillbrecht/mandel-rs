@@ -118,9 +118,9 @@ fn open_coordinates_area(state: &AppState) -> Element<Message> {
                 row![
                     text(format!(
                         "center: ({},{}), radius: {}",
-                        &state.math.area.math_area().center().x.to_string(),
-                        &state.math.area.math_area().center().y.to_string(),
-                        &state.math.area.math_area().radius().to_string()
+                        &state.math.area.center().x.to_string(),
+                        &state.math.area.center().y.to_string(),
+                        &state.math.area.radius().to_string()
                     ))
                     .align_y(iced::Alignment::Center),
                     button("Copy").on_press(Message::CopyCoordinatesToClipboard)
@@ -192,11 +192,11 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
             .align_y(iced::Alignment::Center),
             // === Image Resolution Controls ===
             row![
-                text_input("", &state.math.area.size().width.to_string())
+                text_input("", &state.math.pixel_size.width.to_string())
                     .width(50)
                     .on_input(Message::WidthChanged),
                 text("*"),
-                text_input("", &state.math.area.size().height.to_string())
+                text_input("", &state.math.pixel_size.height.to_string())
                     .width(50)
                     .on_input(Message::HeightChanged),
                 text("px")

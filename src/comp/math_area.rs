@@ -23,34 +23,63 @@ pub struct MathArea {
 
 impl MathArea {
     /// Create a new a math area with a center point, the core radius, and the edge ratio
+    ///
+    /// Note that the parameters are moved into the method and cannot be reused afterwards.
+    /// This is due to the fact that BigDecimal does not implement the Copy trait.
+    /// You may need to pass explicit clones of some values to this constructor.
     pub fn new(
-        i_center: Point2D<BigDecimal, MathSpace>,
-        i_radius: BigDecimal,
-        i_ratio: BigDecimal,
+        center: Point2D<BigDecimal, MathSpace>,
+        radius: BigDecimal,
+        ratio: BigDecimal,
     ) -> Self {
-        let radius = i_radius.with_prec(RELEVANT_PRECISION).normalized();
-        let radius_magnitude = bd_math::magnitude(&radius);
+        let o_radius = radius.with_prec(RELEVANT_PRECISION).normalized();
+        let radius_magnitude = bd_math::magnitude(&o_radius);
         let precision =
             (-(radius_magnitude - RELEVANT_PRECISION as i64)).max(RELEVANT_PRECISION as i64) as u64;
-        let x_magnitude = bd_math::magnitude(&i_center.x);
-        let y_magnitude = bd_math::magnitude(&i_center.y);
-        let center = Point2D::new(
-            i_center
+        let x_magnitude = bd_math::magnitude(&center.x);
+        let y_magnitude = bd_math::magnitude(&center.y);
+        let o_center = Point2D::new(
+            center
                 .x
                 .with_prec((x_magnitude + precision as i64).max(RELEVANT_PRECISION as i64) as u64)
                 .normalized(),
-            i_center
+            center
                 .y
                 .with_prec((y_magnitude + precision as i64).max(RELEVANT_PRECISION as i64) as u64)
                 .normalized(),
         );
-        let ratio = i_ratio.with_prec(RATIO_PRECISION).normalized();
+        let o_ratio = ratio.with_prec(RATIO_PRECISION).normalized();
         MathArea {
-            center,
-            radius,
-            ratio,
+            center: o_center,
+            radius: o_radius,
+            ratio: o_ratio,
             radius_magnitude,
             precision,
+        }
+    }
+
+    /// Return a new instance of the math area using
+    pub fn from_big_decimals(
+        center_x: BigDecimal,
+        center_y: BigDecimal,
+        radius: BigDecimal,
+        ratio: BigDecimal,
+    ) -> Self {
+        Self::new(Point2D::new(center_x, center_y), radius, ratio)
+    }
+
+    /// Return a new instance of math area using string representations of BigDecimal values
+    ///
+    /// If any of the strings cannot be converted into a big decimal, return None
+    pub fn from_str(center_x: &str, center_y: &str, radius: &str, ratio: &str) -> Option<Self> {
+        if let Ok(center_x) = BigDecimal::from_str(center_x)
+            && let Ok(center_y) = BigDecimal::from_str(center_y)
+            && let Ok(radius) = BigDecimal::from_str(radius)
+            && let Ok(ratio) = BigDecimal::from_str(ratio)
+        {
+            Some(Self::from_big_decimals(center_x, center_y, radius, ratio))
+        } else {
+            None
         }
     }
 
@@ -99,46 +128,6 @@ impl MathArea {
                 bh2.with_prec(self.precision).normalized(),
             ),
         )
-    }
-
-    pub fn rect_f64(&self) -> Option<Rect<f64, MathSpace>> {
-        let r = self.rect();
-        if let Some(x) = r.origin.x.to_f64()
-            && let Some(y) = r.origin.y.to_f64()
-            && let Some(width) = r.size.width.to_f64()
-            && let Some(height) = r.size.height.to_f64()
-        {
-            Some(Rect::new(Point2D::new(x, y), Size2D::new(width, height)))
-        } else {
-            None
-        }
-    }
-
-    pub fn from_rect(rect: Rect<BigDecimal, MathSpace>) -> Self {
-        let halfwidth: BigDecimal = rect.size.width / 2;
-        let halfheight = rect.size.height / 2;
-        let ratio = &halfwidth / &halfheight;
-        let radius = halfwidth.clone().min(halfheight.clone());
-        MathArea::new(
-            Point2D::new(rect.origin.x + halfwidth, rect.origin.y + halfheight),
-            radius,
-            ratio,
-        )
-    }
-
-    pub fn from_rect_f64(rect: Rect<f64, MathSpace>) -> Option<Self> {
-        if let Some(x) = BigDecimal::from_f64(rect.origin.x)
-            && let Some(y) = BigDecimal::from_f64(rect.origin.y)
-            && let Some(width) = BigDecimal::from_f64(rect.size.width)
-            && let Some(height) = BigDecimal::from_f64(rect.size.height)
-        {
-            Some(Self::from_rect(Rect::new(
-                Point2D::new(x, y),
-                Size2D::new(width, height),
-            )))
-        } else {
-            None
-        }
     }
 
     pub fn shift(&self, shift: Vector2D<BigDecimal, MathSpace>) -> Self {
@@ -212,18 +201,6 @@ impl RasteredMathArea {
             base: rect.origin,
             pix_size: Size2D::new(rect.size.width / size.width, rect.size.height / size.height),
         }
-    }
-    /// Create a cloned rastered math area from the current one with a new math area
-    pub fn with_math_area(&self, math_area: MathArea) -> Self {
-        Self::new(math_area, self.size.clone())
-    }
-    /// Create a cloned rastered math area from the current one with a new width
-    pub fn with_width(&self, width: u32) -> Self {
-        Self::new(self.math_area.clone(), Size2D::new(width, self.size.height))
-    }
-    /// Create a cloned rastered math area from the current one with a new height
-    pub fn with_height(&self, height: u32) -> Self {
-        Self::new(self.math_area.clone(), Size2D::new(self.size.width, height))
     }
     /// Return a reference to the internally stored math area
     pub fn math_area(&self) -> &MathArea {
@@ -514,94 +491,6 @@ mod tests {
             assert_eq!(rect.origin.y, y - &radius / &ratio);
             assert_eq!(rect.size.width, 2 * &radius);
             assert_eq!(rect.size.height, 2 * (&radius / &ratio));
-        }
-    }
-
-    #[test]
-    fn area_rect_f64() {
-        let x = BigDecimal::from_str("5.2").unwrap();
-        let y = BigDecimal::from_str("3.9").unwrap();
-        let radius = BigDecimal::from_str("0.7").unwrap();
-        let ratio = BigDecimal::from_str("1.0").unwrap();
-        let area = MathArea::new(Point2D::new(x.clone(), y.clone()), radius.clone(), ratio);
-        let rect = area.rect_f64().unwrap();
-        debug_assert_eq!(rect.origin.x, (x - radius.clone()).to_f64().unwrap());
-        debug_assert_eq!(rect.origin.y, (y - radius.clone()).to_f64().unwrap());
-        debug_assert_eq!(rect.size.width, 2.0 * radius.to_f64().unwrap());
-        debug_assert_eq!(rect.size.height, 2.0 * radius.to_f64().unwrap());
-    }
-
-    #[test]
-    fn area_from_rect() {
-        {
-            let rect = Rect::new(
-                Point2D::new(
-                    BigDecimal::from_str("1").unwrap(),
-                    BigDecimal::from_str("1").unwrap(),
-                ),
-                Size2D::new(
-                    BigDecimal::from_str("4").unwrap(),
-                    BigDecimal::from_str("4").unwrap(),
-                ),
-            );
-            let area = MathArea::from_rect(rect);
-            assert_eq!(area.center.x, BigDecimal::from_str("3").unwrap());
-            assert_eq!(area.center.y, BigDecimal::from_str("3").unwrap());
-            assert_eq!(area.radius, BigDecimal::from_str("2").unwrap());
-            assert_eq!(area.ratio, BigDecimal::from_str("1").unwrap());
-        }
-        {
-            let rect = Rect::new(
-                Point2D::new(
-                    BigDecimal::from_str("1").unwrap(),
-                    BigDecimal::from_str("1").unwrap(),
-                ),
-                Size2D::new(
-                    BigDecimal::from_str("6").unwrap(),
-                    BigDecimal::from_str("4").unwrap(),
-                ),
-            );
-            let area = MathArea::from_rect(rect);
-            assert_eq!(area.center.x, BigDecimal::from_str("4").unwrap());
-            assert_eq!(area.center.y, BigDecimal::from_str("3").unwrap());
-            assert_eq!(area.radius, BigDecimal::from_str("2").unwrap());
-            assert_eq!(
-                area.ratio,
-                BigDecimal::from_str("3").unwrap() / BigDecimal::from_str("2").unwrap()
-            );
-        }
-        {
-            let rect = Rect::new(
-                Point2D::new(
-                    BigDecimal::from_str("1").unwrap(),
-                    BigDecimal::from_str("1").unwrap(),
-                ),
-                Size2D::new(
-                    BigDecimal::from_str("4").unwrap(),
-                    BigDecimal::from_str("6").unwrap(),
-                ),
-            );
-            let area = MathArea::from_rect(rect);
-            assert_eq!(area.center.x, BigDecimal::from_str("3").unwrap());
-            assert_eq!(area.center.y, BigDecimal::from_str("4").unwrap());
-            assert_eq!(area.radius, BigDecimal::from_str("2").unwrap());
-            assert_eq!(
-                area.ratio,
-                (BigDecimal::from_str("2").unwrap() / BigDecimal::from_str("3").unwrap())
-                    .with_prec(RATIO_PRECISION)
-            );
-        }
-    }
-
-    #[test]
-    fn area_from_rect_f64() {
-        {
-            let rect = Rect::new(Point2D::new(1.0, 1.0), Size2D::new(4.0, 4.0));
-            let area = MathArea::from_rect_f64(rect).unwrap();
-            assert_eq!(area.center.x, BigDecimal::from_str("3").unwrap());
-            assert_eq!(area.center.y, BigDecimal::from_str("3").unwrap());
-            assert_eq!(area.radius, BigDecimal::from_str("2").unwrap());
-            assert_eq!(area.ratio, BigDecimal::from_str("1").unwrap());
         }
     }
 
