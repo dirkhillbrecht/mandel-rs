@@ -37,10 +37,10 @@ use euclid::Vector2D;
 use iced::Point;
 
 use crate::{
-    comp::math_data::MathPreset,
     gui::iced::app::ImageRenderScheme,
     storage::{
         coord_spaces::StageSpace,
+        param_presets::ParamPreset,
         visualization::coloring::presets::{GradientColorPreset, IterationAssignment},
     },
 };
@@ -80,7 +80,7 @@ pub enum Message {
     /// Mathematical preset selection changed
     /// Triggered by: Preset dropdown selection
     /// Data: New preset (MandelbrotFull, JuliaSet, etc.)
-    PresetChanged(MathPreset),
+    PresetChanged(ParamPreset),
 
     /// Apply current preset to coordinate fields
     /// Triggered by: "Apply Preset" button click

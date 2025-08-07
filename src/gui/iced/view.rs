@@ -60,10 +60,10 @@
 //! - **State-Driven Rendering**: Efficient re-rendering based on state changes
 //! - **Minimal Overhead**: Direct widget creation without unnecessary abstractions
 
-use crate::comp::math_data::MathPreset;
 use crate::gui::iced::app::{AppState, ImageRenderScheme};
 use crate::gui::iced::fract_canvas::FractalCanvas;
 use crate::gui::iced::message::Message;
+use crate::storage::param_presets::ParamPreset;
 use crate::storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment};
 use iced::widget::{
     button, canvas, column, container, pick_list, progress_bar, row, text, text_input,
@@ -206,7 +206,7 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
             // === Mathematical Preset Selection ===
             text("Preset"),
             pick_list(
-                MathPreset::all(),
+                ParamPreset::all(),
                 Some(state.viz.math_preset),
                 Message::PresetChanged,
             )

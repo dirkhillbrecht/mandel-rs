@@ -20,10 +20,10 @@ use iced::widget::canvas::Cache;
 
 use crate::comp::mandelbrot_engine::MandelbrotEngine;
 use crate::comp::math_area::MathArea;
-use crate::comp::math_data::MathPreset;
 use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::coord_spaces::StageSpace;
 use crate::storage::param_description::ParamDescription;
+use crate::storage::param_presets::ParamPreset;
 use crate::storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment};
 use crate::storage::visualization::viz_storage::VizStorage;
 
@@ -55,7 +55,7 @@ impl Default for MathState {
     /// Creates default mathematical state with 800x600 dimensions
     /// and full Mandelbrot set view.
     fn default() -> Self {
-        let default_preset = MathPreset::preset(&MathPreset::MandelbrotFull);
+        let default_preset = ParamPreset::preset(&ParamPreset::MandelbrotFull);
         MathState {
             pixel_size: Size2D::new(800, 600),
             area: default_preset.math_area(),
@@ -144,7 +144,7 @@ impl std::fmt::Display for ImageRenderScheme {
 /// mathematical computation.
 pub struct VizState {
     /// Mathematical preset for quick coordinate area selection
-    pub math_preset: MathPreset,
+    pub math_preset: ParamPreset,
     /// True at startup so that first computation is performed automatically
     pub auto_start_computation: bool,
     /// Whether the control sidebar is currently visible
@@ -173,7 +173,7 @@ impl VizState {
     /// * `iteration_assignment` - Iteration-to-color mapping function
     /// * `render_scheme` - Image scaling and positioning method
     pub fn new(
-        math_preset: MathPreset,
+        math_preset: ParamPreset,
         auto_start_computation: bool,
         sidebar_visible: bool,
         gradient_color_preset: GradientColorPreset,
@@ -202,7 +202,7 @@ impl Default for VizState {
     /// sunrise color scheme, linear iteration assignment, and filled rendering.
     fn default() -> Self {
         Self::new(
-            MathPreset::MandelbrotFull,
+            ParamPreset::MandelbrotFull,
             true,
             true,
             GradientColorPreset::Sunrise,

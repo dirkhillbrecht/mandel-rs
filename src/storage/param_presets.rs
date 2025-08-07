@@ -1,50 +1,6 @@
-//! Mathematical definitions and presets for fractal computation.
+//! Parameter presets for computation
 //!
-//! This module provides the mathematical foundation for fractal computation,
-//! including coordinate system definitions, iteration parameters, and pre-defined
-//! regions of mathematical interest. It serves as the bridge between abstract
-//! mathematical concepts and concrete computational parameters.
-//!
-//! # Core Concepts
-//!
-//! ## Mathematical Coordinate Space
-//! Uses the complex plane (real × imaginary) to define fractal computation regions:
-//! - **Real Axis (X)**: Horizontal coordinate in the complex plane
-//! - **Imaginary Axis (Y)**: Vertical coordinate in the complex plane
-//! - **Rectangular Regions**: Defined by corner points in complex space
-//!
-//! ## Iteration Parameters
-//! Controls the depth and quality of fractal computation:
-//! - **Max Iterations**: Upper limit for escape-time algorithms
-//! - **Precision Trade-off**: Higher iterations → more detail, longer computation
-//! - **Zoom Sensitivity**: Deeper zooms require higher iteration counts
-//!
-//! # Mathematical Foundation
-//!
-//! ## Complex Plane Mapping
-//! ```text
-//! Mathematical Space (Complex Plane):
-//!   Imaginary
-//!       ↑
-//!   -1+2i │ 0+2i │ 1+2i
-//!   ------+------+------
-//!   -1+1i │ 0+1i │ 1+1i
-//!   ------+------+------  → Real
-//!   -1+0i │ 0+0i │ 1+0i
-//! ```
-//!
-//! ## Coordinate System Properties
-//! - **Type Safety**: `MathSpace` coordinate system prevents unit confusion
-//! - **Precision**: f64 coordinates for mathematical accuracy
-//! - **Rectangular Regions**: Axis-aligned bounding boxes in complex plane
-//!
-//! # Preset Philosophy
-//!
-//! Pre-defined mathematical regions serve multiple purposes:
-//! - **Educational**: Famous fractal features for learning
-//! - **Benchmarking**: Standard regions for performance testing
-//! - **Artistic**: Visually striking areas for demonstration
-//! - **Reference**: Well-known coordinates from fractal literature
+//! This module contains a number of hard-coded presets for nice fractal images.
 
 use crate::storage::param_description::ParamDescription;
 
@@ -97,19 +53,8 @@ pub enum FractalType {
 /// - **Self-Similarity**: Regions showing fractal self-similar patterns
 /// - **Fine Detail**: Areas requiring high iteration counts for full detail
 ///
-/// # Coordinate Precision
-///
-/// Deep zoom presets use high-precision coordinates to accurately locate
-/// tiny features in the fractal boundary. These coordinates come from
-/// mathematical literature and fractal exploration.
-///
-/// # Educational Value
-///
-/// - **Progressive Exploration**: From overview to detailed features
-/// - **Iteration Requirements**: Different detail levels demonstrate iteration needs
-/// - **Visual Diversity**: Shows the range of fractal structures
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum MathPreset {
+pub enum ParamPreset {
     /// Complete Mandelbrot set overview (-2.1 to 0.75 real, -1.25 to 1.25 imaginary)
     MandelbrotFull,
     /// Famous "Elephant Valley" feature with intricate trunk-like structures
@@ -124,7 +69,7 @@ pub enum MathPreset {
     MandelbrotRingOfFire,
 }
 
-impl MathPreset {
+impl ParamPreset {
     /// Returns all available mathematical presets.
     ///
     /// Provides a complete list of pre-defined mathematical regions for
@@ -160,28 +105,8 @@ impl MathPreset {
             Self::MandelbrotRingOfFire,
         ]
     }
+
     /// Returns the human-readable name of the mathematical preset.
-    ///
-    /// Provides descriptive names suitable for UI display, referencing
-    /// either the mathematical scope (Full) or the visual characteristics
-    /// of famous fractal features.
-    ///
-    /// # Returns
-    ///
-    /// Static string with the preset's display name
-    ///
-    /// # Naming Convention
-    ///
-    /// Names follow the pattern "Mandelbrot [Feature]" where:
-    /// - **Mandelbrot**: Identifies the fractal type
-    /// - **Feature**: Describes the mathematical or visual characteristic
-    ///
-    /// # Mathematical References
-    ///
-    /// Names reference established terminology from fractal literature:
-    /// - **"Elephant Valley"**: Named for trunk-like appendages
-    /// - **"Seahorse Valley"**: Named for seahorse-like spiral structures
-    /// - **"Spirals"**: Generic term for spiral boundary formations
     pub fn name(&self) -> &'static str {
         match self {
             Self::MandelbrotFull => "Full Mandelbrot Set",
@@ -192,35 +117,8 @@ impl MathPreset {
             Self::MandelbrotRingOfFire => "Minibrot with Ring of Fire",
         }
     }
-    /// Converts the preset into concrete mathematical data for computation.
-    ///
-    /// Creates a complete `MathData` specification with precise coordinates
-    /// and appropriate iteration counts for the mathematical region. Each
-    /// preset uses coordinates derived from fractal exploration and literature.
-    ///
-    /// # Returns
-    ///
-    /// Complete mathematical specification ready for fractal computation
-    ///
-    /// # Coordinate Precision
-    ///
-    /// - **Full Set**: Broad coordinates showing complete structure
-    /// - **Feature Zooms**: High-precision coordinates locating tiny features
-    /// - **Literature Values**: Coordinates from established fractal references
-    ///
-    /// # Iteration Selection
-    ///
-    /// Iteration counts chosen based on mathematical requirements:
-    /// - **Full Set**: 200 iterations sufficient for overall structure
-    /// - **Deep Features**: 2000+ iterations needed for fine boundary detail
-    /// - **Quality vs Speed**: Balanced for educational exploration
-    ///
-    /// # Mathematical Regions
-    ///
-    /// Each preset defines specific areas of mathematical interest:
-    /// - **Boundary Regions**: Areas with complex fractal boundary structure
-    /// - **Feature Centers**: Coordinates targeting famous visual formations
-    /// - **Zoom Factors**: Appropriate scale for viewing each feature
+
+    /// Actual preset data
     pub fn preset(&self) -> ParamDescription {
         match self {
             // Full Mandelbrot set view: classic overview coordinates
@@ -286,7 +184,7 @@ impl MathPreset {
     }
 }
 
-impl std::fmt::Display for MathPreset {
+impl std::fmt::Display for ParamPreset {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.name())
     }
