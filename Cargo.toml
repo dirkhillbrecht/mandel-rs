@@ -11,6 +11,7 @@ edition = "2024"
 [dependencies]
 async-stream = "0.3"
 bigdecimal = "0.4.8"
+clap = { version = "4.5.43", features = ["derive"] }
 euclid = "0.22.11"
 iced = { version = "0.13.1", features = ["image", "tokio", "canvas"] }
 palette = "0.7"

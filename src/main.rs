@@ -150,43 +150,32 @@
 //! The `--release` flag is recommended for optimal fractal computation performance.
 
 /// Application modules organized by architectural layer
-mod comp;     // Computation engine and mathematical algorithms
-mod gui;      // User interface and event handling
-mod storage;  // Data storage and synchronization systems
+mod comp; // Computation engine and mathematical algorithms
+mod gui; // User interface and event handling
+mod storage; // Data storage and synchronization systems
+
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(name = "mandel-rs")]
+#[command(about = "A fractal visualization tool")]
+struct Args {
+    #[arg(long, short = 'V')]
+    version: bool,
+}
 
 /// Application entry point - launches the Iced GUI application.
 ///
-/// Initializes the complete application stack including GUI framework,
-/// computation engine, and storage systems. The application uses Iced's
-/// built-in event loop and window management for cross-platform compatibility.
-///
-/// # Returns
-///
-/// `iced::Result` indicating success or failure of application initialization
-///
-/// # Application Lifecycle
-///
-/// 1. **Iced Initialization**: Window creation and event loop setup
-/// 2. **Application State**: Initial state construction with default parameters  
-/// 3. **GUI Rendering**: Initial UI layout and widget tree creation
-/// 4. **Event Loop**: Message-driven state updates and re-rendering
-/// 5. **Graceful Shutdown**: Resource cleanup and window closure
-///
-/// # Error Handling
-///
-/// Returns `iced::Result` which handles:
-/// - **Window Creation Failures**: Graphics context or windowing system issues
-/// - **Resource Initialization**: Memory allocation or system resource problems
-/// - **Platform Compatibility**: OS-specific initialization requirements
-///
-/// # Performance Notes
-///
-/// - Built with `--release` for optimal computation performance
-/// - Uses native GUI rendering for responsive user interface
-/// - Leverages all available CPU cores for fractal computation
-/// - Implements efficient memory management for large datasets
+/// Also evaluates the command line if needed
 fn main() -> iced::Result {
-    gui::iced::app::launch()
+    let version = env!("MANDEL_FULL_VERSION");
+    let args = Args::parse();
+    if args.version {
+        println!("{}", version);
+        iced::Result::Ok(())
+    } else {
+        gui::iced::app::launch(version)
+    }
 }
 
 // end of file
