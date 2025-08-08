@@ -387,13 +387,16 @@ impl Default for AppState {
 ///
 /// Returns `iced::Result` indicating success or failure of application startup.
 pub fn launch() -> iced::Result {
-    iced::application(
-        "Mandelbrot Fractal Visualizer",
-        super::update::update,
-        super::view::view,
-    )
-    .subscription(super::subscription::subscription)
-    .run()
+    let title: &'static str = Box::leak(
+        format!(
+            "Mandelbrot Fractal Visualizer v{}",
+            env!("MANDEL_FULL_VERSION")
+        )
+        .into_boxed_str(),
+    );
+    iced::application(title, super::update::update, super::view::view)
+        .subscription(super::subscription::subscription)
+        .run()
 }
 
 // end of file
