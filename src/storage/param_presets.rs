@@ -67,6 +67,8 @@ pub enum ParamPreset {
     MandelbrotSquaredSpirals,
     // Mandelbrot with ring of fire around it
     MandelbrotRingOfFire,
+    // An area which looks weaved
+    MandelbrotWeaved,
 }
 
 impl ParamPreset {
@@ -103,6 +105,7 @@ impl ParamPreset {
             Self::MandelbrotSeahorseValley,
             Self::MandelbrotSquaredSpirals,
             Self::MandelbrotRingOfFire,
+            Self::MandelbrotWeaved,
         ]
     }
 
@@ -115,6 +118,7 @@ impl ParamPreset {
             Self::MandelbrotSeahorseValley => "Mandelbrot Seahorse Valley",
             Self::MandelbrotSquaredSpirals => "Mandelbrot Squared Spirals",
             Self::MandelbrotRingOfFire => "Minibrot with Ring of Fire",
+            Self::MandelbrotWeaved => "Weave of Spirals",
         }
     }
 
@@ -177,6 +181,16 @@ impl ParamPreset {
                 center_x: "-1.15266540088230347".to_owned(),
                 center_y: "0.30699874725259538".to_owned(),
                 radius: "6.2385403E-10".to_owned(),
+                ratio: "1".to_owned(),
+                max_iteration: 20000,
+            },
+
+            // Minibrot with "ring of fire"
+            Self::MandelbrotWeaved => ParamDescription {
+                name: self.name().to_string(),
+                center_x: "-0.694241084688711".to_owned(),
+                center_y: "0.369018494065763".to_owned(),
+                radius: "1.7379089E-8".to_owned(),
                 ratio: "1".to_owned(),
                 max_iteration: 20000,
             },
