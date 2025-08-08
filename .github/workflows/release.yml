@@ -1,0 +1,75 @@
+name: Create release
+
+on:
+  push:
+    branches: ["master"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Obtain raw version number
+        id: rawversion
+        run: echo "VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')" >> $GITHUB_OUTPUT
+
+      - name: Check if release already exists (preliminary)
+        run: |
+          if gh release view release-${{ steps.rawversion.outputs.VERSION }} >/dev/null 2>&1; then
+            echo "Release tag release-${{ steps.rawversion.outputs.VERSION }} already exists. Cannot release again!"
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check that release notes exist
+        run: |
+          if [ ! -f "./release-notes/release-${{ steps.rawversion.outputs.VERSION }}.md" ]; then
+            echo "Cannot find release notes in release-notes/release-${{ steps.rawversion.outputs.VERSION }}.md. You need to add this."
+            exit 1
+          fi
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Get version from binary
+        id: version
+        run: echo "VERSION=$(./target/release/mandel-rs --version)" >> $GITHUB_OUTPUT
+
+      - name: Rename binary to contain version in name
+        run: mv target/release/mandel-rs target/release/mandel-rs-${{ steps.version.outputs.VERSION }}
+
+      - name: Verify version consistency (Cargo.toml vs. binary)
+        run: |
+          if [ "${{ steps.rawversion.outputs.VERSION }}" != "${{ steps.version.outputs.VERSION }}" ]; then
+            echo "Version mismatch: Cargo.toml: ${{ steps.rawversion.outputs.VERSION }}, binary: ${{ steps.version.outputs.VERSION }}. Not releasing, you need to fix this."
+            exit 1
+          fi
+
+      # Note: Strictly speaking this is superfluous as the binary version must be the same as the Cargo.toml version
+      #   due to the previous build step. We keep this step for the time being as we might change version management
+      #   somewhen in the future and then this could become handy again. - dh, 2025-08-09
+      - name: Check if release already exists (decisive)
+        run: |
+          if gh release view release-${{ steps.version.outputs.VERSION }} >/dev/null 2>&1; then
+            echo "Release tag release-${{ steps.version.outputs.VERSION }} already exists. Cannot release again!"
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.version.outputs.VERSION }}
+          tag_name: release-${{ steps.version.outputs.VERSION }}
+          files: target/release/mandel-rs-${{ steps.version.outputs.VERSION }}
+          body_path: ./release-notes/release-${{ steps.rawversion.outputs.VERSION }}.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

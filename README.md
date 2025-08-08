@@ -10,7 +10,8 @@ This project implements a fractal graphics program from scratch in Rust. I use t
 2. Learn Rust
 3. Use AI help for this endeavour.
 
-See [installation instructions](INSTALL.md) on how to install this program locally; spoiler: You have to compile it…
+See [installation instructions](INSTALL.md) on how to install this program locally.
+Note that you might need to compile it yourself in certain environments.
 
 ## Features of this program
 
@@ -51,6 +52,18 @@ truthful feedback…
 
 The AI has one active role with the code: It writes the source code documentation. I would never have been able to write so
 much code documentation in such high quality. In my opinion, the AI really shines with this task.
+
+## Yet another Mandelbrot visualizer?
+
+I am very aware that this is not the first program showing the Mandelbrot set.
+It is not even _my_ first program to show the Mandelbrot set.
+Actually, this is the fifth or sixth time I program this stuff myself:
+
+* In 1988, I used a version mainly copied from a computer magazine on an Amstrad CPC6128 written in Basic and Z80 Assembler (only the main iteration loop). It needed a whole night to compute a 320*200 pixel image with 4 colors and a maximum iteration depth of 255.
+* In 1990, I wrote my first own implementation in Turbo Pascal. It could iterate somehow deeper than 255 and only needed several hours on a 10 MHz 80286 for images in EGA/Hercules resolution.
+* During the 1990ies, this program faced several enhancements and revisions. Finally, my interest in the topic faded away.
+* Only in 2017, I started another approach. I selected Java as implementation platform and used stuff like BigDecimal to be able to produce really deep zoom images. I even transferred a pertubation-based computation algorithm from C++ to Java to speed things up. Unfortunately, I only had the already outdated Swing library for the GUI. Eventually, I stumbled upon several problems: Java is not the best language for heavy numerical computations and the whole thing became a quite complex mess. The project stalled during 2018 and never gained traction again.
+* Finally, in 2025, I decided to learn Rust, use an AI as tutor and take a not-too-simple topic I was already familiar with as project. This way I came to the Mandelbrot set again. The result is mandel-rs as you see it just now.
 
 ## License
 
