@@ -358,6 +358,10 @@ impl AppState {
     pub fn update_from_param_description(&mut self, descr: ParamDescription) {
         self.math.area = descr.math_area();
         self.math.max_iteration = descr.max_iteration;
+        self.viz.iteration_assignment = descr.iteration_assignment;
+        self.viz.gradient_color_preset = descr.color_preset;
+        self.viz.gradient_color_stripes = descr.stripe_count;
+        self.viz.gradient_color_offset = descr.stripe_offset;
     }
 }
 

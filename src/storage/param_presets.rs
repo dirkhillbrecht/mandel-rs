@@ -2,7 +2,10 @@
 //!
 //! This module contains a number of hard-coded presets for nice fractal images.
 
-use crate::storage::param_description::ParamDescription;
+use crate::storage::{
+    param_description::ParamDescription,
+    visualization::coloring::presets::{GradientColorPreset, IterationAssignment},
+};
 
 /// Enumeration of supported fractal types for future extensibility.
 ///
@@ -133,6 +136,10 @@ impl ParamPreset {
                 radius: "1.25".to_owned(),
                 ratio: "1".to_owned(),
                 max_iteration: 200,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 256,
+                stripe_offset: 0,
             },
 
             // Elephant Valley: famous feature with trunk-like appendages
@@ -143,6 +150,10 @@ impl ParamPreset {
                 radius: "0.00020306307".to_owned(),
                 ratio: "1".to_owned(),
                 max_iteration: 2000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 256,
+                stripe_offset: 0,
             },
 
             // Spiral formations: complex boundary spiral structures
@@ -153,6 +164,10 @@ impl ParamPreset {
                 radius: "0.00003".to_owned(),
                 ratio: "1".to_owned(),
                 max_iteration: 2000, // High iterations for spiral boundary resolution
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 256,
+                stripe_offset: 0,
             },
 
             // Seahorse Valley: seahorse-like spiral patterns
@@ -163,6 +178,10 @@ impl ParamPreset {
                 radius: "0.0005".to_owned(),
                 ratio: "1".to_owned(),
                 max_iteration: 2000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 256,
+                stripe_offset: 0,
             },
 
             // Squared spirals at a minibrot
@@ -173,6 +192,10 @@ impl ParamPreset {
                 radius: "1.749564E-13".to_owned(),
                 ratio: "1".to_owned(),
                 max_iteration: 20000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 256,
+                stripe_offset: 0,
             },
 
             // Minibrot with "ring of fire"
@@ -183,6 +206,10 @@ impl ParamPreset {
                 radius: "6.2385403E-10".to_owned(),
                 ratio: "1".to_owned(),
                 max_iteration: 20000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 190,
+                stripe_offset: 160,
             },
 
             // Minibrot with "ring of fire"
@@ -193,6 +220,10 @@ impl ParamPreset {
                 radius: "1.7379089E-8".to_owned(),
                 ratio: "1".to_owned(),
                 max_iteration: 20000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 256,
+                stripe_offset: 0,
             },
         }
     }
