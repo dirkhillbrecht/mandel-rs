@@ -203,20 +203,32 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
             ]
             .spacing(6)
             .align_y(iced::Alignment::Center),
+            // Image scaling and presentation options
+            text("Render scheme:"),
+            pick_list(
+                ImageRenderScheme::all(),
+                Some(state.viz.render_scheme),
+                Message::RenderSchemeChanged,
+            )
+            .width(150),
             // === Mathematical Preset Selection ===
             text("Preset"),
-            pick_list(
-                ParamPreset::all(),
-                Some(state.viz.math_preset),
-                Message::PresetChanged,
-            )
-            .width(200),
-            // Apply button disabled during computation to prevent conflicts
-            button("Apply").on_press_maybe(if state.runtime.computing {
-                None
-            } else {
-                Some(Message::PresetClicked)
-            }),
+            row![
+                pick_list(
+                    ParamPreset::all(),
+                    Some(state.viz.math_preset),
+                    Message::PresetChanged,
+                )
+                .width(200),
+                // Apply button disabled during computation to prevent conflicts
+                button(">").on_press_maybe(if state.runtime.computing {
+                    None
+                } else {
+                    Some(Message::PresetClicked)
+                }),
+            ]
+            .spacing(6)
+            .align_y(iced::Alignment::Center),
             // === Iteration Limit Configuration ===
             text("Max. iterations:"),
             row![
@@ -263,14 +275,6 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
                 IterationAssignment::all(),
                 Some(state.viz.iteration_assignment),
                 Message::IterationAssignmentChanged,
-            )
-            .width(150),
-            // Image scaling and presentation options
-            text("Render scheme:"),
-            pick_list(
-                ImageRenderScheme::all(),
-                Some(state.viz.render_scheme),
-                Message::RenderSchemeChanged,
             )
             .width(150),
             row![
