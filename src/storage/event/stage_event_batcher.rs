@@ -281,12 +281,12 @@ impl StageEventBatcher {
     /// - Clears buffer and timer for next batch cycle
     /// - Safe to call even when buffer is empty (no-op)
     fn flush_buffer_and_clear_timer(
+        &self,
         buffer: &mut Option<DataPointChangeBuffer>,
         timer: &mut Option<Pin<Box<tokio::time::Sleep>>>,
         output: &mpsc::UnboundedSender<StageEvent>,
     ) {
         if let Some(buf) = buffer.take() {
-            // take "empties" the original Option
             let multi_change = buf.into_multi_change();
             let _ = output.send(StageEvent::ContentMultiChange(multi_change));
         }
@@ -320,6 +320,7 @@ impl StageEventBatcher {
     /// Buffer is automatically flushed when capacity is reached,
     /// ensuring timely transmission without manual intervention.
     fn push_data_point_change_to_buffer(
+        &self,
         change: DataPointChange,
         current_buffer: &mut Option<DataPointChangeBuffer>,
         timer: &mut Option<Pin<Box<tokio::time::Sleep>>>,
@@ -332,16 +333,15 @@ impl StageEventBatcher {
             *current_buffer = Some(DataPointChangeBuffer::new(max_capacity));
             *timer = Some(Box::pin(tokio::time::sleep(max_interval)));
         }
-        
+
         // Add change to current buffer
         current_buffer
             .as_mut()
             .unwrap()
             .push_data_point_change(change);
-            
         // Check if buffer has reached capacity and flush if needed
         if current_buffer.as_ref().unwrap().is_capacity_exceeded() {
-            Self::flush_buffer_and_clear_timer(current_buffer, timer, output);
+            self.flush_buffer_and_clear_timer(current_buffer, timer, output);
         }
     }
 
@@ -397,7 +397,7 @@ impl StageEventBatcher {
                         // Branch 1.1: Input channel closed - graceful shutdown
                         None => {
                             // Flush any pending changes before terminating
-                            Self::flush_buffer_and_clear_timer(&mut current_buffer, &mut timer, &output);
+                            self.flush_buffer_and_clear_timer(&mut current_buffer, &mut timer, &output);
                             break; // Exit loop, dropping output sender closes output channel
                         }
 
@@ -406,7 +406,7 @@ impl StageEventBatcher {
                             match event {
                                 // Single pixel update - add to batch buffer
                                 StageEvent::ContentChange(change) => {
-                                    Self::push_data_point_change_to_buffer(
+                                    self.push_data_point_change_to_buffer(
                                         change,
                                         &mut current_buffer,
                                         &mut timer,
@@ -414,30 +414,30 @@ impl StageEventBatcher {
                                         self.max_interval,
                                         &output);
                                 }
-                                
-                                // Computation state change - immediate transmission
-                                StageEvent::StateChange(new_state) => {
-                                    // Forward state change immediately (not batched)
-                                    let _ = output.send(StageEvent::StateChange(new_state));
-                                    
-                                    // Terminal states trigger cleanup and shutdown
-                                    if new_state == StageState::Stalled || new_state == StageState::Completed {
-                                        Self::flush_buffer_and_clear_timer(&mut current_buffer, &mut timer, &output);
-                                        break; // Computation finished, terminate batcher
-                                    }
-                                }
-                                
+
                                 // Pre-batched changes - re-batch with current buffer
                                 StageEvent::ContentMultiChange(multi_change) => {
                                     // Add each individual change to the current batch
                                     for change in multi_change.changes() {
-                                        Self::push_data_point_change_to_buffer(
+                                        self.push_data_point_change_to_buffer(
                                             *change,
                                             &mut current_buffer,
                                             &mut timer,
                                             self.max_capacity,
                                             self.max_interval,
                                             &output);
+                                    }
+                                }
+
+                                // Computation state change - immediate transmission
+                                StageEvent::StateChange(new_state) => {
+                                    // Forward state change immediately (not batched)
+                                    let _ = output.send(StageEvent::StateChange(new_state));
+
+                                    // Terminal states trigger cleanup and shutdown
+                                    if new_state == StageState::Stalled || new_state == StageState::Completed {
+                                        self.flush_buffer_and_clear_timer(&mut current_buffer, &mut timer, &output);
+                                        break; // Computation finished, terminate batcher
                                     }
                                 }
                             }
@@ -454,7 +454,7 @@ impl StageEventBatcher {
                     }
                 } => {
                     // Time limit reached - flush buffer to maintain UI responsiveness
-                    Self::flush_buffer_and_clear_timer(&mut current_buffer, &mut timer, &output);
+                    self.flush_buffer_and_clear_timer(&mut current_buffer, &mut timer, &output);
                 }
 
             }

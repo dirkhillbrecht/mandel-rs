@@ -48,11 +48,23 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::mpsc::error::TryRecvError;
 
 use super::viz_stage::VizStage;
 use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::event::stage_event_batcher::StageEvent;
 use crate::storage::image_comp_properties::{ImageCompProperties, StageState};
+
+/// Result of the event processing, signals the caller what to do
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum EventProcessResult {
+    /// Events have been handled, update visualization and continue calling event processing
+    UpdateAndContinue,
+    /// No events have been handled but further events may arrive, continue calling event processing
+    Continue,
+    /// No events have been handled, no further events will arrive, stop calling the event loop
+    Stop,
+}
 
 /// Visualization-optimized storage for fractal data.
 ///
@@ -182,30 +194,51 @@ impl VizStorage {
     ///     invalidate_canvas();
     /// }
     /// ```
-    pub fn process_events(&mut self) -> bool {
-        let mut events_handled = false;
+    pub fn process_events(&mut self) -> EventProcessResult {
+        let mut events_handled = EventProcessResult::Stop;
         if let Some(receiver) = &mut self.event_receiver {
             // Process all available events in batch for efficiency
-            while let Ok(event) = receiver.try_recv() {
-                events_handled = true;
-                match event {
-                    // Single pixel update: Apply directly to visualization stage
-                    StageEvent::ContentChange(change) => {
-                        self.stage.set_from_change(change);
-                    }
-                    // Multiple pixel updates: Process batch efficiently
-                    StageEvent::ContentMultiChange(changes) => {
-                        changes
-                            .changes()
-                            .iter()
-                            .for_each(|change| self.stage.set_from_change(*change));
-                    }
-                    // Computation state change: Handle lifecycle management
-                    StageEvent::StateChange(thestate) => {
-                        // Clean up event system when computation ends
-                        if thestate == StageState::Stalled || thestate == StageState::Completed {
-                            let _ = self.comp_storage.drop_event_receiver();
+            loop {
+                match receiver.try_recv() {
+                    Ok(event) => {
+                        events_handled = EventProcessResult::UpdateAndContinue;
+                        match event {
+                            // Single pixel update: Apply directly to visualization stage
+                            StageEvent::ContentChange(change) => {
+                                self.stage.set_from_change(change);
+                            }
+                            // Multiple pixel updates: Process batch efficiently
+                            StageEvent::ContentMultiChange(changes) => {
+                                changes
+                                    .changes()
+                                    .iter()
+                                    .for_each(|change| self.stage.set_from_change(*change));
+                            }
+                            // Computation state change: Handle lifecycle management
+                            StageEvent::StateChange(thestate) => {
+                                // Clean up event system when computation ends
+                                if thestate == StageState::Stalled
+                                    || thestate == StageState::Completed
+                                {
+                                    let _ = self.comp_storage.drop_event_receiver();
+                                }
+                            }
                         }
+                    }
+                    Err(error) => {
+                        match error {
+                            TryRecvError::Empty => {
+                                if events_handled != EventProcessResult::UpdateAndContinue {
+                                    events_handled = EventProcessResult::Continue
+                                }
+                            }
+                            TryRecvError::Disconnected => {
+                                if events_handled != EventProcessResult::UpdateAndContinue {
+                                    events_handled = EventProcessResult::Stop
+                                }
+                            }
+                        }
+                        break;
                     }
                 }
             }

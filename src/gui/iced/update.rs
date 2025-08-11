@@ -64,7 +64,7 @@ use crate::gui::iced::app::{AppState, ZoomState};
 use crate::gui::iced::message::Message;
 use crate::storage::computation::comp_storage::CompStorage;
 use crate::storage::image_comp_properties::{ImageCompProperties, StageProperties};
-use crate::storage::visualization::viz_storage::VizStorage;
+use crate::storage::visualization::viz_storage::{EventProcessResult, VizStorage};
 use euclid::{Point2D, Size2D};
 use iced::{Task, clipboard};
 use std::sync::Arc;
@@ -223,9 +223,25 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
         Message::UpdateViz => {
             // Process any pending computation events and update visualization
             if let Some(ref mut vizstorage) = state.storage {
-                if vizstorage.process_events() {
-                    // Clear canvas cache when new data arrives
-                    state.runtime.canvas_cache.clear();
+                match vizstorage.process_events() {
+                    EventProcessResult::UpdateAndContinue => {
+                        state.runtime.canvas_cache.clear();
+                        return Task::perform(
+                            async {
+                                tokio::time::sleep(Duration::from_millis(20)).await;
+                            },
+                            |_| Message::UpdateViz,
+                        );
+                    }
+                    EventProcessResult::Continue => {
+                        return Task::perform(
+                            async {
+                                tokio::time::sleep(Duration::from_millis(20)).await;
+                            },
+                            |_| Message::UpdateViz,
+                        );
+                    }
+                    EventProcessResult::Stop => {}
                 }
             }
 
@@ -236,15 +252,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                     // Computation completed - cleanup resources and stop updates
                     state.engine = None;
                     state.runtime.computing = false;
-                    return Task::none(); // Stop update cycle
-                } else {
-                    // Computation still running - schedule next update in 20ms
-                    return Task::perform(
-                        async {
-                            tokio::time::sleep(Duration::from_millis(20)).await;
-                        },
-                        |_| Message::UpdateViz,
-                    );
                 }
             }
         }
