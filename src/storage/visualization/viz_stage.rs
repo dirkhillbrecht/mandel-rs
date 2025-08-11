@@ -126,7 +126,10 @@ impl VizStage {
     /// the visualization baseline before event-driven updates begin.
     pub fn new(comp_stage: &CompStage) -> Self {
         let data = comp_stage.get_full_data();
-        let set_count = data.iter().filter(|p| p.is_some()).count();
+        let set_count = data
+            .iter()
+            .filter(|p| p.is_some_and(|q| q.iteration_count_quality.is_accurate()))
+            .count();
         VizStage {
             width: comp_stage.width(),
             height: comp_stage.height(),
@@ -296,7 +299,7 @@ impl VizStage {
     /// # Arguments
     ///
     /// * `x` - X coordinate (0 to width-1)
-    /// * `y` - Y coordinate (0 to height-1)  
+    /// * `y` - Y coordinate (0 to height-1)
     /// * `data_point` - Computed fractal data to store
     ///
     /// # Behavior
@@ -319,7 +322,7 @@ impl VizStage {
     /// event-driven update system.
     pub fn set(&mut self, x: usize, y: usize, data_point: DataPoint) {
         let index = self.index(x, y);
-        if self.data[index].is_none() {
+        if self.data[index].is_none_or(|p| !p.iteration_count_quality.is_accurate()) {
             self.set_count += 1
         }
         self.data[index] = Some(data_point);

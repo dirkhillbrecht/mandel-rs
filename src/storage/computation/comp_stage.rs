@@ -131,8 +131,6 @@ impl CompStage {
             data,
             state: RwLock::new(StageState::Initialized),
             change_sender: std::sync::Mutex::new(None),
-            //            event_buffer_capacity,
-            //            event_buffer: RwLock::new(None),
         }
     }
 
@@ -251,7 +249,8 @@ impl CompStage {
     /// Commonly used by computation algorithms to skip already-computed
     /// pixels during incremental computation.
     pub fn is_computed(&self, x: u32, y: u32) -> bool {
-        self.get(x, y).is_some()
+        self.get(x, y)
+            .is_some_and(|p| p.iteration_count_quality.is_accurate())
     }
 
     /// Sets the event channel for broadcasting data changes.

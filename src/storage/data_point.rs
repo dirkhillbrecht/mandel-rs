@@ -46,7 +46,7 @@ use crate::storage::coord_spaces::MathSpace;
 /// - **Optimization**: Preserve computed values during coordinate transformations
 /// - **Visual Feedback**: Color-code pixels based on computation confidence
 #[allow(dead_code)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum DataQuality {
     /// No information available - pixel has not been processed
     Unknown,
@@ -56,6 +56,12 @@ pub enum DataQuality {
     Derived,
     /// Directly computed through fractal iteration - highest accuracy
     Computed,
+}
+
+impl DataQuality {
+    pub fn is_accurate(&self) -> bool {
+        *self == DataQuality::Derived || *self == DataQuality::Computed
+    }
 }
 
 /// Complete fractal computation result for a single pixel.
