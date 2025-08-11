@@ -72,6 +72,20 @@ pub enum ParamPreset {
     MandelbrotRingOfFire,
     // An area which looks weaved
     MandelbrotWeaved,
+    // A kraken-like area
+    MandelbrotKraken,
+    // Psychodelic spiral
+    MandelbrotPsySpiral,
+    // A caterpillar-like structure
+    MandelbrotCaterpillar,
+    // Bunches of spikes around a minibrot
+    MandelbrotBunchOfSpikes,
+    // A minibrot with lots of straight spikes
+    MandelbrotStraightSpikes,
+    // Minibrot on Mandelbrot's backside
+    MandelbrotMinibrotOnBackside,
+    // Flashes around a very tiny minibrot
+    MandelbrotFlashes,
 }
 
 impl ParamPreset {
@@ -109,6 +123,13 @@ impl ParamPreset {
             Self::MandelbrotSquaredSpirals,
             Self::MandelbrotRingOfFire,
             Self::MandelbrotWeaved,
+            Self::MandelbrotKraken,
+            Self::MandelbrotPsySpiral,
+            Self::MandelbrotCaterpillar,
+            Self::MandelbrotBunchOfSpikes,
+            Self::MandelbrotStraightSpikes,
+            Self::MandelbrotMinibrotOnBackside,
+            Self::MandelbrotFlashes,
         ]
     }
 
@@ -122,6 +143,13 @@ impl ParamPreset {
             Self::MandelbrotSquaredSpirals => "Mandelbrot Squared Spirals",
             Self::MandelbrotRingOfFire => "Minibrot with Ring of Fire",
             Self::MandelbrotWeaved => "Weave of Spirals",
+            Self::MandelbrotKraken => "Kraken-like area",
+            Self::MandelbrotPsySpiral => "Psychodelic spiral",
+            Self::MandelbrotCaterpillar => "Caterpillar-like structure",
+            Self::MandelbrotBunchOfSpikes => "Minibrot with bunches of spikes",
+            Self::MandelbrotStraightSpikes => "Minibrot with straight spikes",
+            Self::MandelbrotMinibrotOnBackside => "Minibrot on backside",
+            Self::MandelbrotFlashes => "Flashes around a minibrot",
         }
     }
 
@@ -224,6 +252,99 @@ impl ParamPreset {
                 color_preset: GradientColorPreset::Sunrise,
                 stripe_count: 256,
                 stripe_offset: 0,
+            },
+
+            // Kraken-like area with a minibrot too small for f64 in the middle
+            // Note: Use stripe count 2048 for this
+            Self::MandelbrotKraken => ParamDescription {
+                name: self.name().to_string(),
+                center_x: "-0.36423818776604768336".to_owned(),
+                center_y: "-0.65667699544311595692".to_owned(),
+                radius: "1.1542801E-13".to_owned(),
+                ratio: "1".to_owned(),
+                max_iteration: 20000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 2048,
+                stripe_offset: 0,
+            },
+
+            Self::MandelbrotPsySpiral => ParamDescription {
+                name: self.name().to_string(),
+                center_x: "-1.14856790732546".to_owned(),
+                center_y: "0.2639603229136".to_owned(),
+                radius: "3.6690958E-7".to_owned(),
+                ratio: "1".to_owned(),
+                max_iteration: 20000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 256,
+                stripe_offset: 0,
+            },
+
+            Self::MandelbrotCaterpillar => ParamDescription {
+                name: self.name().to_string(),
+                center_x: "-0.5382233952419".to_owned(),
+                center_y: "0.6108236150811".to_owned(),
+                radius: "0.0000011122613".to_owned(),
+                ratio: "1".to_owned(),
+                max_iteration: 2000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 256,
+                stripe_offset: 0,
+            },
+
+            Self::MandelbrotBunchOfSpikes => ParamDescription {
+                name: self.name().to_string(),
+                center_x: "-0.995643151344189".to_owned(),
+                center_y: "0.280397788186929".to_owned(),
+                radius: "3.2430531E-8".to_owned(),
+                ratio: "1".to_owned(),
+                max_iteration: 40000,
+                iteration_assignment: IterationAssignment::SquareRoot,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 64,
+                stripe_offset: 0,
+            },
+
+            Self::MandelbrotStraightSpikes => ParamDescription {
+                name: self.name().to_string(),
+                center_x: "-0.99441587727171340975".to_owned(),
+                center_y: "0.29980873842699326524".to_owned(),
+                radius: "1.0769815E-13".to_owned(),
+                ratio: "1".to_owned(),
+                max_iteration: 8000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 250,
+                stripe_offset: 0,
+            },
+
+            Self::MandelbrotMinibrotOnBackside => ParamDescription {
+                name: self.name().to_string(),
+                center_x: "0.250268969430133".to_owned(),
+                center_y: "-0.000006636566143".to_owned(),
+                radius: "1.4116211E-8".to_owned(),
+                ratio: "1".to_owned(),
+                max_iteration: 50000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 2048,
+                stripe_offset: 0,
+            },
+
+            Self::MandelbrotFlashes => ParamDescription {
+                name: self.name().to_string(),
+                center_x: "-0.6922857838017087".to_owned(),
+                center_y: "0.4785331215741747".to_owned(),
+                radius: "9.3132215E-9".to_owned(),
+                ratio: "1".to_owned(),
+                max_iteration: 10000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 500,
+                stripe_offset: 365,
             },
         }
     }
