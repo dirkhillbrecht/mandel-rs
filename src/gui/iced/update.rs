@@ -193,7 +193,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             if let Some(engine) = &state.engine {
                 engine.stop();
             }
-            state.runtime.computing = false;
 
             // Create new computation properties from validated parameters
             // GGG rastered math area really needed?
@@ -216,6 +215,7 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             // Start computation and reset visual state
             state.engine.as_ref().unwrap().start();
             state.runtime.canvas_cache.clear();
+            state.runtime.computing = true;
 
             // Schedule first visualization update
             return Task::perform(async {}, |_| Message::UpdateViz);
@@ -296,7 +296,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
             if let Some(engine) = &state.engine {
                 engine.stop();
             }
-            state.runtime.computing = false;
 
             // Create new storage with translated coordinates
             // This preserves any computed data that's still valid after translation
@@ -323,6 +322,7 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
 
             // Start computation and schedule visualization updates
             state.engine.as_ref().unwrap().start();
+            state.runtime.computing = true;
             state.runtime.canvas_cache.clear();
             return Task::perform(async {}, |_| Message::UpdateViz);
         }
@@ -348,7 +348,6 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                     if let Some(engine) = &state.engine {
                         engine.stop();
                     }
-                    state.runtime.computing = false;
 
                     // Create new storage with zoomed coordinates
                     // Preserves computed data that remains valid after zoom
@@ -378,6 +377,7 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
 
                     // Start computation and schedule updates
                     state.engine.as_ref().unwrap().start();
+                    state.runtime.computing = true;
                     state.runtime.canvas_cache.clear();
                     state.runtime.zoom = None;
                     return Task::perform(async {}, |_| Message::UpdateViz);
@@ -386,9 +386,9 @@ pub fn update(state: &mut AppState, message: Message) -> Task<Message> {
                 state.runtime.zoom = None;
             }
         }
-        Message::MousePressed(_point) => {}
-        Message::MouseDragged(_point) => {}
-        Message::MouseReleased(_point) => {}
+        Message::MousePressed(_point)
+        | Message::MouseDragged(_point)
+        | Message::MouseReleased(_point) => {}
     }
     Task::none()
 }
