@@ -96,7 +96,7 @@ use iced::{Element, Length};
 /// - **Fill Available Space**: Expands to use all available window area
 /// - **Responsive Sizing**: Adapts to window resizing and sidebar toggle
 /// - **Aspect Ratio**: Maintains mathematical coordinate system accuracy
-fn render_fractal(app_state: &AppState) -> Element<Message> {
+fn render_fractal(app_state: &'_ AppState) -> Element<'_, Message> {
     let fract_canvas = FractalCanvas::new(app_state);
     canvas(fract_canvas)
         .width(Length::Fill)
@@ -104,7 +104,7 @@ fn render_fractal(app_state: &AppState) -> Element<Message> {
         .into()
 }
 
-fn open_coordinates_area(state: &AppState) -> Element<Message> {
+fn open_coordinates_area(state: &AppState) -> Element<'_, Message> {
     container(
         container(
             if state.runtime.canvas_is_dragging || state.runtime.zoom.is_some() {
@@ -138,7 +138,7 @@ fn open_coordinates_area(state: &AppState) -> Element<Message> {
     .into()
 }
 
-fn collapsed_coordinates_area(_state: &AppState) -> Element<Message> {
+fn collapsed_coordinates_area(_state: &AppState) -> Element<'_, Message> {
     container(text("")).width(Length::Shrink).height(0).into()
 }
 
@@ -180,7 +180,7 @@ fn collapsed_coordinates_area(_state: &AppState) -> Element<Message> {
 /// - **Clear Labeling**: Descriptive text for all parameters
 /// - **Appropriate Sizing**: Optimal widget dimensions for usability
 /// - **Consistent Spacing**: Uniform visual rhythm throughout
-fn open_sidebar(state: &AppState) -> Element<Message> {
+fn open_sidebar(state: &AppState) -> Element<'_, Message> {
     container(
         column![
             // === Sidebar Header with Toggle ===
@@ -321,7 +321,7 @@ fn open_sidebar(state: &AppState) -> Element<Message> {
 /// - **Easy Access**: Single-click restoration of full control interface
 /// - **Visual Consistency**: Maintains layout structure when collapsed
 /// - **User Choice**: Allows users to choose their preferred UI density
-fn collapsed_sidebar(_state: &AppState) -> Element<Message> {
+fn collapsed_sidebar(_state: &AppState) -> Element<'_, Message> {
     container(button(">").on_press(Message::ToggleSidebar))
         .width(Length::Shrink)
         .into()
@@ -352,7 +352,7 @@ fn collapsed_sidebar(_state: &AppState) -> Element<Message> {
 /// - **Full Space**: Expands to fill all available window area
 /// - **Centered Content**: Centers canvas within available space
 /// - **Responsive**: Adapts to window size changes and sidebar state
-fn fractal(state: &AppState) -> Element<Message> {
+fn fractal(state: &AppState) -> Element<'_, Message> {
     container(if let Some(_) = &state.storage {
         column![render_fractal(state)].spacing(10)
     } else {
@@ -399,7 +399,7 @@ fn fractal(state: &AppState) -> Element<Message> {
 /// - **Responsive Design**: Adapts to different window sizes gracefully
 /// - **Progressive Disclosure**: Controls can be hidden when not needed
 /// - **Touch-Friendly**: Appropriate spacing for various interaction methods
-pub fn view(state: &AppState) -> Element<Message> {
+pub fn view(state: &AppState) -> Element<'_, Message> {
     let spcol = if state.viz.sidebar_visible { 10 } else { 0 };
     row![
         // Conditional sidebar: expanded controls or minimal toggle

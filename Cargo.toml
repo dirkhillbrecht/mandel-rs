@@ -5,13 +5,13 @@ name = "mandel-rs"
 version = "0.4.0"
 description = "A fractal graphics visualizer written in Rust, to produce nice graphics and to learn Rust"
 authors = ["Dirk Hillbrecht <dirk@hillbrecht.de>", "Claude AI"]
-rust-version = "1.88"
+rust-version = "1.89"
 edition = "2024"
 
 [dependencies]
 async-stream = "0.3"
 bigdecimal = "0.4.8"
-clap = { version = "4.5.43", features = ["derive"] }
+clap = { version = "4.5.44", features = ["derive"] }
 euclid = "0.22.11"
 iced = { version = "0.13.1", features = ["image", "tokio", "canvas"] }
 palette = "0.7"
