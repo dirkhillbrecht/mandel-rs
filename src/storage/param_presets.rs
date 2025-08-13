@@ -86,6 +86,8 @@ pub enum ParamPreset {
     MandelbrotMinibrotOnBackside,
     // Flashes around a very tiny minibrot
     MandelbrotFlashes,
+    // Minibrot in a jellyfish-like structure
+    MandelbrotJellyfish,
 }
 
 impl ParamPreset {
@@ -130,6 +132,7 @@ impl ParamPreset {
             Self::MandelbrotStraightSpikes,
             Self::MandelbrotMinibrotOnBackside,
             Self::MandelbrotFlashes,
+            Self::MandelbrotJellyfish,
         ]
     }
 
@@ -150,6 +153,7 @@ impl ParamPreset {
             Self::MandelbrotStraightSpikes => "Minibrot with straight spikes",
             Self::MandelbrotMinibrotOnBackside => "Minibrot on backside",
             Self::MandelbrotFlashes => "Flashes around a minibrot",
+            Self::MandelbrotJellyfish => "Jellyfish with a minibrot",
         }
     }
 
@@ -345,6 +349,19 @@ impl ParamPreset {
                 color_preset: GradientColorPreset::Sunrise,
                 stripe_count: 500,
                 stripe_offset: 365,
+            },
+
+            Self::MandelbrotJellyfish => ParamDescription {
+                name: self.name().to_string(),
+                center_x: "-1.749997863315900509".to_owned(),
+                center_y: "0".to_owned(),
+                radius: "1.1197185E-11".to_owned(),
+                ratio: "1".to_owned(),
+                max_iteration: 50000,
+                iteration_assignment: IterationAssignment::SquareRoot,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 2048,
+                stripe_offset: 1995,
             },
         }
     }
