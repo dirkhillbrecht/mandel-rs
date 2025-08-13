@@ -342,7 +342,7 @@ impl GradientColors {
         assigner: fn(u32, u32) -> u32,
         maxit: u32,
     ) -> [u8; 4] {
-        if it == maxit {
+        if it == maxit || self.stripes.len() < 1 {
             Self::rgb_to_u84(&self.body_color)
         } else {
             Self::rgb_to_u84(
