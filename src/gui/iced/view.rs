@@ -63,10 +63,11 @@
 use crate::gui::iced::app::{AppState, ImageRenderScheme};
 use crate::gui::iced::fract_canvas::FractalCanvas;
 use crate::gui::iced::message::Message;
+use crate::gui::iced::overlay_canvas::OverlayCanvas;
 use crate::storage::param_presets::ParamPreset;
 use crate::storage::visualization::coloring::presets::{GradientColorPreset, IterationAssignment};
 use iced::widget::{
-    button, canvas, column, container, pick_list, progress_bar, row, text, text_input,
+    Canvas, Stack, button, column, container, pick_list, progress_bar, row, text, text_input,
 };
 use iced::{Element, Length};
 
@@ -96,9 +97,18 @@ use iced::{Element, Length};
 /// - **Fill Available Space**: Expands to use all available window area
 /// - **Responsive Sizing**: Adapts to window resizing and sidebar toggle
 /// - **Aspect Ratio**: Maintains mathematical coordinate system accuracy
-fn render_fractal(app_state: &'_ AppState) -> Element<'_, Message> {
-    let fract_canvas = FractalCanvas::new(app_state);
-    canvas(fract_canvas)
+fn render_fractal_area(app_state: &'_ AppState) -> Element<'_, Message> {
+    Stack::new()
+        .push(
+            Canvas::new(FractalCanvas::new(app_state))
+                .width(Length::Fill)
+                .height(Length::Fill),
+        )
+        .push(
+            Canvas::new(OverlayCanvas::new(app_state))
+                .width(Length::Fill)
+                .height(Length::Fill),
+        )
         .width(Length::Fill)
         .height(Length::Fill)
         .into()
@@ -354,7 +364,7 @@ fn collapsed_sidebar(_state: &AppState) -> Element<'_, Message> {
 /// - **Responsive**: Adapts to window size changes and sidebar state
 fn fractal(state: &AppState) -> Element<'_, Message> {
     container(if let Some(_) = &state.storage {
-        column![render_fractal(state)].spacing(10)
+        column![render_fractal_area(state)].spacing(10)
     } else {
         column![text("")]
     })
