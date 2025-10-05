@@ -116,7 +116,7 @@ If the maximum iteration changes exclusively in the image data, recomputation ca
 A number of typical stage sizes is selectable from a list/dropdown box. These are typical screen solutions (800·600, 1024·768, HD, FullHD, 2K, 4K, 8K), photo dimensions (10·15 cm, 20·30 cm, 150 or 300 dpi), or sheet sizes (DIN A5/A4/A3) with typical resolutions.
 An additional checkbox allows to select "oversampling", i.e. each output pixel is rendered from four computed values, effecitively doubling the resolution and quadrupling the amount of data.
 
-### 🚧 Issue 4.11: Change mathematical representation into data triple of center point, angle, radius, and aspect ratio
+### ✅ Issue 4.11: Change mathematical representation into data triple of center point, angle, radius, and aspect ratio
 
 Currently, the mathematical representation of an area to be shown is represented by two adjacent points of its enclosing rectangle.
 It makes sense to switch to a more "polar" primary representation of the area:
@@ -196,12 +196,12 @@ There should be a library for doing this in Rust.
 Every time the master branch of the project is pushed to Github,
 some automatic process regenerates the online documentation of the classes.
 
-### 🚧 Issue 4.21: Generate executables on push
+### ✅ Issue 4.21: Generate executables on push
 
 Every time a release commit is pushed to Github,
 some automatic process produces an actual released version of the program
 
-### 🚧 Issue 4.22: Compile the version number into the executable
+### ✅ Issue 4.22: Compile the version number into the executable
 
 Mandel.rs should know about its own version number and present it somewhere, e.g. in the window title.
 
