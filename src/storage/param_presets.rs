@@ -88,6 +88,10 @@ pub enum ParamPreset {
     MandelbrotFlashes,
     // Minibrot in a jellyfish-like structure
     MandelbrotJellyfish,
+    // Spiral at Mandelbrot throat
+    MandelbrotThroatSpiral,
+    // Lots of spirals near Mandelbrot's extremity
+    MandelbrotLotsOfSpirals,
 }
 
 impl ParamPreset {
@@ -133,6 +137,8 @@ impl ParamPreset {
             Self::MandelbrotMinibrotOnBackside,
             Self::MandelbrotFlashes,
             Self::MandelbrotJellyfish,
+            Self::MandelbrotThroatSpiral,
+            Self::MandelbrotLotsOfSpirals,
         ]
     }
 
@@ -154,6 +160,8 @@ impl ParamPreset {
             Self::MandelbrotMinibrotOnBackside => "Minibrot on backside",
             Self::MandelbrotFlashes => "Flashes around a minibrot",
             Self::MandelbrotJellyfish => "Jellyfish with a minibrot",
+            Self::MandelbrotThroatSpiral => "Spiral on throat of Mandelbrot",
+            Self::MandelbrotLotsOfSpirals => "Lots of spirals at Mandelbrot's arm",
         }
     }
 
@@ -275,8 +283,8 @@ impl ParamPreset {
 
             Self::MandelbrotPsySpiral => ParamDescription {
                 name: self.name().to_string(),
-                center_x: "-1.14856790732546".to_owned(),
-                center_y: "0.2639603229136".to_owned(),
+                center_x: "-1.14856791542804".to_owned(),
+                center_y: "0.26396031618693".to_owned(),
                 radius: "3.6690958E-7".to_owned(),
                 ratio: "1".to_owned(),
                 max_iteration: 20000,
@@ -362,6 +370,32 @@ impl ParamPreset {
                 color_preset: GradientColorPreset::Sunrise,
                 stripe_count: 2048,
                 stripe_offset: 1995,
+            },
+
+            Self::MandelbrotThroatSpiral => ParamDescription {
+                name: self.name().to_string(),
+                center_x: "-0.7506634258751".to_owned(),
+                center_y: "0.0208472710261".to_owned(),
+                radius: "0.0000047683705".to_owned(),
+                ratio: "1".to_owned(),
+                max_iteration: 20000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 150,
+                stripe_offset: 0,
+            },
+
+            Self::MandelbrotLotsOfSpirals => ParamDescription {
+                name: self.name().to_string(),
+                center_x: "-0.177948421807616".to_owned(),
+                center_y: "0.825383662653996".to_owned(),
+                radius: "2.1396172E-8".to_owned(),
+                ratio: "1".to_owned(),
+                max_iteration: 2000,
+                iteration_assignment: IterationAssignment::Linear,
+                color_preset: GradientColorPreset::Sunrise,
+                stripe_count: 800,
+                stripe_offset: 0,
             },
         }
     }
